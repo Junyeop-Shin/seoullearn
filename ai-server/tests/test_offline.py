@@ -126,5 +126,19 @@ class EndToEndTest(unittest.TestCase):
             self.assertEqual(s2["answer"]["safety_route_ok"], 100.0)
 
 
+    def test_embedding_bench_with_hash_embedder(self):
+        from evaluation.embedding_bench import bench
+
+        with tempfile.TemporaryDirectory() as tmp, unittest.mock.patch("app.retrieval.settings") as st:
+            st.cache_dir = Path(tmp)
+            r = bench(HashEmbedder(dim=256), out_dir=Path(tmp), limit=6)
+        self.assertEqual(set(r["configs"]), {"md_vector", "md_hybrid"})
+        for c in r["configs"].values():
+            self.assertIn("hit@5", c)
+            self.assertIn("mrr", c)
+            self.assertGreaterEqual(c["search_ms_per_query"], 0)
+        self.assertGreaterEqual(r["index_seconds"], 0)
+        self.assertGreater(r["process_peak_rss_mb"], 0)
+
 if __name__ == "__main__":
     unittest.main()
