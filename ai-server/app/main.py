@@ -1,4 +1,4 @@
-"""AI 서버 API. 지금은 매뉴얼 Q&A만 있다. 보고서 초안은 다음 단계에서 추가."""
+"""AI 서버 API. 지금은 매뉴얼 Q&A와 문의 초안이 있다. 보고서 초안은 다음 단계에서 추가."""
 from __future__ import annotations
 
 import logging
@@ -8,7 +8,7 @@ from functools import lru_cache
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from . import qa
+from . import inquiry, qa
 from .config import settings
 from .llm import LLMUnavailableError, get_chat_model
 from .pipelines import build_retriever
@@ -48,6 +48,9 @@ class QAResponse(BaseModel):
     citations: list[str]
     pii_masked: list[str]
     safety: bool
+    # 답을 다 못 했을 때(partial·no) 문의처에 보낼 글 초안과 연락 방법. 아동 안전 경로에서는 만들지 않는다.
+    inquiry_draft: str | None = None
+    inquiry_contact: str | None = None
 
 
 @app.get("/health")
@@ -59,12 +62,15 @@ def health():
 def ask(req: QARequest):
     try:
         res = qa.answer(req.question, _retriever(), _llm(), settings.top_k)
+        draft = inquiry.build(res, _llm(), req.ieumdan_chat_url)
     except LLMUnavailableError:
         log.warning("qa len=%d llm_unavailable", len(req.question))
         raise HTTPException(status_code=503, detail="지금은 답변을 만들 수 없습니다. 잠시 후 다시 시도해 주세요.")
-    log.info("qa len=%d answerable=%s route=%s pii=%s safety=%s error=%s",
-             len(req.question), res.answerable, res.route, res.pii_masked, res.safety, bool(res.error))
+    log.info("qa len=%d answerable=%s route=%s pii=%s safety=%s error=%s draft=%s draft_error=%s",
+             len(req.question), res.answerable, res.route, res.pii_masked, res.safety, bool(res.error),
+             draft is not None, bool(draft and draft.error))
     info, link = qa.route_contact(res.route, req.ieumdan_chat_url)
     return QAResponse(answer=res.answer, answerable=res.answerable, route=res.route,
                       route_info=info, route_link=link,
-                      citations=res.cite_labels, pii_masked=res.pii_masked, safety=res.safety)
+                      citations=res.cite_labels, pii_masked=res.pii_masked, safety=res.safety,
+                      inquiry_draft=draft.text if draft else None, inquiry_contact=draft.contact if draft else None)

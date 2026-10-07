@@ -40,6 +40,10 @@ class Settings:
     reranker_model: str = os.getenv("RERANKER_MODEL", "BAAI/bge-reranker-v2-m3")
     rerank_pool: int = int(os.getenv("RERANK_POOL", "20"))
 
+    # 벡터 색인 위치. file = .cache/index_*.npy (테스트·평가용), pgvector = PostgreSQL (API 서버용)
+    vector_backend: str = os.getenv("VECTOR_BACKEND", "file")
+    database_url: str = os.getenv("DATABASE_URL", "postgresql://seoullearn:seoullearn_dev@db:5432/seoullearn")
+
     top_k: int = int(os.getenv("TOP_K", "5"))
     # 무료 등급 요청 한도 대응. 분당 요청 수 상한.
     llm_rpm: float = float(os.getenv("LLM_RPM", "8"))

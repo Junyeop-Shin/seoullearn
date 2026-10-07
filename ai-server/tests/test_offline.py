@@ -89,6 +89,37 @@ class RetrievalTest(unittest.TestCase):
             r, _ = build_retriever("md_hybrid_glossary_rerank", "v1", embedder=HashEmbedder(dim=256), reranker=OverlapReranker())
             self.assertEqual(len(r.search("활동비 언제 들어와요?", 5)), 5)
 
+    def test_pgvector_backend_uses_store(self):
+        from app.retrieval import VectorRetriever
+        from app.vector_store import vector_literal
+
+        class FakeStore:  # DB 없이 pgvector 경로만 확인
+            def __init__(self):
+                self.rows, self.added = {}, 0
+
+            def has_index(self, key):
+                return key in self.rows
+
+            def add(self, key, chunks, matrix, model):
+                self.added += 1
+                self.rows[key] = [(c.id, v) for c, v in zip(chunks, matrix)]
+
+            def search(self, key, q, k):
+                scored = sorted(((cid, float(v @ q)) for cid, v in self.rows[key]), key=lambda x: (-x[1], x[0]))
+                return scored[:k]
+
+        chunks, emb, store = load_markdown("v1")[:30], HashEmbedder(dim=256), FakeStore()
+        with tempfile.TemporaryDirectory() as tmp, unittest.mock.patch("app.retrieval.settings") as st:
+            st.cache_dir = Path(tmp)
+            pg = VectorRetriever(chunks, emb, backend="pgvector", store=store)
+            VectorRetriever(chunks, emb, backend="pgvector", store=store)  # 두 번째는 다시 색인하지 않는다
+            file = VectorRetriever(chunks, emb, backend="file")
+            a = [c.id for c, _ in pg.search("활동비 지급일", 5)]
+            b = [c.id for c, _ in file.search("활동비 지급일", 5)]
+        self.assertEqual(store.added, 1)
+        self.assertEqual(a, b)
+        self.assertEqual(vector_literal(emb.embed_query("가")[:2] * 0), "[0.00000000,0.00000000]")
+
     def test_tokenize(self):
         self.assertIn("활동", tokenize("활동보고서"))
 
@@ -206,6 +237,61 @@ class LLMFailureTest(unittest.TestCase):
     def test_format_error_is_recorded(self):
         res = self._answer(ValueError("JSON 없음"))
         self.assertIn("ValueError", res.error)
+
+
+class InquiryDraftTest(unittest.TestCase):
+    class Fake:
+        name = "fake"
+
+        def __init__(self, out):
+            self.out, self.calls = out, []
+
+        def complete(self, system, user):
+            self.calls.append(user)
+            return self.out
+
+    def _res(self, **kw):
+        base = dict(question="가람중 멘티가 학습사이트를 바꾸고 싶대요", answer="자료에 없습니다.", answerable="no", route="운영사무국",
+                    cite_labels=["활동가이드 p.62 문의처별 담당 범위"])
+        return qa.QAResult(**{**base, **kw})
+
+    def test_draft_for_unanswered_question(self):
+        from app import inquiry
+
+        llm = self.Fake('{"draft": "안녕하세요, 서울런 멘토입니다. 학습사이트 변경이 가능한지 문의드립니다. 확인 부탁드립니다."}')
+        d = inquiry.build(self._res(), llm)
+        self.assertIn("문의드립니다", d.text)
+        self.assertIn("02-3274-9212", d.contact)
+        self.assertIsNone(d.error)
+        self.assertNotIn("가람중", llm.calls[0])  # LLM에는 가린 질문만 간다
+        self.assertIn("p.62", llm.calls[0])
+
+    def test_ieumdan_uses_openchat_link(self):
+        from app import inquiry
+
+        d = inquiry.build(self._res(route="이음단", answerable="partial"), self.Fake('{"draft": "문의드립니다."}'),
+                          "https://open.kakao.com/o/abc123")
+        self.assertEqual(d.contact, "https://open.kakao.com/o/abc123")
+
+    def test_no_draft_when_answered_or_safety(self):
+        from app import inquiry
+
+        llm = self.Fake('{"draft": "x"}')
+        self.assertIsNone(inquiry.build(self._res(answerable="yes"), llm))
+        self.assertIsNone(inquiry.build(self._res(safety=True, route="운영사무국(즉시)", answerable="yes"), llm))
+        self.assertIsNone(inquiry.build(self._res(route="운영사무국(즉시)"), llm))
+        self.assertEqual(llm.calls, [])
+
+    def test_bad_output_is_recorded_and_pii_masked(self):
+        from app import inquiry
+
+        d = inquiry.build(self._res(), self.Fake("초안입니다"))
+        self.assertIn("ValueError", d.error)
+        self.assertIn("문의드립니다", d.text)
+        self.assertNotIn("가람중", d.text)
+        d2 = inquiry.build(self._res(), self.Fake('{"draft": "가람중 김민지 학생 관련 문의드립니다. 010-1234-5678"}'))
+        self.assertNotIn("가람중", d2.text)
+        self.assertNotIn("010-1234-5678", d2.text)
 
 
 if __name__ == "__main__":

@@ -35,13 +35,14 @@ CONFIGS = {
 }
 
 
-def build_retriever(config: str | PipelineConfig, corpus: str = "v1", embedder: Embedder | None = None, reranker=None):
+def build_retriever(config: str | PipelineConfig, corpus: str = "v1", embedder: Embedder | None = None, reranker=None,
+                    vector_backend: str | None = None):
     cfg = CONFIGS[config] if isinstance(config, str) else config
     chunks = load_chunks(cfg.source, corpus)
     if cfg.retriever == "bm25":
         r = BM25Retriever(chunks)
     else:
-        vec = VectorRetriever(chunks, embedder or get_embedder())
+        vec = VectorRetriever(chunks, embedder or get_embedder(), backend=vector_backend)
         r = vec if cfg.retriever == "vector" else HybridRetriever([vec, BM25Retriever(chunks)])
     if cfg.glossary:
         r = ExpandingRetriever(r, GlossaryExpander())

@@ -61,9 +61,10 @@ def load_items(path: Path, corpus: str, ids: set[str] | None, limit: int | None)
 
 def run(config: str, corpus: str, retrieval_only: bool = False, fake_llm: bool = False, limit: int | None = None,
         ids: set[str] | None = None, embedder=None, out_dir: Path | None = None, k: int | None = None,
-        note: str = "", reranker=None) -> tuple[Path, dict]:
+        note: str = "", reranker=None, vector_backend: str = "file") -> tuple[Path, dict]:
     k = k or settings.top_k
-    retriever, chunks = build_retriever(config, corpus, embedder=embedder, reranker=reranker)
+    # 평가는 DB 없이 돌도록 기본이 file 방식이다
+    retriever, chunks = build_retriever(config, corpus, embedder=embedder, reranker=reranker, vector_backend=vector_backend)
     by_id = {c.id: c for c in chunks}
     llm = None if retrieval_only else (FakeLLM() if fake_llm else get_chat_model("answer"))
     out_dir = out_dir or settings.root / "eval" / "runs"
@@ -118,6 +119,7 @@ def main():
     p.add_argument("--embedding-model", help="이번 실행만 임베딩 모델 바꾸기 (예: BAAI/bge-m3)")
     p.add_argument("--embedding-provider", choices=["local", "gemini", "hash"])
     p.add_argument("--reranker-model", help="이번 실행만 리랭커 모델 바꾸기 (rerank 설정에서만 쓰인다)")
+    p.add_argument("--vector-backend", default="file", choices=["file", "pgvector"])
     p.add_argument("--note", default="", help="비교표에 적을 메모 (예: 가드 수정 후)")
     a = p.parse_args()
     t0 = time.time()
@@ -126,7 +128,8 @@ def main():
         embedder = get_embedder(a.embedding_provider, a.embedding_model)
     out, s = run(a.config, a.corpus, a.retrieval_only, a.fake_llm, a.limit, set(a.ids.split(",")) if a.ids else None,
                  embedder=embedder, k=a.k, note=a.note,
-                 reranker=get_reranker(a.reranker_model) if a.reranker_model else None)
+                 reranker=get_reranker(a.reranker_model) if a.reranker_model else None,
+                 vector_backend=a.vector_backend)
     print(json.dumps({k: v for k, v in s.items() if k != "by_category"}, ensure_ascii=False, indent=2))
     print(f"저장: {out}  ({time.time() - t0:.0f}초)")
 

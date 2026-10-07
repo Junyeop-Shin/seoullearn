@@ -56,15 +56,29 @@ class BM25Retriever:
 
 
 class VectorRetriever:
+    """backend: file = .npy 파일에서 내적으로 검색, pgvector = PostgreSQL에서 검색. 둘의 결과는 같아야 한다
+    (scripts/compare_vector_backends.py로 확인)."""
+
     name = "vector"
 
-    def __init__(self, chunks: list[Chunk], embedder: Embedder):
+    def __init__(self, chunks: list[Chunk], embedder: Embedder, backend: str | None = None, store=None):
         self.chunks, self.embedder = chunks, embedder
-        self.matrix = self._load_or_build()
+        self.backend = backend or settings.vector_backend
+        self.by_id = {c.id: c for c in chunks}
+        self.index_key = hashlib.sha256(("\x1e".join(c.text for c in chunks) + embedder.name).encode()).hexdigest()[:16]
+        if self.backend == "pgvector":
+            if store is None:
+                from .vector_store import PgVectorStore
+
+                store = PgVectorStore(settings.database_url)
+            self.store = store
+            if not store.has_index(self.index_key):
+                store.add(self.index_key, chunks, embedder.embed([c.text for c in chunks]), embedder.name)
+        else:
+            self.matrix = self._load_or_build()
 
     def _load_or_build(self) -> np.ndarray:
-        h = hashlib.sha256(("\x1e".join(c.text for c in self.chunks) + self.embedder.name).encode()).hexdigest()[:16]
-        path: Path = settings.cache_dir / f"index_{h}.npy"
+        path: Path = settings.cache_dir / f"index_{self.index_key}.npy"
         if path.exists():
             return np.load(path)
         m = self.embedder.embed([c.text for c in self.chunks])
@@ -73,6 +87,8 @@ class VectorRetriever:
 
     def search(self, query: str, k: int) -> list[tuple[Chunk, float]]:
         q = self.embedder.embed_query(query)
+        if self.backend == "pgvector":
+            return [(self.by_id[i], s) for i, s in self.store.search(self.index_key, q, k)]
         scores = self.matrix @ q
         order = np.argsort(scores)[::-1][:k]
         return [(self.chunks[i], float(scores[i])) for i in order]

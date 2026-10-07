@@ -2,6 +2,13 @@ services:
   ai-server:
     build: ./ai-server
     env_file: .env
+    environment:
+      # API 서버는 pgvector에서 검색한다. 평가(run_eval)는 이 값과 상관없이 file 방식이 기본이다.
+      VECTOR_BACKEND: ${VECTOR_BACKEND:-pgvector}
+      DATABASE_URL: postgresql://seoullearn:${POSTGRES_PASSWORD:-seoullearn_dev}@db:5432/seoullearn
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "8000:8000"
     volumes:
@@ -9,9 +16,26 @@ services:
       - ./ai-server:/project/ai-server
       - ./data:/project/data:ro
       - ./eval:/project/eval
+      - ./scripts:/project/scripts:ro
       - ./.cache:/project/.cache
       # 임베딩 모델 다운로드 캐시 (한 번만 받음)
       - hf-cache:/hf-cache
 
+  # 벡터 색인 저장소. 매뉴얼·공지 청크만 들어간다. 포트는 밖으로 열지 않는다.
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: seoullearn
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-seoullearn_dev}
+      POSTGRES_DB: seoullearn
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seoullearn -d seoullearn"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
+  pgdata:
   hf-cache:

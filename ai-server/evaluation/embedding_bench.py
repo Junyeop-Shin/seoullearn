@@ -42,7 +42,7 @@ def bench(embedder: Embedder, corpus: str = "v1", out_dir: Path | None = None, l
     questions = [qa.guard.check(it["question"]).text
                  for it, _ in load_items(settings.root / "eval" / "eval_set.json", corpus, None, limit)]
     for config in CONFIGS:
-        retriever, chunks = build_retriever(config, corpus, embedder=embedder)
+        retriever, chunks = build_retriever(config, corpus, embedder=embedder, vector_backend="file")
         if "index_seconds" not in result:
             # 색인 캐시(.cache/index_*.npy)를 거치지 않고 청크 전체를 직접 임베딩해 잰다
             t0 = time.perf_counter()
