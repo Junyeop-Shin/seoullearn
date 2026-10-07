@@ -15,7 +15,7 @@ COLS = [
     ("검색 hit@1", ("retrieval", "hit@1")), ("검색 hit@3", ("retrieval", "hit@3")), ("검색 hit@k", ("retrieval", "hit@k")),
     ("MRR", ("retrieval", "mrr")), ("답변가능 판단", ("answer", "answerable_acc")), ("지어내기↓", ("answer", "fabrication_rate")),
     ("과잉거절↓", ("answer", "over_refusal_rate")), ("문의처", ("answer", "route_acc")),
-    ("인용 정확도", ("answer", "citation_precision")), ("안전 연결", ("answer", "safety_route_ok")),
+    ("인용 정확도", ("answer", "citation_precision")), ("바뀐 점 언급", ("answer", "change_noted_rate")), ("안전 연결", ("answer", "safety_route_ok")),
     ("채점 평균(0~2)", ("judge", "correctness_avg_0to2")), ("완전 정답", ("judge", "fully_correct")),
 ]
 

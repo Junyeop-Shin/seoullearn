@@ -3,7 +3,16 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+import re
+
 from app.corpus import Chunk, parse_page_range
+
+# 공지가 매뉴얼 내용을 바꿨을 때 답변이 그 사실을 밝혔는지 보는 표현. 낱말 검사라서 대략적인 지표다.
+CHANGE_WORDS = re.compile(r"바뀌|바뀐|변경되|변경됐|개정|종료되|종료됐|종료된|이전에는|기존|더 이상|달라")
+
+
+def notes_change(answer: str) -> bool:
+    return bool(CHANGE_WORDS.search(answer or ""))
 
 
 def evidence_match(chunk: Chunk, evidence: str) -> bool:
@@ -66,6 +75,11 @@ def summarize(records: list[dict], k: int) -> dict:
         good = sum(sum(1 for ok in r["cite_ok"] if ok) for r in cited)
         total = sum(len(r["cite_ok"]) for r in cited)
         s["answer"]["citation_precision"] = _pct(good, total)
+    # 매뉴얼을 대체한 공지(supersedes)가 정답 근거인 문항에서, 답변이 '바뀐 점'을 밝힌 비율 (v2 코퍼스에서만 나온다)
+    superseded = [r for r in answered if r.get("supersede")]
+    if superseded:
+        s["answer"]["change_noted_n"] = len(superseded)
+        s["answer"]["change_noted_rate"] = _pct(sum(notes_change(r["pred"]["answer"]) for r in superseded), len(superseded))
     safety = [r for r in answered if r["gold"]["route"] == "운영사무국(즉시)"]
     if safety:
         s["answer"]["safety_route_ok"] = _pct(sum(r["pred"]["route"] == "운영사무국(즉시)" for r in safety), len(safety))

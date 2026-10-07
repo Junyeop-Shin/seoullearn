@@ -66,6 +66,7 @@ def run(config: str, corpus: str, retrieval_only: bool = False, fake_llm: bool =
     # 평가는 DB 없이 돌도록 기본이 file 방식이다
     retriever, chunks = build_retriever(config, corpus, embedder=embedder, reranker=reranker, vector_backend=vector_backend)
     by_id = {c.id: c for c in chunks}
+    superseding_docs = {c.doc_id for c in chunks if c.supersedes}  # 매뉴얼 내용을 대체한 공지
     llm = None if retrieval_only else (FakeLLM() if fake_llm else get_chat_model("answer"))
     out_dir = out_dir or settings.root / "eval" / "runs"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -78,7 +79,8 @@ def run(config: str, corpus: str, retrieval_only: bool = False, fake_llm: bool =
     items = list(load_items(settings.root / "eval" / "eval_set.json", corpus, ids, limit))
     for n, (it, gold) in enumerate(items, 1):
         rec = {"id": it["id"], "question": it["question"], "category": it["category"], "origin": it["origin"],
-               "type": it["type"], "gold": gold}
+               "type": it["type"], "gold": gold,
+               "supersede": any(ev.partition(":")[0] in superseding_docs for ev in gold["evidence"])}
         if retrieval_only:
             hits = [c for c, _ in retriever.search(qa.guard.check(it["question"]).text, k)]
             rec["retrieved"] = [c.id for c in hits]

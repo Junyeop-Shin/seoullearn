@@ -215,6 +215,23 @@ class EndToEndTest(unittest.TestCase):
         self.assertGreaterEqual(r["index_seconds"], 0)
         self.assertGreater(r["process_peak_rss_mb"], 0)
 
+class ChangeNotedMetricTest(unittest.TestCase):
+    def test_change_noted_rate(self):
+        from evaluation.metrics import notes_change, summarize
+
+        self.assertTrue(notes_change("8월 10일 신청 건부터 멘티가 직접 신청하는 것으로 바뀌었습니다."))
+        self.assertFalse(notes_change("멘티가 직접 신청합니다."))
+
+        def rec(answer, supersede):
+            return {"gold": {"evidence": [], "answerable": "yes", "route": None, "answer": ""}, "ranks": [], "category": "공지변경",
+                    "supersede": supersede, "cite_ok": [],
+                    "pred": {"answerable": "yes", "route": None, "answer": answer, "citations": [], "error": None}}
+
+        s = summarize([rec("이전에는 멘토가 대신 신청했습니다.", True), rec("멘티가 신청합니다.", True), rec("기존과 같습니다.", False)], 5)
+        self.assertEqual(s["answer"]["change_noted_n"], 2)
+        self.assertEqual(s["answer"]["change_noted_rate"], 50.0)
+
+
 class LLMFailureTest(unittest.TestCase):
     def _answer(self, exc):
         from app import qa
