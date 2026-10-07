@@ -11,6 +11,7 @@ from .corpus import Chunk
 from .llm import ChatLLM, LLMUnavailableError
 
 ROUTES = ["운영사무국", "이음단", "학습지원센터", "운영사무국(즉시)"]
+DEFAULT_ROUTE = "운영사무국"  # 답을 다 못 했는데 모델이 문의처를 고르지 않았을 때
 ROUTE_INFO = {
     "운영사무국": "멘토링 운영사무국 (02-3274-9212, 카카오 채널 '서울런멘토링')",
     "이음단": "소속 자치구 이음단 (카카오톡 오픈채팅)",
@@ -116,6 +117,8 @@ def answer(question: str, retriever, llm: ChatLLM, k: int = 5) -> QAResult:
         res.raw = llm.complete(SYSTEM, user)
         data = parse_output(res.raw)
         res.answer, res.answerable, res.route = data["answer"], data["answerable"], data["route"]
+        if res.answerable != "yes" and res.route is None:
+            res.route = DEFAULT_ROUTE  # 답을 다 못 했으면 물어볼 곳은 항상 알려 준다
         used = [hits[i - 1] for i in data["citations"] if 1 <= i <= len(hits)]
         res.citations = [c.id for c in used]
         res.cite_labels = [c.cite for c in used]

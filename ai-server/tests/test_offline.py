@@ -251,6 +251,23 @@ class LLMFailureTest(unittest.TestCase):
         with self.assertRaises(LLMUnavailableError):
             self._answer(LLMUnavailableError("429 RESOURCE_EXHAUSTED"))
 
+    def test_unanswered_question_always_has_route(self):
+        from app.retrieval import BM25Retriever
+
+        class NoRoute:
+            name = "noroute"
+
+            def __init__(self, answerable):
+                self.answerable = answerable
+
+            def complete(self, system, user):
+                return json.dumps({"answerable": self.answerable, "answer": "자료에 없습니다.", "citations": [], "route": None})
+
+        r = BM25Retriever(load_markdown("v1"))
+        self.assertEqual(qa.answer("지각 처리 어떻게 해요?", r, NoRoute("no")).route, "운영사무국")
+        self.assertEqual(qa.answer("지각 처리 어떻게 해요?", r, NoRoute("partial")).route, "운영사무국")
+        self.assertIsNone(qa.answer("지각 처리 어떻게 해요?", r, NoRoute("yes")).route)
+
     def test_format_error_is_recorded(self):
         res = self._answer(ValueError("JSON 없음"))
         self.assertIn("ValueError", res.error)
