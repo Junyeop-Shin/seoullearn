@@ -10,10 +10,6 @@
 | md_vector | multilingual-e5-small-ko-v2 | v1 | 검색만 | 54.4 | 79.4 | 83.8 | 0.669 | - | - | - | - | - | - | - | - |
 | md_hybrid | multilingual-e5-small-ko-v2 | v1 | 검색만 | 52.9 | 77.9 | 86.8 | 0.665 | - | - | - | - | - | - | - | - |
 | md_hybrid_glossary | multilingual-e5-small-ko-v2 | v1 | 검색만 | 54.4 | 77.9 | 86.8 | 0.673 | - | - | - | - | - | - | - | - |
-| md_vector | multilingual-e5-small-ko-v2 | v1 | 검색만 | 54.4 | 79.4 | 83.8 | 0.669 | - | - | - | - | - | - | - | - |
-| md_hybrid | multilingual-e5-small-ko-v2 | v1 | 검색만 | 52.9 | 77.9 | 86.8 | 0.665 | - | - | - | - | - | - | - | - |
-| md_vector | bge-m3 | v1 | 검색만 | 67.6 | 80.9 | 88.2 | 0.748 | - | - | - | - | - | - | - | - |
-| md_hybrid | bge-m3 | v1 | 검색만 | 58.8 | 76.5 | 80.9 | 0.68 | - | - | - | - | - | - | - | - |
 | md_hybrid_glossary | multilingual-e5-small-ko-v2 | v1 | openai:gpt-4.1-mini-2025-04-14 | 54.4 | 77.9 | 85.3 | 0.67 | 73.6 | 12.5 | 3.8 | 73.6 | 63.9 | 100.0 | 1.14 | 40.3 |
 
 ## 설정 설명
