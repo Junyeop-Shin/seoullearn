@@ -24,6 +24,17 @@ class GuardTest(unittest.TestCase):
         for q in ["멘티 학생이 지각했어요", "고등학생 멘티도 시간확대 되나요?", "중간고사 기간에 쉬어도 돼요?", "최고 시급이 얼마예요?"]:
             self.assertEqual(guard.check(q).pii, [], q)
 
+    def test_verb_endings_are_not_school_names(self):
+        # '~고'로 끝나는 활용형과 '~중·~초' 일반 명사를 학교명으로 가리면 질문이 망가진다
+        for q in ["일정을 미루고 싶어요", "멘티가 못 간다고 했어요", "어디에 알아보라고 하나요?", "보고서를 제출했고 승인을 기다려요",
+                  "지금 수업중 이에요", "모집공고 언제 나와요?", "학기초 일정이 궁금해요", "쉽고 빠른 방법 있나요?"]:
+            r = guard.check(q)
+            self.assertEqual((r.pii, r.text), ([], q), q)
+
+    def test_short_school_names_still_masked(self):
+        for q in ["한빛고 2학년 멘티예요", "누리초 다녀요", "가람중 시험 범위예요", "명지고 다니는 멘티예요", "서울공고 2학년이에요", "대원외고 멘티예요"]:
+            self.assertIn("[학교명]", guard.check(q).text, q)
+
     def test_safety(self):
         self.assertTrue(guard.check("멘티가 집에서 맞는다는 얘기를 했어요").safety)
         self.assertFalse(guard.check("시간 맞춰서 들어가면 되나요?").safety)

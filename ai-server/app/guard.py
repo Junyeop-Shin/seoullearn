@@ -34,6 +34,41 @@ _NOT_NAME = {"멘티", "멘토", "해당", "우리", "그", "이", "저", "고�
 # 학교명 패턴이 일반 단어를 잡지 않도록 제외
 _NOT_SCHOOL = {"중간", "최고", "지난고", "통과", "필수고", "여중", "남중", "여고", "남고"}
 
+# 줄인 학교명(OO고·OO중·OO초)처럼 보이지만 학교가 아닌 말.
+# 1) '~고'로 끝나는 용언 활용형: 바꾸고, 한다고, 물어보라고, 했고 …  ('고' 앞 글자로 판별)
+_VERB_BEFORE_GO = set(
+    "하되꾸다라자냐리시이키히니르러우루추누투푸주지가오치나두내보쓰끄크프쁘드기끼디미비피티타파차따짜싸쏘꼬으매깨새베메떼빼켜펴너려워쉬뛰쥐뀌귀"
+    "있없싶않받먹듣놓넣많같좋싫알살들찾잡읽앉늦맞갖찮렵쉽덥춥겁갑럽믿얻닫묻걷웃씻벗짓입접뽑돕줍좁넓밟짧묶닦깎섞꺾죽막적작익녹깊높덮갚넘참숨"
+    "놀늘팔풀걸끌밀쓸낳닿쌓끊앓잃옳뚫젊닮굶옮"
+)
+# 학교 종류를 나타내는 끝말은 앞 글자와 상관없이 학교명으로 본다: 대원외고, 서울과학고
+_SCHOOL_TYPES = ("외고", "과고", "과학고", "체고", "여고", "상고")
+# 2) '고·중·초'로 끝나는 일반 명사 (끝 두 글자로 판별)
+_COMMON_ENDINGS = {
+    "신고", "보고", "참고", "권고", "경고", "광고", "공고", "창고", "사고", "재고", "최고", "원고", "예고", "통고", "수고",
+    "수업중", "진행중", "이동중", "대기중", "활동중", "상담중", "통화중", "회의중", "접속중", "매칭중", "준비중", "작성중",
+    "검토중", "확인중", "연락중", "방학중", "학기중", "시험중", "기간중", "도중", "그중", "이중", "집중", "열중", "와중",
+    "공중", "주중", "연중", "부재중", "오전중", "오후중", "최초", "당초", "애초", "월초", "연초", "주초", "기초", "학기초",
+}
+# 뒤에 이런 말이 오면 위 예외에 걸려도 학교명으로 본다: '가주고 2학년', '명지고 다니는'
+_SCHOOL_CONTEXT = re.compile(r"\s*(?:\d\s*학년|\d\s*반|학생|재학|다니|출신|교복)")
+
+
+def _looks_like_school(word: str, after: str) -> bool:
+    """줄인 학교명 패턴에 걸린 낱말이 실제 학교명으로 보이는지."""
+    if _SCHOOL_CONTEXT.match(after):
+        return True
+    if word.endswith(_SCHOOL_TYPES):
+        return True
+    if any(word.endswith(e) for e in _COMMON_ENDINGS):
+        return False
+    if word.endswith("고"):
+        prev = word[-2]
+        has_ss = (ord(prev) - 0xAC00) % 28 == 20  # 받침 ㅆ: 했고, 됐고, 왔고 …
+        if prev in _VERB_BEFORE_GO or has_ss:
+            return False
+    return True
+
 
 @dataclass
 class GuardResult:
@@ -48,6 +83,8 @@ def check(text: str) -> GuardResult:
     for label, pat, repl in _PII:
         def sub(m, label=label, repl=repl):
             if label == "학교명" and m.group(0) in _NOT_SCHOOL:
+                return m.group(0)
+            if label == "학교명" and not m.group(0).endswith("학교") and not _looks_like_school(m.group(0), m.string[m.end():]):
                 return m.group(0)
             res.pii.append(label)
             return repl

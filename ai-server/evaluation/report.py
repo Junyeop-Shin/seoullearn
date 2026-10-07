@@ -35,12 +35,12 @@ def main():
     a = p.parse_args()
     rows = [json.loads(x.read_text(encoding="utf-8")) for x in a.summaries]
     rows.sort(key=lambda s: s.get("created", ""))
-    head = "| 설정 | 임베딩 | 코퍼스 | LLM | " + " | ".join(c for c, _ in COLS) + " |"
+    head = "| 설정 | 메모 | 임베딩 | 코퍼스 | LLM | " + " | ".join(c for c, _ in COLS) + " |"
     lines = ["# RAG 평가 비교", "", "백분율(%)은 높을수록 좋고, ↓ 표시는 낮을수록 좋다.", "", head,
-             "|" + " --- |" * (len(COLS) + 4)]
+             "|" + " --- |" * (len(COLS) + 5)]
     for s in rows:
         emb = (s.get("embedding") or "-").split(":")[-1].split("/")[-1]
-        lines.append(f"| {s['config']} | {emb} | {s['corpus']} | {s.get('llm') or '검색만'} | "
+        lines.append(f"| {s['config']} | {s.get('note') or '-'} | {emb} | {s['corpus']} | {s.get('llm') or '검색만'} | "
                      + " | ".join(str(get(s, path)) for _, path in COLS) + " |")
     lines += ["", "## 설정 설명", ""] + sorted({f"- **{s['config']}**: {s.get('description', '')}" for s in rows})
     out = settings.root / "eval" / "reports" / "compare.md"

@@ -59,7 +59,8 @@ def load_items(path: Path, corpus: str, ids: set[str] | None, limit: int | None)
 
 
 def run(config: str, corpus: str, retrieval_only: bool = False, fake_llm: bool = False, limit: int | None = None,
-        ids: set[str] | None = None, embedder=None, out_dir: Path | None = None, k: int | None = None) -> tuple[Path, dict]:
+        ids: set[str] | None = None, embedder=None, out_dir: Path | None = None, k: int | None = None,
+        note: str = "") -> tuple[Path, dict]:
     k = k or settings.top_k
     retriever, chunks = build_retriever(config, corpus, embedder=embedder)
     by_id = {c.id: c for c in chunks}
@@ -97,7 +98,7 @@ def run(config: str, corpus: str, retrieval_only: bool = False, fake_llm: bool =
         "config": config, "description": CONFIGS[config].description, "corpus": corpus, "k": k,
         "retrieval_only": retrieval_only, "llm": None if llm is None else llm.name,
         "embedding": _embedder_name(retriever),
-        "chunks": len(chunks), "created": stamp, **summarize(records, k),
+        "chunks": len(chunks), "created": stamp, "note": note, **summarize(records, k),
     }
     out.with_suffix(".summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     return out, summary
@@ -114,13 +115,14 @@ def main():
     p.add_argument("--k", type=int)
     p.add_argument("--embedding-model", help="이번 실행만 임베딩 모델 바꾸기 (예: BAAI/bge-m3)")
     p.add_argument("--embedding-provider", choices=["local", "gemini", "hash"])
+    p.add_argument("--note", default="", help="비교표에 적을 메모 (예: 가드 수정 후)")
     a = p.parse_args()
     t0 = time.time()
     embedder = None
     if a.embedding_model or a.embedding_provider:
         embedder = get_embedder(a.embedding_provider, a.embedding_model)
     out, s = run(a.config, a.corpus, a.retrieval_only, a.fake_llm, a.limit, set(a.ids.split(",")) if a.ids else None,
-                 embedder=embedder, k=a.k)
+                 embedder=embedder, k=a.k, note=a.note)
     print(json.dumps({k: v for k, v in s.items() if k != "by_category"}, ensure_ascii=False, indent=2))
     print(f"저장: {out}  ({time.time() - t0:.0f}초)")
 
