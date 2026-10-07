@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass, field
 
 from . import guard
 from .corpus import Chunk
-from .llm import ChatLLM
+from .llm import ChatLLM, LLMUnavailableError
 
 ROUTES = ["운영사무국", "이음단", "학습지원센터", "운영사무국(즉시)"]
 ROUTE_INFO = {
@@ -115,6 +115,8 @@ def answer(question: str, retriever, llm: ChatLLM, k: int = 5) -> QAResult:
         used = [hits[i - 1] for i in data["citations"] if 1 <= i <= len(hits)]
         res.citations = [c.id for c in used]
         res.cite_labels = [c.cite for c in used]
+    except LLMUnavailableError:  # 요청 한도·서버 과부하는 답변 실패가 아니다. 호출한 쪽에서 멈춘다
+        raise
     except Exception as e:  # 형식 오류도 평가에 기록되도록 실패로 남긴다
         res.error = f"{type(e).__name__}: {e}"
         res.answer = "답변을 만들지 못했습니다. 운영사무국에 문의해 주세요."

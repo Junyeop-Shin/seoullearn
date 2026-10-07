@@ -65,6 +65,11 @@ class DiskCache:
                 f.write(json.dumps({"k": k, "v": v}, ensure_ascii=False) + "\n")
 
 
+class LLMUnavailableError(RuntimeError):
+    """요청 한도(429)나 서버 과부하(503)로 재시도를 다 써도 응답을 못 받았다.
+    답변 형식 오류와 달리 평가 문항의 실패로 기록하면 안 되므로 실행을 멈추게 한다."""
+
+
 class LangChainLLM:
     def __init__(self, provider: str, model: str, temperature: float = 0.0, use_cache: bool = True):
         from langchain.chat_models import init_chat_model  # 지연 import: 오프라인 테스트에는 불필요
@@ -92,8 +97,10 @@ class LangChainLLM:
             except Exception as e:  # 제공사별 예외 타입이 달라 문자열로 판별
                 msg = str(e)
                 retryable = any(s in msg for s in ("429", "RESOURCE_EXHAUSTED", "rate", "503", "UNAVAILABLE", "timeout"))
-                if not retryable or attempt == settings.llm_max_retries:
+                if not retryable:
                     raise
+                if attempt == settings.llm_max_retries:
+                    raise LLMUnavailableError(msg) from e
                 time.sleep(delay)
                 delay = min(delay * 2, 120)
         raise RuntimeError("unreachable")

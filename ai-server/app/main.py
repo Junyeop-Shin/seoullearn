@@ -5,12 +5,12 @@ import logging
 import os
 from functools import lru_cache
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from . import qa
 from .config import settings
-from .llm import get_chat_model
+from .llm import LLMUnavailableError, get_chat_model
 from .pipelines import build_retriever
 
 # 요청 본문(질문 원문)은 로그에 남기지 않는다. 길이와 결과 유형만 남김.
@@ -57,7 +57,11 @@ def health():
 
 @app.post("/qa", response_model=QAResponse)
 def ask(req: QARequest):
-    res = qa.answer(req.question, _retriever(), _llm(), settings.top_k)
+    try:
+        res = qa.answer(req.question, _retriever(), _llm(), settings.top_k)
+    except LLMUnavailableError:
+        log.warning("qa len=%d llm_unavailable", len(req.question))
+        raise HTTPException(status_code=503, detail="지금은 답변을 만들 수 없습니다. 잠시 후 다시 시도해 주세요.")
     log.info("qa len=%d answerable=%s route=%s pii=%s safety=%s error=%s",
              len(req.question), res.answerable, res.route, res.pii_masked, res.safety, bool(res.error))
     info, link = qa.route_contact(res.route, req.ieumdan_chat_url)

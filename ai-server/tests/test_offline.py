@@ -140,5 +140,29 @@ class EndToEndTest(unittest.TestCase):
         self.assertGreaterEqual(r["index_seconds"], 0)
         self.assertGreater(r["process_peak_rss_mb"], 0)
 
+class LLMFailureTest(unittest.TestCase):
+    def _answer(self, exc):
+        from app import qa
+        from app.retrieval import BM25Retriever
+
+        class Broken:
+            name = "broken"
+
+            def complete(self, system, user):
+                raise exc
+
+        return qa.answer("지각 처리 어떻게 해요?", BM25Retriever(load_markdown("v1")), Broken())
+
+    def test_quota_error_stops_instead_of_being_recorded(self):
+        from app.llm import LLMUnavailableError
+
+        with self.assertRaises(LLMUnavailableError):
+            self._answer(LLMUnavailableError("429 RESOURCE_EXHAUSTED"))
+
+    def test_format_error_is_recorded(self):
+        res = self._answer(ValueError("JSON 없음"))
+        self.assertIn("ValueError", res.error)
+
+
 if __name__ == "__main__":
     unittest.main()
