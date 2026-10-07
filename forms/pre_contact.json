@@ -1,0 +1,21 @@
+{
+  "form_id": "pre_contact",
+  "title": "사전 연락 질문지",
+  "version": "2026",
+  "sources": ["manual-2026-2-3:18", "manual-2026-2-2:16-17"],
+  "purpose": "매칭 직후 멘티(보호자)와 전화·문자로 확인할 항목. 답변은 종합계획서① 초안의 입력이 된다.",
+  "questions": [
+    {"key": "subject_confirm", "ask": "멘토링 요청 과목과 멘토링 유형(온라인·오프라인)이 신청 내용과 같은지", "feeds": ["plan_initial.learning_goal"]},
+    {"key": "availability", "ask": "가능한 요일과 시간대", "feeds": ["plan_initial.weekday", "plan_initial.start_datetime"],
+     "rules": "09:00~22:00 안에서. 오프라인은 이음단 장소 예약 후 확정"},
+    {"key": "region", "ask": "(오프라인) 희망 지역", "feeds": ["이음단 장소 요청문"], "when": "offline"},
+    {"key": "level", "ask": "현재 학습 수준(성적 등 멘토링 진행에 필요한 범위)", "feeds": ["plan_initial.diagnosis"]},
+    {"key": "site_course", "ask": "수강 중인 학습사이트와 강좌, 지금까지 들은 진도", "feeds": ["주차별 계획 추천"]},
+    {"key": "goal", "ask": "이번 회기에 이루고 싶은 것 (시험, 진도, 습관 등)", "feeds": ["plan_initial.learning_goal"]},
+    {"key": "contact", "ask": "필요 시 연락할 수 있는 멘티·보호자 연락처", "feeds": [], "pii": true, "note": "AI에 입력받지 않음. 멘토가 직접 보관"},
+    {"key": "parent_attend", "ask": "첫 만남에 보호자 참관이 필요한지 (선택)", "feeds": []},
+    {"key": "room_ready", "ask": "(온라인) 서울런 강의실·서로온 앱 설치 여부 / (오프라인) 장소 안내", "feeds": []}
+  ],
+  "no_response_rule": "최대 7일, 3회 이상 연락. 응답 없으면 사전연락확인서(부록 서식1)를 운영사무국에 내고 플랫폼에서 재매칭 요청(사유: 멘티 연락 부재)",
+  "message_templates": "manual-2026-2-3:18 의 문자·전화 예시 스크립트를 기본으로, 확인 항목만 바꿔 생성"
+}

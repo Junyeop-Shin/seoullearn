@@ -1,0 +1,37 @@
+{
+  "form_id": "completion_report",
+  "title": "완료보고서",
+  "version": "2026",
+  "sources": ["manual-2026-2-5:31", "manual-2026-2-5:32", "부록 (서식) 완료보고서", "templates/2026/완료보고서_작성예시.docx", "notice-2026-n05"],
+  "when": "16회차 활동보고서 승인 직후 플랫폼에 작성. 미작성 시 마지막 회차 활동비 미지급, 연장 회기도 시작되지 않음",
+  "inputs_available": "보관해 둔 활동보고서 16건(브라우저 보관함 또는 붙여넣기) + 종합계획서②의 학습목표",
+  "fields": [
+    {"key": "mentor", "label": "멘토 성명", "type": "text", "required": true, "source": "placeholder", "pii": true},
+    {"key": "mentor_phone", "label": "멘토 연락처", "type": "text", "required": true, "source": "placeholder", "pii": true},
+    {"key": "mentee_name", "label": "멘티 성명", "type": "text", "required": true, "source": "placeholder", "pii": true},
+    {"key": "mentee_phone", "label": "멘티 연락처", "type": "text", "required": true, "source": "placeholder", "pii": true},
+    {"key": "mentee_grade", "label": "멘티 학년", "type": "text", "required": true, "source": "placeholder", "pii": true},
+    {"key": "subject", "label": "멘토링 과목", "type": "text", "required": true, "source": "derived"},
+    {"key": "session_list", "label": "멘토링 수행리스트", "type": "list", "required": true, "source": "derived", "length": 16,
+     "checklist": ["3-1"], "guidance": "각 활동보고서의 일자·실제 진행시간으로 자동 작성",
+     "item_format": "N회차 : YY. MM. DD. 요일 HH시MM분~HH시MM분(60분간)"},
+    {"key": "learning_goal", "label": "학습목표", "type": "list", "required": true, "source": "derived",
+     "guidance": "종합계획서에 기재한 학습목표 + α. 종합계획서②가 없으면 멘토에게 입력 요청"},
+    {"key": "content", "label": "멘토링 내용", "type": "list", "required": true, "source": "llm_draft",
+     "guidance": "학습 외 습관 및 태도, 진로·진학 탐색 내용. 활동보고서의 상담·코칭 기록에서만 추출"},
+    {"key": "achievement", "label": "학습목표 대비 성취도", "type": "list", "required": true, "source": "llm_draft",
+     "checklist": ["3-2"], "guidance": "출결, 과제 수행, 인강 수강, 학습 진도 등. 16회차 기록의 변화를 근거 회차와 함께 정리",
+     "rules": {"no_fabrication": true, "cite_sessions": true}},
+    {"key": "emotional_care", "label": "감성케어 상담", "type": "text", "required": false, "source": "user_text",
+     "checklist": ["3-3"], "guidance": "권장 기재 항목. 활동보고서에서 추출하지 않고 멘토가 직접 입력한 내용만 문장화"},
+    {"key": "requests", "label": "멘티 요청사항 및 해결과정", "type": "list", "required": false, "source": "user_text"},
+    {"key": "extension_mentor", "label": "멘토링 연장 의사 (멘토)", "type": "enum", "required": true, "source": "user",
+     "checklist": ["3-4"], "options": ["기존 멘티와 멘토링 연장 희망", "새로운 멘티와 매칭 희망", "멘토링 연장 희망하지 않음"]},
+    {"key": "extension_mentee", "label": "멘토링 연장 의사 (멘티)", "type": "enum", "required": true, "source": "user",
+     "options": ["기존 멘토와 멘토링 연장 희망", "새로운 멘토와 매칭 희망", "멘토링 연장 희망하지 않음"]}
+  ],
+  "submission_checks": [
+    {"id": "3-5", "rule": "제출 후 최종 승인 확인", "type": "reminder"},
+    {"id": "survey", "rule": "만족도 조사 진행 (마이페이지 → 멘토링 관리 → 해당 멘티 → 만족도조사)", "type": "reminder", "source": "manual-2026-2-6:33"}
+  ]
+}

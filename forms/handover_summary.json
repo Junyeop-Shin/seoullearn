@@ -1,0 +1,27 @@
+{
+  "form_id": "handover_summary",
+  "title": "멘토 교체 인계 요약",
+  "version": "draft",
+  "purpose": "이전 멘토의 활동보고서에서 다음 멘토의 종합계획서 작성에 필요한 정보만 뽑는다. 서버에 저장하지 않고, 이전 멘토 확인 후 운영사무국·이음단을 통해 전달한다(멘티 정보·상담 내용 누설 금지, manual-2026-3-1:35).",
+  "extraction_method": "allowlist",
+  "extraction_note": "아래 allow 항목만 추출한다. 보고서 서술에서 deny 성격의 문장이 섞여 있어도 옮기지 않는다.",
+  "allow": [
+    {"key": "attendance_pattern", "label": "출석 패턴", "from": ["activity_report.attendance"],
+     "guidance": "전체 경향만 요약(예: 대체로 정시 출석, 시험 기간에 지각 2회). 날짜별 나열 금지"},
+    {"key": "homework_pattern", "label": "과제 수행", "from": ["activity_report.homework"],
+     "guidance": "과제 수행 경향(예: 인강 교재 풀이는 하지만 오답 정리를 자주 미룸)"},
+    {"key": "attitude", "label": "학습 태도", "from": ["activity_report.progress_scale", "activity_report.attendance", "activity_report.homework"],
+     "guidance": "성실성 척도 추이와 태도 경향. 학업 수준 평가는 넣지 않음"},
+    {"key": "course_progress", "label": "수강 강의와 진도", "from": ["activity_report.course", "activity_report.lecture_progress", "activity_report.scope"],
+     "guidance": "강좌명, 마지막으로 확인된 진도(몇 강·단원까지), 다음 시작 지점"}
+  ],
+  "deny": [
+    {"label": "학업 수준", "examples": ["학습이해도 척도", "성적·등급", "잘하는/못하는 단원 평가"], "from": ["activity_report.understanding_scale", "activity_report.session_content", "completion_report.achievement"]},
+    {"label": "정서·상담 내용", "examples": ["감성케어 상담", "가정·교우 관계", "고민 상담"], "from": ["completion_report.emotional_care"]},
+    {"label": "개인정보", "examples": ["이름", "연락처", "학교명", "주소", "가정환경"]}
+  ],
+  "undecided": [
+    {"label": "취약 단원 정보", "example": "로그 단원을 어려워함", "note": "이어서 지도하는 데 유용하지만 학업 수준을 드러냄. 포함 여부 결정 필요"}
+  ],
+  "output_to": "다음 멘토의 종합계획서① 학생진단·활동규칙, 주차별 계획 추천의 출발 진도"
+}

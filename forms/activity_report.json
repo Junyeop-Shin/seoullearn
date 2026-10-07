@@ -1,0 +1,61 @@
+{
+  "form_id": "activity_report",
+  "title": "활동보고서",
+  "version": "2026",
+  "sources": ["manual-2026-2-5:30", "manual-2026-2-5:32", "부록 (서식) 활동 보고서", "templates/2026/주간활동보고서_작성예시.docx", "notice-2026-n05"],
+  "when": "매 회차 멘토링 후 7일 이내, 플랫폼에 직접 작성 + 출결 증빙 사진 2장 첨부",
+  "fields": [
+    {"key": "session_date", "label": "멘토링 일자", "type": "date", "required": true, "source": "user", "pii": false, "handover": "deny",
+     "guidance": "진행 일시(년, 월, 일, 요일)", "example": "2026.05.25.(월)"},
+    {"key": "session_no", "label": "진행 회차", "type": "integer", "required": true, "source": "user", "pii": false, "handover": "deny",
+     "rules": {"min": 1, "max": 16}},
+    {"key": "mentee_name", "label": "멘티 성명", "type": "text", "required": true, "source": "placeholder", "pii": true, "handover": "deny",
+     "guidance": "AI에 입력받지 않는다. 초안에는 [멘티명]으로 두고 멘토가 플랫폼에서 직접 채운다."},
+    {"key": "mentee_grade", "label": "멘티 나이(학년)", "type": "text", "required": true, "source": "placeholder", "pii": true, "handover": "deny",
+     "guidance": "초안에는 [멘티 학년]으로 둔다."},
+    {"key": "mentor", "label": "멘토 성명(학교, 전공)", "type": "text", "required": true, "source": "placeholder", "pii": true, "handover": "deny"},
+    {"key": "subject", "label": "멘토링 과목", "type": "text", "required": true, "source": "user", "pii": false, "handover": "allow", "example": "수학"},
+    {"key": "course", "label": "온라인 학습사이트 수강 강좌명", "type": "text", "required": true, "source": "user", "pii": false, "handover": "allow",
+     "example": "메가스터디 수학의 시작, 시발점 - 수Ⅰ"},
+    {"key": "actual_time", "label": "진행시간 (실제 접속시간)", "type": "time_range", "required": true, "source": "user", "pii": false, "handover": "deny",
+     "guidance": "예정 시간이 아니라 플랫폼 접속시간과 일치하는 실제 시작~종료 시간",
+     "rules": {"earliest_start": "09:00", "latest_end": "22:00", "min_minutes": 60}, "example": "17:10~18:09"},
+    {"key": "scope", "label": "이번 회차 학습범위(혹은 목차)", "type": "text", "required": true, "source": "user_text", "pii": false, "handover": "allow",
+     "checklist": ["2-1"], "example": "거듭제곱근과 지수법칙"},
+    {"key": "goal", "label": "이번 회차 학습목표", "type": "text", "required": true, "source": "user_text", "pii": false, "handover": "deny",
+     "checklist": ["2-1"], "example": "거듭제곱근의 개념을 이해하고 지수법칙을 적용하여 식을 계산할 수 있다"},
+    {"key": "progress_scale", "label": "학습진도(성실성) 평가", "type": "scale5", "required": true, "source": "user", "pii": false, "handover": "allow",
+     "options": ["매우 잘함", "잘함", "보통", "노력필요", "매우 노력필요"],
+     "guidance": "멘토가 직접 고른다. AI가 추정하지 않는다."},
+    {"key": "attendance", "label": "학습진도 - 출결", "type": "text", "required": true, "source": "user_text", "pii": false, "handover": "allow",
+     "checklist": ["2-2"], "example": "5분 전에 도착함"},
+    {"key": "lecture_progress", "label": "학습진도 - 인강 수강 여부", "type": "text", "required": true, "source": "user_text", "pii": false, "handover": "allow",
+     "checklist": ["2-2"], "guidance": "매 회차 반드시 점검해 기재. 플랫폼 수강 정보는 실시간이 아니므로 멘티에게 직접 확인", "example": "거듭제곱근과 지수법칙 ①은 수강, ②는 미수강(과제 부여)"},
+    {"key": "homework", "label": "학습진도 - 과제 수행 여부", "type": "text", "required": true, "source": "user_text", "pii": false, "handover": "allow",
+     "checklist": ["2-2"], "example": "인강 교재를 수강 범위만큼 풀고 채점했으나 오답 풀이는 하지 않음"},
+    {"key": "understanding_scale", "label": "학습이해도 평가", "type": "scale5", "required": true, "source": "user", "pii": false, "handover": "deny",
+     "options": ["매우 잘함", "잘함", "보통", "노력필요", "매우 노력필요"],
+     "guidance": "멘토가 직접 고른다. 학업 수준 정보라 인계 요약에서 제외"},
+    {"key": "session_content", "label": "학습이해도 - 멘토링 학습 내용", "type": "text", "required": true, "source": "user_text", "pii": false, "handover": "deny",
+     "checklist": ["2-3"], "guidance": "멘토링 진행 내용, 멘티의 참여도와 이해도", "rules": {"no_fabrication": true}},
+    {"key": "etc", "label": "기타", "type": "text", "required": false, "source": "user_text", "pii": false, "handover": "deny",
+     "guidance": "필요 시 학습사이트, 멘토링 공간, 진행 관련 의견"},
+    {"key": "requests", "label": "건의사항", "type": "text", "required": false, "source": "user_text", "pii": false, "handover": "deny",
+     "guidance": "멘토링 일정 변경, 장소 변경 등"}
+  ],
+  "attachments": [
+    {"key": "attendance_photos", "label": "출결 증빙 사진 (시작·종료 2장)", "required": true,
+     "guidance": "AI가 다루지 않는다. 초안 끝에 첨부 안내만 표시"}
+  ],
+  "submission_checks": [
+    {"id": "2-4", "rule": "멘토링 날짜로부터 7일 이내 제출", "type": "deadline", "days": 7},
+    {"id": "2-5", "rule": "출결 증빙 사진 2장 첨부 안내", "type": "reminder"},
+    {"id": "2-6", "rule": "제출 후 승인 확인, 보완 요청 시 7일 이내 재제출", "type": "reminder"},
+    {"id": "session1_plan", "rule": "1회차 보고서에는 종합계획서② 파일을 함께 첨부. 미첨부 시 해당 회차 활동비 미지급", "type": "conditional", "when": "session_no == 1", "source": "notice-2026-n05"}
+  ],
+  "open_questions": [
+    "공지 첨부 서식은 시간 기준 플랫폼을 '구루미'로 적고 있으나 2026 부록은 '플랫폼 접속시간'. 2026 기준으로 서로온 접속시간을 쓴다고 가정함",
+    "공지 첨부 서식에는 '타 플랫폼 이용 시 다음 주 예약 링크 기재' 안내가 있으나 2026은 타 플랫폼 원칙적 금지. 기타 칸 안내에서 제외함",
+    "공지 첨부 서식은 출석·종료 인증사진 칸이 보고서 안에 있고, 부록은 별도 인증 서식. 실제 플랫폼 입력 화면 확인 필요"
+  ]
+}

@@ -1,0 +1,17 @@
+services:
+  ai-server:
+    build: ./ai-server
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      # 코드와 데이터를 컨테이너에 연결 (수정 즉시 반영, 평가 결과도 로컬에 남음)
+      - ./ai-server:/project/ai-server
+      - ./data:/project/data:ro
+      - ./eval:/project/eval
+      - ./.cache:/project/.cache
+      # 임베딩 모델 다운로드 캐시 (한 번만 받음)
+      - hf-cache:/hf-cache
+
+volumes:
+  hf-cache:

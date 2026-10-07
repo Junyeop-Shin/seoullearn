@@ -1,0 +1,18 @@
+# 비밀값
+.env
+
+# 원본 PDF와 서식 원본 (무단 복제 금지 문구가 있어 저장소에 올리지 않음)
+data/raw/
+data/templates/
+
+# 캐시와 실행 결과
+.cache/
+eval/runs/
+__pycache__/
+*.pyc
+.venv/
+.idea/
+.vscode/
+
+# macOS
+.DS_Store

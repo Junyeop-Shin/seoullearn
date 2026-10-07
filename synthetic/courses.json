@@ -1,0 +1,62 @@
+{
+  "note": "주차별 계획 추천 테스트용 강좌 목차. C1은 활동가이드 부록 종합계획서 작성예시에 나온 단원 순서를 옮긴 것이고(실제 강좌 목차와 다를 수 있음), C2~C4는 형식만 흉내 낸 가상 목차다. 실제 목차를 받으면 교체한다.",
+  "courses": [
+    {
+      "id": "C1", "site": "메가스터디", "title": "수학의 시작, 시발점 - 수Ⅰ", "level": "고등", "real": "부록 예시 기반",
+      "units": [
+        {"no": 1, "title": "Theme 1. 거듭제곱근과 지수법칙", "parts": 2},
+        {"no": 2, "title": "Theme 2. 로그의 뜻과 성질", "parts": 2},
+        {"no": 3, "title": "Theme 3. 상용로그", "parts": 1, "workbook": "Step 1 - Theme 1, 2, 3"},
+        {"no": 4, "title": "Theme 4. 지수함수의 뜻과 그래프", "parts": 1},
+        {"no": 5, "title": "Theme 5. 지수함수 그래프의 활용", "parts": 1, "workbook": "Step 1 - Theme 4, 5"},
+        {"no": 6, "title": "Theme 6. 로그함수의 뜻과 그래프", "parts": 1},
+        {"no": 7, "title": "Theme 7. 로그함수의 그래프의 활용", "parts": 1, "workbook": "Step 1 - Theme 6, 7"},
+        {"no": 8, "title": "Theme 8. 지수방정식과 지수부등식", "parts": 1},
+        {"no": 9, "title": "Theme 9. 로그방정식과 로그부등식", "parts": 1, "workbook": "Step 1 - Theme 8, 9"},
+        {"no": 10, "title": "Theme 10. 일반각", "parts": 1, "chapter": "Step 2 - Chapter 1"},
+        {"no": 11, "title": "Theme 11. 호도법과 부채꼴", "parts": 1, "workbook": "Step 1 - Theme 10, 11"},
+        {"no": 12, "title": "Theme 12. 삼각함수의 뜻", "parts": 2},
+        {"no": 13, "title": "Theme 13. 삼각함수의 각의 변환", "parts": 1, "workbook": "Step 1 - Theme 12, 13"},
+        {"no": 14, "title": "Theme 14. 삼각함수의 그래프", "parts": 2},
+        {"no": 15, "title": "Theme 15. 삼각함수 그래프의 평행이동 / 최대와 최소", "parts": 1},
+        {"no": 16, "title": "Theme 16. 삼각방정식과 삼각부등식", "parts": 1, "workbook": "Step 1 - Theme 14, 15, 16"}
+      ]
+    },
+    {
+      "id": "C2", "site": "밀크T 중학", "title": "(가상) 중2 영어 문법 기본", "level": "중등", "real": "가상",
+      "units": [
+        {"no": 1, "title": "1강 문장의 5형식"}, {"no": 2, "title": "2강 현재완료"}, {"no": 3, "title": "3강 현재완료 진행"},
+        {"no": 4, "title": "4강 조동사 can, may"}, {"no": 5, "title": "5강 조동사 must, have to"}, {"no": 6, "title": "6강 to부정사의 명사적 용법"},
+        {"no": 7, "title": "7강 to부정사의 형용사·부사적 용법"}, {"no": 8, "title": "8강 동명사"}, {"no": 9, "title": "9강 동명사와 to부정사 비교"},
+        {"no": 10, "title": "10강 수동태 기본"}, {"no": 11, "title": "11강 수동태 시제"}, {"no": 12, "title": "12강 비교급과 최상급"},
+        {"no": 13, "title": "13강 원급 비교"}, {"no": 14, "title": "14강 관계대명사 who, which"}, {"no": 15, "title": "15강 관계대명사 that, what"},
+        {"no": 16, "title": "16강 접속사 when, because, if"}, {"no": 17, "title": "17강 간접의문문"}, {"no": 18, "title": "18강 분사"},
+        {"no": 19, "title": "19강 종합 문제 1"}, {"no": 20, "title": "20강 종합 문제 2"}
+      ]
+    },
+    {
+      "id": "C3", "site": "대성마이맥", "title": "(가상) 고1 국어 문학 개념", "level": "고등", "real": "가상",
+      "units": [
+        {"no": 1, "title": "1강 문학 감상의 관점"}, {"no": 2, "title": "2강 시적 화자와 정서"}, {"no": 3, "title": "3강 시의 표현 방법"},
+        {"no": 4, "title": "4강 시의 운율과 이미지"}, {"no": 5, "title": "5강 현대시 실전 1"}, {"no": 6, "title": "6강 현대시 실전 2"},
+        {"no": 7, "title": "7강 고전시가 기본"}, {"no": 8, "title": "8강 고전시가 실전"}, {"no": 9, "title": "9강 소설의 시점"},
+        {"no": 10, "title": "10강 소설의 인물과 갈등"}, {"no": 11, "title": "11강 서술 방식과 문체"}, {"no": 12, "title": "12강 현대소설 실전 1"},
+        {"no": 13, "title": "13강 현대소설 실전 2"}, {"no": 14, "title": "14강 고전소설 기본"}, {"no": 15, "title": "15강 고전소설 실전"},
+        {"no": 16, "title": "16강 극과 수필"}, {"no": 17, "title": "17강 갈래 복합 1"}, {"no": 18, "title": "18강 갈래 복합 2"},
+        {"no": 19, "title": "19강 문학 어휘"}, {"no": 20, "title": "20강 기출 분석 1"}, {"no": 21, "title": "21강 기출 분석 2"},
+        {"no": 22, "title": "22강 기출 분석 3"}, {"no": 23, "title": "23강 실전 모의고사 1"}, {"no": 24, "title": "24강 실전 모의고사 2"}
+      ]
+    },
+    {
+      "id": "C4", "site": "에듀윌(검정고시)", "title": "(가상) 고졸 검정고시 수학 기본", "level": "검정고시", "real": "가상",
+      "units": [
+        {"no": 1, "title": "1강 다항식의 연산"}, {"no": 2, "title": "2강 항등식과 나머지정리"}, {"no": 3, "title": "3강 인수분해"},
+        {"no": 4, "title": "4강 복소수"}, {"no": 5, "title": "5강 이차방정식"}, {"no": 6, "title": "6강 이차함수"},
+        {"no": 7, "title": "7강 여러 가지 방정식"}, {"no": 8, "title": "8강 부등식"}, {"no": 9, "title": "9강 평면좌표와 직선"},
+        {"no": 10, "title": "10강 원의 방정식"}, {"no": 11, "title": "11강 도형의 이동"}, {"no": 12, "title": "12강 집합"},
+        {"no": 13, "title": "13강 명제"}, {"no": 14, "title": "14강 함수"}, {"no": 15, "title": "15강 경우의 수"},
+        {"no": 16, "title": "16강 기출 문제 풀이"}
+      ]
+    }
+  ]
+}

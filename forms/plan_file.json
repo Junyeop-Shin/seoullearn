@@ -1,0 +1,37 @@
+{
+  "form_id": "plan_file",
+  "title": "종합계획서② (종합계획서 파일)",
+  "version": "2026",
+  "sources": ["manual-2026-2-3:21", "manual-2026-2-5:29", "manual-2026-2-5:32", "부록 (서식) 종합계획서", "templates/2026/종합계획서_작성예시.docx", "notice-2026-n05"],
+  "when": "1회차 멘토링 후, 1회차 활동보고서 제출기한(7일) 안에 첨부. 미첨부 시 해당 회차 활동비 미지급",
+  "output_format": "한글·워드 서식 항목 순서대로 정리한 텍스트 (서식 파일에 붙여넣기용)",
+  "inputs_available": "종합계획서① 내용 + 1회차 상담 결과(학습 수준, 목표, 희망 진로) + 강의 목차 + 인계 요약(있으면)",
+  "fields": [
+    {"key": "period", "label": "멘토링기간", "type": "date_range", "required": true, "source": "derived",
+     "guidance": "1회차 날짜 ~ 16회차 예정일", "example": "2026.05.25.~2026.07.20."},
+    {"key": "mentee", "label": "멘티 (학급·학년 또는 나이)", "type": "text", "required": true, "source": "placeholder", "pii": true},
+    {"key": "mentor", "label": "멘토 (대학·전공)", "type": "text", "required": true, "source": "placeholder", "pii": true},
+    {"key": "subject_time", "label": "멘토링 과목 및 시간", "type": "text", "required": true, "source": "user",
+     "checklist": ["1-1"], "guidance": "멘토링 과목 / 수강 강좌 정보 / 진행 일정(요일, 시간)",
+     "example": "수학 / 메가스터디 수학의 시작, 시발점(현우진) – 수학Ⅰ,Ⅱ / 매주(월) 17:00~18:00"},
+    {"key": "learning_goal", "label": "멘티 학습목표", "type": "list", "required": true, "source": "llm_draft",
+     "checklist": ["1-2"], "item_slots": ["① 온라인 학습사이트 수강 목표", "② 학습 목표(진도, 교재, 점수 등)", "③ 역량 목표(학습 태도, 습관 등)", "④ 진로·진학 관련 목표"],
+     "guidance": "1회차 상담에서 나온 내용만 사용. 점수 목표는 멘티가 말한 경우에만"},
+    {"key": "diagnosis", "label": "멘티 진단", "type": "list", "required": true, "source": "user_text",
+     "checklist": ["1-3"], "item_slots": ["(과목역량)", "(학습수준 및 희망진로)", "(입시준비)", "(학습습관 및 태도)"],
+     "guidance": "항목별 작성 권장. 멘토가 1회차에 확인한 내용을 문장화만 함", "rules": {"no_fabrication": true}},
+    {"key": "curriculum", "label": "커리큘럼", "type": "list", "required": true, "source": "llm_draft", "length": 16,
+     "checklist": ["1-4"],
+     "item_format": "(온라인강의) N회차: 강좌명 회차·단원 / (멘토링내용) … / (진학·학습·입시·진로·고민상담 중 택1) …",
+     "guidance": "회차별 서울런 학습사이트 온라인 강의 수강 계획을 반드시 포함(N05). 주차별 계획 추천 결과 사용"},
+    {"key": "structure", "label": "멘토링 구성", "type": "list", "required": true, "source": "llm_draft",
+     "checklist": ["1-5"], "guidance": "시간 단위 구성",
+     "example": ["17:00~17:10 온라인 강의 수강 확인 & 퀴즈", "17:10~17:30 개념학습", "17:30~17:40 개념 테스트", "17:40~17:50 오답 풀이", "17:50~18:00 상담 및 다음 회차 안내"]},
+    {"key": "rules", "label": "활동규칙", "type": "list", "required": true, "source": "user_text",
+     "checklist": ["1-6"], "guidance": "멘티와 협의한 규칙",
+     "example": ["멘토링 시간 준수하기", "일정 변경은 최소 3일 전에 논의하기", "인강은 계획대로 규칙적으로 수강하고 인증 사진 보내기"]}
+  ],
+  "submission_checks": [
+    {"id": "1-7", "rule": "1회차 활동보고서 첨부파일로 기한 내 등록. 첨부는 1개 파일만(여러 개면 압축)", "type": "reminder"}
+  ]
+}
