@@ -36,6 +36,10 @@ class Settings:
     embedding_provider: str = os.getenv("EMBEDDING_PROVIDER", "local")
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "dragonkue/multilingual-e5-small-ko-v2")
 
+    # 리랭커(cross-encoder). 하이브리드 상위 후보를 질문과 함께 다시 읽어 순위를 매긴다.
+    reranker_model: str = os.getenv("RERANKER_MODEL", "BAAI/bge-reranker-v2-m3")
+    rerank_pool: int = int(os.getenv("RERANK_POOL", "20"))
+
     top_k: int = int(os.getenv("TOP_K", "5"))
     # 무료 등급 요청 한도 대응. 분당 요청 수 상한.
     llm_rpm: float = float(os.getenv("LLM_RPM", "8"))

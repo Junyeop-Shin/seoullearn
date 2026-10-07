@@ -92,7 +92,7 @@ def parse_output(raw: str) -> dict:
     data = json.loads(m.group(0))
     if data.get("answerable") not in ("yes", "partial", "no"):
         raise ValueError(f"answerable 값 오류: {data.get('answerable')}")
-    if data.get("route") not in ROUTES + [None]:
+    if data.get("route") not in ROUTES:  # 키가 없거나 목록 밖의 값이면 문의처 없음으로 본다
         data["route"] = None
     data["citations"] = [int(x) for x in data.get("citations", []) if str(x).isdigit()]
     return data

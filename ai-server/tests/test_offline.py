@@ -60,6 +60,35 @@ class RetrievalTest(unittest.TestCase):
         q = GlossaryExpander().expand("주간보고서 늦게 내면?")
         self.assertIn("활동보고서", q)
 
+    def test_reranker_reorders_candidates(self):
+        from app.retrieval import OverlapReranker, RerankingRetriever
+
+        chunks = load_markdown("v1")
+
+        class Reversed:  # 정답을 맨 뒤에 두는 엉터리 검색기
+            name = "reversed"
+
+            def search(self, query, k):
+                return list(reversed(BM25Retriever(chunks).search(query, k)))
+
+        r = RerankingRetriever(Reversed(), OverlapReranker(), pool=20)
+        top = r.search("지각 처리 어떻게 해요?", 5)
+        self.assertEqual(len(top), 5)
+        self.assertEqual(sorted((s for _, s in top), reverse=True), [s for _, s in top])
+        self.assertTrue(r.name.endswith("+rerank"))
+
+    def test_rerank_pipeline_builds_without_model(self):
+        from app.pipelines import build_retriever
+        from app.retrieval import OverlapReranker
+
+        r, _ = build_retriever("md_bm25", "v1")
+        self.assertFalse(hasattr(r, "reranker"))
+        with tempfile.TemporaryDirectory() as tmp, unittest.mock.patch("app.retrieval.settings") as st:
+            st.cache_dir = Path(tmp)
+            st.data_dir = Path(__file__).resolve().parents[2] / "data"
+            r, _ = build_retriever("md_hybrid_glossary_rerank", "v1", embedder=HashEmbedder(dim=256), reranker=OverlapReranker())
+            self.assertEqual(len(r.search("활동비 언제 들어와요?", 5)), 5)
+
     def test_tokenize(self):
         self.assertIn("활동", tokenize("활동보고서"))
 
@@ -69,6 +98,10 @@ class ParseTest(unittest.TestCase):
         d = qa.parse_output('```json\n{"answerable":"partial","answer":"x","citations":[2,"1"],"route":"이음단"}\n```')
         self.assertEqual(d["citations"], [2, 1])
         self.assertEqual(d["route"], "이음단")
+
+    def test_missing_route_key_means_no_route(self):
+        d = qa.parse_output('{"answerable":"yes","answer":"x","citations":[1]}')
+        self.assertIsNone(d["route"])
 
     def test_bad_route_dropped(self):
         d = qa.parse_output('{"answerable":"yes","answer":"x","citations":[],"route":"서울시청"}')

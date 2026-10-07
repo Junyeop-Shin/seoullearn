@@ -118,3 +118,46 @@ class ExpandingRetriever:
 
     def search(self, query: str, k: int):
         return self.inner.search(self.expander.expand(query), k)
+
+
+class CrossEncoderReranker:
+    """질문과 청크를 한 쌍으로 읽어 관련도를 매기는 모델. 검색보다 느리므로 상위 후보에만 쓴다."""
+
+    def __init__(self, model: str):
+        from sentence_transformers import CrossEncoder  # 지연 import: 오프라인 테스트에는 불필요
+
+        self.name = model
+        self.model = CrossEncoder(model, max_length=512)
+
+    def score(self, query: str, texts: list[str]) -> list[float]:
+        return [float(x) for x in self.model.predict([(query, t) for t in texts], batch_size=8, show_progress_bar=False)]
+
+
+class OverlapReranker:
+    """모델 없이 도는 가짜 리랭커 (테스트용). 질문과 겹치는 토큰 비율로 점수를 준다."""
+
+    name = "overlap"
+
+    def score(self, query: str, texts: list[str]) -> list[float]:
+        q = set(tokenize(query))
+        return [len(q & set(tokenize(t))) / max(len(q), 1) for t in texts]
+
+
+def get_reranker(model: str | None = None):
+    model = model or settings.reranker_model
+    return OverlapReranker() if model == "overlap" else CrossEncoderReranker(model)
+
+
+class RerankingRetriever:
+    """안쪽 검색기에서 후보 pool개를 받아 리랭커 점수로 다시 정렬한다.
+    용어집 확장은 후보를 모을 때만 쓰고, 리랭커에는 원래 질문을 준다."""
+
+    def __init__(self, inner, reranker, pool: int = 20):
+        self.inner, self.reranker, self.pool = inner, reranker, pool
+        self.name = f"{inner.name}+rerank"
+
+    def search(self, query: str, k: int):
+        cands = [c for c, _ in self.inner.search(query, max(self.pool, k))]
+        scores = self.reranker.score(query, [c.text for c in cands])
+        order = sorted(range(len(cands)), key=lambda i: scores[i], reverse=True)[:k]
+        return [(cands[i], scores[i]) for i in order]
