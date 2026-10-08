@@ -24,3 +24,7 @@ backend/.gradle/
 # 프런트엔드
 frontend/node_modules/
 frontend/dist/
+
+# 정리 전 공지 원문
+data/inbox/*
+!data/inbox/README.md
