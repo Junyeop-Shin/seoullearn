@@ -17,6 +17,8 @@ services:
       - ./data:/project/data:ro
       - ./eval:/project/eval
       - ./forms:/project/forms:ro
+      # 가상 데이터. 테스트와 평가에서만 읽는다
+      - ./synthetic:/project/synthetic:ro
       - ./scripts:/project/scripts:ro
       - ./.cache:/project/.cache
       # 임베딩 모델 다운로드 캐시 (한 번만 받음)

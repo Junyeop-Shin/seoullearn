@@ -8,7 +8,9 @@ from functools import lru_cache
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from . import inquiry, qa, router
+from typing import Any
+
+from . import forms, inquiry, qa, router
 from .config import settings
 from .llm import LLMUnavailableError, get_chat_model
 from .pipelines import build_retriever
@@ -83,6 +85,24 @@ def _graph():
     return router.build_graph(_llm, _retriever)
 
 
+class DraftRequest(BaseModel):
+    # 필드 key별 입력값. 양식마다 다르므로 모양을 고정하지 않는다 (GET /api/forms/{formId}의 fields 참고)
+    inputs: dict[str, Any] = Field(default_factory=dict)
+    # 필드가 아닌 참고 입력 (사전 연락 답변, 주차별 계획, 인계 요약 등)
+    extra: dict[str, Any] = Field(default_factory=dict)
+
+
+@lru_cache(maxsize=1)
+def _draft_llm():
+    return get_chat_model("answer")
+
+
+def _log_draft(form_id: str, res) -> None:
+    # 본문은 남기지 않는다. 양식 이름과 개수만 남긴다
+    log.info("draft form=%s fields=%d missing=%d warnings=%d pii=%s error=%s", form_id, len(res.draft),
+             len(res.missing_questions), len(res.warnings), res.pii_masked, bool(res.error))
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "pipeline": PIPELINE, "corpus": CORPUS, "llm": f"{settings.llm_provider}:{settings.llm_model}"}
@@ -118,3 +138,21 @@ def chat(req: ChatRequest):
              len(req.message), state["intent"], state["method"], state.get("pii_masked", []),
              bool(state.get("classify_error")), bool(result.pop("error", False)))
     return ChatResponse(intent=state["intent"], method=state["method"], pii_masked=state.get("pii_masked", []), **result)
+
+
+@app.post("/drafts/{form_id}")
+def draft(form_id: str, req: DraftRequest):
+    """양식 엔진으로 초안을 만든다. forms/<form_id>.json에 fields가 있는 양식이면 코드 수정 없이 쓸 수 있다."""
+    try:
+        form = forms.engine.load_form(form_id)
+    except (ValueError, FileNotFoundError):
+        raise HTTPException(status_code=404, detail="해당 양식을 찾을 수 없습니다.")
+    if "fields" not in form:
+        raise HTTPException(status_code=404, detail="이 양식은 초안 생성을 지원하지 않습니다.")
+    try:
+        res = forms.draft(form_id, req.inputs, _draft_llm(), req.extra)
+    except LLMUnavailableError:
+        log.warning("draft form=%s llm_unavailable", form_id)
+        raise HTTPException(status_code=503, detail="지금은 초안을 만들 수 없습니다. 잠시 후 다시 시도해 주세요.")
+    _log_draft(form_id, res)
+    return res.to_dict()
