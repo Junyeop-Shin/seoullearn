@@ -8,10 +8,10 @@ from functools import lru_cache
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
-from . import forms, guard, inquiry, qa, router
+from . import forms, guard, inquiry, qa, router, unanswered
 from .config import settings
 from .llm import LLMUnavailableError, get_chat_model
 from .pipelines import build_retriever
@@ -120,6 +120,7 @@ def ask(req: QARequest):
     log.info("qa len=%d answerable=%s route=%s pii=%s safety=%s error=%s draft=%s draft_error=%s",
              len(req.question), res.answerable, res.route, res.pii_masked, res.safety, bool(res.error),
              draft is not None, bool(draft and draft.error))
+    unanswered.record(req.question, res.answerable, res.route, res.safety)
     info, link = qa.route_contact(res.route, req.ieumdan_chat_url)
     return QAResponse(answer=res.answer, answerable=res.answerable, route=res.route,
                       route_info=info, route_link=link,
@@ -135,6 +136,8 @@ def chat(req: ChatRequest):
         log.warning("chat len=%d llm_unavailable", len(req.message))
         raise HTTPException(status_code=503, detail="지금은 답변을 만들 수 없습니다. 잠시 후 다시 시도해 주세요.")
     result = dict(state["result"])
+    if state["intent"] == "qa":
+        unanswered.record(req.message, result.get("answerable"), result.get("route"), bool(result.get("safety")))
     log.info("chat len=%d intent=%s method=%s pii=%s classify_error=%s error=%s",
              len(req.message), state["intent"], state["method"], state.get("pii_masked", []),
              bool(state.get("classify_error")), bool(result.pop("error", False)))
@@ -201,6 +204,49 @@ def weekly_plan(req: WeeklyPlanRequest):
         res["warnings"].append("지금은 AI를 쓸 수 없어 기본 문장으로 채웠습니다.")
     log.info("draft form=weekly_plan lectures=%d sessions=%d covered=%d left=%d error=%s", len(req.lectures), req.sessions,
              res["covered"], res["left"], bool(res.get("error")))
+    return res
+
+
+class SplitRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=100000)
+
+
+class HandoverRequest(BaseModel):
+    reports: list[dict[str, Any]] = Field(..., max_length=40)   # 활동보고서 초안들 (필드 key별 값)
+
+
+class IeumdanRequest(BaseModel):
+    kind: str = Field(..., pattern="^(장소 요청|일정 변경|장소 변경)$")
+    region: str = Field("", max_length=100)
+    schedule: str = Field("", max_length=100)
+    current: datetime | None = None
+    desired: datetime | None = None
+    reason: str = Field("", max_length=200)
+
+
+@app.post("/drafts/split_reports")
+def split_reports(req: SplitRequest):
+    res = forms.report_split.split(req.text)
+    log.info("draft form=split_reports len=%d sessions=%d warnings=%d", len(req.text), len(res["sessions"]), len(res["warnings"]))
+    return res
+
+
+@app.post("/drafts/handover_summary")
+def handover_summary(req: HandoverRequest):
+    try:
+        res = forms.handover.build(req.reports, _draft_llm())
+    except LLMUnavailableError:
+        log.warning("draft form=handover_summary llm_unavailable")
+        raise HTTPException(status_code=503, detail="지금은 초안을 만들 수 없습니다. 잠시 후 다시 시도해 주세요.")
+    log.info("draft form=handover_summary reports=%d items=%d warnings=%d pii=%s errors=%d", len(req.reports),
+             sum(bool(v) for v in res["summary"].values()), len(res["warnings"]), res["pii_masked"], len(res["errors"]))
+    return res
+
+
+@app.post("/drafts/ieumdan_request")
+def ieumdan_request(req: IeumdanRequest):
+    res = forms.ieumdan.build(req.kind, req.region, req.schedule, req.current, req.desired, req.reason)
+    log.info("draft form=ieumdan_request kind=%s len=%d warnings=%d pii=%s", req.kind, res["length"], len(res["warnings"]), res["pii_masked"])
     return res
 
 

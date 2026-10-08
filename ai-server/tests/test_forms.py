@@ -212,7 +212,6 @@ class ActivityReportTest(unittest.TestCase):
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.json()["draft"]["mentee_name"], "[멘티명]")
             self.assertEqual(c.post("/drafts/no_such_form", json={"inputs": {}}).status_code, 404)
-            self.assertEqual(c.post("/drafts/handover_summary", json={"inputs": {}}).status_code, 404)  # fields가 없는 양식
 
 
 def course(cid: str) -> list[dict]:
