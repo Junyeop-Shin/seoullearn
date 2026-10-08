@@ -8,9 +8,10 @@ from functools import lru_cache
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from datetime import date
 from typing import Any
 
-from . import forms, inquiry, qa, router
+from . import forms, guard, inquiry, qa, router
 from .config import settings
 from .llm import LLMUnavailableError, get_chat_model
 from .pipelines import build_retriever
@@ -138,6 +139,69 @@ def chat(req: ChatRequest):
              len(req.message), state["intent"], state["method"], state.get("pii_masked", []),
              bool(state.get("classify_error")), bool(result.pop("error", False)))
     return ChatResponse(intent=state["intent"], method=state["method"], pii_masked=state.get("pii_masked", []), **result)
+
+
+class PreContactRequest(BaseModel):
+    mode: str = Field("온라인", pattern="^(온라인|오프라인)$")
+    call_time: str | None = Field(None, max_length=20)
+    answers: dict[str, Any] | None = None
+
+
+class OutlineRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=20000)
+
+
+class DateRange(BaseModel):
+    start: date
+    end: date
+
+
+class WeeklyPlanRequest(BaseModel):
+    lectures: list[dict[str, Any]] = Field(..., max_length=300)  # 목차 파서 결과 [{no, title, ...}]
+    done: int = Field(0, ge=0)
+    sessions: int = Field(16, ge=1, le=40)
+    pace: str = Field("보통", pattern="^(느림|보통|빠름)$")
+    start_date: date | None = None
+    exams: list[DateRange] = []
+    breaks: list[DateRange] = []
+    context: dict[str, Any] = Field(default_factory=dict)  # 과목, 멘티가 말한 목표 등 (선택)
+
+
+# 아래 세 경로는 양식 엔진을 거치지 않는 전용 기능이다. /drafts/{form_id}보다 먼저 등록해야 한다.
+@app.post("/drafts/pre_contact")
+def pre_contact(req: PreContactRequest):
+    res = forms.precontact.build(req.mode, req.call_time, req.answers)
+    log.info("draft form=pre_contact mode=%s questions=%d sms_parts=%d", res["mode"], len(res["questions"]), len(res["sms"]["parts"]))
+    return res
+
+
+@app.post("/drafts/course_outline")
+def course_outline(req: OutlineRequest):
+    try:
+        res = forms.outline.parse(req.text, _draft_llm())
+    except LLMUnavailableError:
+        res = forms.outline.parse(req.text, None)  # 규칙으로 읽은 것만이라도 돌려준다
+        res["warnings"].append("지금은 AI를 쓸 수 없어 규칙으로 읽은 강의만 정리했습니다.")
+    log.info("draft form=course_outline len=%d lectures=%d unparsed=%d error=%s", len(req.text), len(res["lectures"]),
+             len(res["unparsed"]), bool(res["error"]))
+    return res
+
+
+@app.post("/drafts/weekly_plan")
+def weekly_plan(req: WeeklyPlanRequest):
+    if req.done > len(req.lectures):
+        raise HTTPException(status_code=422, detail="이미 들은 강 수가 전체 강 수보다 많습니다.")
+    alloc = forms.weekly_plan.allocate(req.lectures, req.done, req.sessions, req.pace, req.start_date,
+                                       [(r.start, r.end) for r in req.exams], [(r.start, r.end) for r in req.breaks])
+    masked = {k: (guard.check(v).text if isinstance(v, str) else v) for k, v in req.context.items()}
+    try:
+        res = forms.weekly_plan.write_lines(alloc, _draft_llm(), masked)
+    except LLMUnavailableError:
+        res = forms.weekly_plan.write_lines(alloc, None)
+        res["warnings"].append("지금은 AI를 쓸 수 없어 기본 문장으로 채웠습니다.")
+    log.info("draft form=weekly_plan lectures=%d sessions=%d covered=%d left=%d error=%s", len(req.lectures), req.sessions,
+             res["covered"], res["left"], bool(res.get("error")))
+    return res
 
 
 @app.post("/drafts/{form_id}")

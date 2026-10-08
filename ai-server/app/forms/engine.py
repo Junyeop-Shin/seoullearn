@@ -102,6 +102,7 @@ class DraftResult:
     reminders: list[str] = field(default_factory=list)
     pii_masked: list[str] = field(default_factory=list)
     error: str | None = None  # LLM 출력 형식 오류
+    text: str | None = None   # 서식에 붙여 넣기 좋게 정리한 글 (양식에 따라)
 
     def to_dict(self):
         return asdict(self)
@@ -148,7 +149,8 @@ def _sources_text(ctx: Context, f: dict) -> str:
 
 
 def _ask_llm(todo: list[dict], ctx: Context, llm: ChatLLM) -> tuple[dict, str | None]:
-    user = (f"[양식]\n{ctx.form['title']}\n\n[참고 입력]\n{json.dumps(ctx.extra, ensure_ascii=False)}\n\n"
+    public = {k: v for k, v in ctx.extra.items() if not k.startswith("_")}
+    user = (f"[양식]\n{ctx.form['title']}\n\n[참고 입력]\n{json.dumps(public, ensure_ascii=False)}\n\n"
             f"[만들 항목]\n{json.dumps(todo, ensure_ascii=False)}")
     try:
         raw = llm.complete(SYSTEM, user)
