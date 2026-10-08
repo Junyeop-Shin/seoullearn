@@ -11,6 +11,7 @@ const routes = [
   { path: '/handover', component: () => import('../views/HandoverView.vue') },
   { path: '/ieumdan', component: () => import('../views/IeumdanView.vue') },
   { path: '/admin/unanswered', component: () => import('../views/AdminUnansweredView.vue'), meta: { admin: true } },
+  { path: '/places', component: () => import('../views/PlacesView.vue') },
   { path: '/allowance', component: () => import('../views/AllowanceView.vue') },
   { path: '/forms', component: () => import('../views/OtherFormsView.vue') },
   { path: '/forms/:formId', component: () => import('../views/OtherFormsView.vue') },

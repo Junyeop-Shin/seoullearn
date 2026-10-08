@@ -193,6 +193,15 @@ docker compose run --rm ai-server python -m evaluation.report_eval [--judge]   #
 - `/chat`에서 "시간당 얼마" 같은 금액 질문이 오면 검색 대신 이 함수로 답한다 (`intent`가 `calc`).
 - 금액은 추정값이다. 실제 지급액은 승인 결과와 운영사무국 정산에 따른다.
 
+### 협약 장소 지도
+
+오프라인 멘토링 장소를 자치구별로 찾아보는 화면이다 (`/places`). 장소는 직접 예약하지 않고 이음단에 요청한다.
+
+- 장소 목록은 backend가 파일에서 읽어 내준다 (`GET /api/places`, `PLACES_FILE`). **지금 들어 있는 12곳은 모두 지어낸 예시다** (`synthetic/places.json`). 실제 목록을 받으면 이 파일만 바꾼다.
+- 지도는 카카오맵이다. `.env`의 `KAKAO_MAP_JS_KEY`에 JavaScript 키를 넣고, 카카오 개발자 사이트의 플랫폼 > Web에 화면 주소(`http://localhost:3000`)를 등록해야 뜬다.
+- 키가 없거나 주소가 등록되지 않았으면 지도 없이 목록과 '카카오맵에서 보기' 링크만 보여 준다.
+- 카카오에는 장소 이름과 좌표만 전달된다. 멘티·멘토 정보는 보내지 않는다.
+
 ### 답 못 한 질문 모음
 
 매뉴얼로 답하지 못한 질문(`answerable`이 `no`·`partial`)을 모아 운영 측의 매뉴얼 보완 자료로 쓰는 기능이다 (`app/unanswered.py`).

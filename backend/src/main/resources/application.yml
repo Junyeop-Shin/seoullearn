@@ -28,6 +28,8 @@ server:
 
 app:
   forms-dir: ${FORMS_DIR:../forms}
+  places-file: ${PLACES_FILE:../synthetic/places.json}
+  kakao-map-js-key: ${KAKAO_MAP_JS_KEY:}
   ai-server:
     url: ${AI_SERVER_URL:http://localhost:8000}
     connect-timeout: 3s

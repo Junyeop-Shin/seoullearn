@@ -197,6 +197,21 @@ class BackendApiTests {
         mvc.perform(get("/api/forms/..%2F..%2FCLAUDE").session(session)).andExpect(status().is4xxClientError());
     }
 
+    // ------------------------------------------------------------ 협약 장소
+    @Test
+    void placesAndPublicConfigNeedLogin() throws Exception {
+        mvc.perform(get("/api/places")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/config")).andExpect(status().isUnauthorized());
+        MockHttpSession session = mentor("mentor_p1");
+        mvc.perform(get("/api/places").session(session)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.sample").value(true))
+                .andExpect(jsonPath("$.places[0].name").value(org.hamcrest.Matchers.startsWith("(가상)")))
+                .andExpect(jsonPath("$.places[0].lat").isNumber());
+        mvc.perform(get("/api/config").session(session)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.kakaoMapJsKey").value("test-js-key"))
+                .andExpect(jsonPath("$.length()").value(1));   // 공개 키 하나뿐이다. 다른 설정은 내보내지 않는다
+    }
+
     // ------------------------------------------------------------ AI 서버 중계
     @Test
     void proxyForwardsBodyAndReturnsResponseAsIs() throws Exception {

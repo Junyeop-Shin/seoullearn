@@ -16,6 +16,8 @@ server:
       timeout: 2h
 app:
   forms-dir: ../forms
+  places-file: ../synthetic/places.json
+  kakao-map-js-key: test-js-key
   ai-server:
     url: http://localhost:1
     connect-timeout: 2s
