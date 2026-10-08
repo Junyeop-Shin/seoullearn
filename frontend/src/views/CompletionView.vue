@@ -1,4 +1,6 @@
 <script setup>
+import { useRoute } from 'vue-router'
+import MenteeHeader from '../components/MenteeHeader.vue'
 import { computed, onMounted, ref } from 'vue'
 import { api } from '../api/client'
 import DraftResult from '../components/DraftResult.vue'
@@ -13,7 +15,7 @@ const FORM_ID = 'completion_report'
 const form = ref(null)
 const fields = computed(() => (form.value ? inputFields(form.value) : []))
 const values = ref({})
-const alias = ref('')
+const alias = ref(String(useRoute().params.alias))
 const reports = ref([])
 const goals = ref('')
 const result = ref(null)
@@ -63,11 +65,12 @@ async function save() {
 
 <template>
   <div class="shell">
+    <MenteeHeader :alias="alias" title="완료보고서" />
     <h1>완료보고서 작성</h1>
     <p class="muted">16회차를 마친 뒤 작성합니다. 회차별 일자와 시간은 활동보고서에서 그대로 옮기고, 내용과 성취도는 기록에 있는 것만으로 초안을 씁니다.</p>
     <div v-if="error" class="box error">{{ error }}</div>
-    <h2>① 활동보고서 모으기</h2>
-    <ReportSource v-model:alias="alias" @loaded="loaded" />
+    <h2>① 활동보고서</h2>
+    <ReportSource :alias="alias" @loaded="loaded" />
     <h2>② 직접 적을 내용</h2>
     <form v-if="form" class="card" @submit.prevent="submit">
       <label class="field"><span class="name">학습목표 (종합계획서에 적은 것)</span>

@@ -27,6 +27,8 @@
 | 인계 요약 | 출석 패턴, 과제 수행, 학습 태도, 수강 진도 네 가지만 뽑습니다 |
 | 그 밖 | 사전 연락 문자, 이음단 장소·일정 요청 메시지, 활동비 계산, 협약 장소 지도 |
 
+화면은 멘티 중심입니다. 멘티마다 과목·강좌·일정을 한 번 적어 두면 종합계획서, 회차별 활동보고서, 완료보고서가 그 멘티 아래에 모이고, 회차 번호와 날짜 같은 칸은 자동으로 채워집니다. 이름·학년·학교·연락처는 적는 칸이 없고 별칭으로만 구분합니다.
+
 설계 원칙은 세 가지입니다.
 
 1. **AI는 초안까지만.** 멘토가 읽고 고친 뒤 플랫폼에 직접 제출합니다.
@@ -36,7 +38,7 @@
 ## 구조
 
 ```
-멘토의 브라우저 ── Vue 화면 · 보관함(IndexedDB): 초안은 여기에만 저장
+멘토의 브라우저 ── Vue 화면 · 보관함(IndexedDB): 멘티별 정보와 초안은 여기에만 저장
       │ /api
 frontend (nginx) ─► backend (Spring Boot) ── 로그인·역할, 양식 스키마, 중계(본문 저장 안 함)
                           │                          │
@@ -146,6 +148,6 @@ cd frontend && npm test                                                  # 화�
 | [docs/architecture.md](docs/architecture.md) | 구성요소, 요청 흐름, 데이터가 남는 곳과 남지 않는 곳 |
 | [docs/rag_results.md](docs/rag_results.md) | RAG 개선 전후 수치와 읽는 법 |
 | [docs/usage.md](docs/usage.md) | 설치, 평가 실행, API와 설정 |
-| [docs/demo_scenario.md](docs/demo_scenario.md) | 데모 순서와 녹화 대본 |
+| [docs/demo_scenario.md](docs/demo_scenario.md) | 화면 시연 순서 |
 | [docs/proposal.md](docs/proposal.md) | 서울시 제안서 초안 |
 | [docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md) | 단계별 개발 지침과 미정 사항 |

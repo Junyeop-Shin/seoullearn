@@ -57,8 +57,8 @@ async function removeAll() {
 
 <template>
   <div class="shell">
-    <h1>보관함</h1>
-    <p class="muted">초안은 이 브라우저 안에만 저장되고 서버로 보내지 않습니다. 브라우저 데이터를 지우거나 다른 기기에서 쓰려면 파일로 내보내 옮겨 주세요.</p>
+    <h1>백업·복원</h1>
+    <p class="muted">멘티 정보와 초안은 이 브라우저 안에만 저장되고 서버로 보내지 않습니다. 브라우저 데이터를 지우기 전이나 다른 컴퓨터에서 쓰려면 파일로 내보낸 뒤, 옮겨 간 곳에서 가져오세요.</p>
     <div class="card row">
       <button type="button" :disabled="!items.length" @click="exportFile">파일로 내보내기</button>
       <label><input type="file" accept="application/json,.json" style="display: none" @change="importFile" /><span class="mini" style="cursor: pointer">파일에서 가져오기</span></label>

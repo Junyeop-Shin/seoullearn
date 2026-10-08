@@ -1,10 +1,11 @@
 <script setup>
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { api } from '../api/client'
 import { copyText } from '../lib/copy'
 
 // 사전 연락: 매칭 직후 보낼 문자 초안. 통화에서 들은 내용은 '내 멘티'에 적어 두면 종합계획서에 쓰인다.
-const mode = ref('온라인')
+const mode = ref(useRoute().query.mode === '오프라인' ? '오프라인' : '온라인')
 const callTime = ref('')
 const res = ref(null)
 const error = ref('')
@@ -41,7 +42,7 @@ async function build() {
         <div class="row" style="margin-top: 10px"><button type="button" class="primary" @click="copyText(res.sms.text)">문자 복사</button></div>
       </div>
       <div class="box warn"><ul><li v-for="n in res.notes" :key="n">{{ n }}</li></ul></div>
-      <p class="muted">통화에서 들은 과목, 일정, 목표는 <router-link to="/mentees">내 멘티</router-link>에 적어 두면 종합계획서와 활동보고서에 자동으로 채워집니다.</p>
+      <p class="muted">통화에서 들은 과목, 일정, 목표는 <router-link to="/mentees">내 멘티</router-link>의 기본 정보에 적어 두면 종합계획서와 활동보고서에 자동으로 채워집니다.</p>
     </template>
   </div>
 </template>

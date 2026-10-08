@@ -1,4 +1,6 @@
 <script setup>
+import { useRoute } from 'vue-router'
+import MenteeHeader from '../components/MenteeHeader.vue'
 import { reactive, ref } from 'vue'
 import { api } from '../api/client'
 import ReportSource from '../components/ReportSource.vue'
@@ -6,7 +8,7 @@ import { copyText } from '../lib/copy'
 import { saveItem } from '../stores/vault'
 
 // 멘토 교체 인계 요약: 출석 패턴, 과제 수행, 학습 태도, 수강 강의·진도만 넘긴다.
-const alias = ref('')
+const alias = ref(String(useRoute().params.alias))
 const reports = ref([])
 const res = ref(null)
 const summary = reactive({})
@@ -48,10 +50,11 @@ async function save() {
 
 <template>
   <div class="shell">
+    <MenteeHeader :alias="alias" title="인계 요약" />
     <h1>인계 요약</h1>
     <p class="muted">멘토가 바뀔 때 다음 멘토에게 넘길 내용입니다. 아래 네 가지만 만들고, 성적·이해도 같은 학업 수준과 정서·상담 내용은 넣지 않습니다.</p>
     <div v-if="error" class="box error">{{ error }}</div>
-    <ReportSource v-model:alias="alias" @loaded="reports = $event.reports" />
+    <ReportSource :alias="alias" @loaded="reports = $event.reports" />
     <button type="button" class="primary" :disabled="busy || !reports.length" @click="build">{{ busy ? '요약을 만드는 중입니다…' : '인계 요약 만들기' }}</button>
     <template v-if="res">
       <div v-if="res.warnings.length" class="box warn" data-test="warnings"><ul><li v-for="w in res.warnings" :key="w">{{ w }}</li></ul></div>

@@ -121,7 +121,7 @@ docker compose up -d frontend ai-server     # backend, db도 함께 뜬다
 # http://localhost:3000 에서 멘토 계정을 만들고 시작한다
 ```
 
-데모 순서와 녹화 대본은 `docs/demo_scenario.md`, 작성 시간 기록표는 `docs/time_measurement.md`, 포트폴리오용 RAG 결과는 `docs/rag_results.md`에 있다.
+화면 시연 순서는 `docs/demo_scenario.md`, 작성 시간 기록표는 `docs/time_measurement.md`, 포트폴리오용 RAG 결과는 `docs/rag_results.md`에 있다.
 
 ## API 실행
 

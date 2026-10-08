@@ -5,7 +5,9 @@ import { copyText } from '../lib/copy'
 // 답변 한 건: 본문, 근거 카드, 문의처 카드, 문의 초안, 가린 개인정보.
 const props = defineProps({ res: { type: Object, required: true } })
 const copied = ref(false)
-const SCREEN = { report: '/report', plan: '/plan', calc: '/allowance' }
+// 보고서와 계획서는 멘티를 고른 뒤 그 멘티 화면에서 쓴다
+const SCREEN = { report: '/mentees', plan: '/mentees', calc: '/allowance' }
+const LABEL = { report: '내 멘티에서 활동보고서 쓰기', plan: '내 멘티에서 종합계획서 쓰기' }
 
 async function copyDraft() {
   copied.value = await copyText(props.res.inquiry_draft)
@@ -16,7 +18,7 @@ async function copyDraft() {
   <div class="bubble bot">
     <div>{{ res.answer }}</div>
     <div v-if="res.screen" class="row" style="margin-top: 8px">
-      <router-link :to="SCREEN[res.intent] || '/'"><button type="button" class="primary small">{{ res.screen }} 화면으로 이동</button></router-link>
+      <router-link :to="SCREEN[res.intent] || '/'"><button type="button" class="primary small">{{ LABEL[res.intent] || `${res.screen} 화면으로 이동` }}</button></router-link>
     </div>
     <ul v-if="res.required_inputs?.length" class="muted"><li v-for="x in res.required_inputs" :key="x">{{ x }}</li></ul>
 

@@ -12,13 +12,10 @@ watch(() => route.path, () => (open.value = false))
 
 // 메뉴를 멘토링 흐름 순서로 묶는다
 const GROUPS = [
-  { title: '', items: [{ to: '/', label: '매뉴얼 질문', icon: 'chat' }] },
-  { title: '멘토링을 시작할 때', items: [{ to: '/pre-contact', label: '사전 연락', icon: 'phone' }, { to: '/plan', label: '종합계획서', icon: 'plan' }] },
-  { title: '매 회차', items: [{ to: '/report', label: '활동보고서', icon: 'report' }] },
-  { title: '회기를 마칠 때', items: [{ to: '/completion', label: '완료보고서', icon: 'flag' }, { to: '/handover', label: '인계 요약', icon: 'swap' }] },
-  { title: '오프라인 멘토링', items: [{ to: '/ieumdan', label: '이음단 요청', icon: 'send' }, { to: '/places', label: '협약 장소', icon: 'pin' }] },
-  { title: '도구', items: [{ to: '/allowance', label: '활동비 계산', icon: 'calc' }, { to: '/forms', label: '기타 서식', icon: 'folder' }] },
-  { title: '내 자료', items: [{ to: '/mentees', label: '내 멘티', icon: 'people' }, { to: '/vault', label: '보관함', icon: 'archive' }, { to: '/settings', label: '설정', icon: 'settings' }] },
+  { title: '', items: [{ to: '/', label: '매뉴얼 질문', icon: 'chat' }, { to: '/mentees', label: '내 멘티', icon: 'people' }] },
+  { title: '도구', items: [{ to: '/pre-contact', label: '사전 연락 문자', icon: 'phone' }, { to: '/ieumdan', label: '이음단 요청', icon: 'send' },
+    { to: '/places', label: '협약 장소', icon: 'pin' }, { to: '/allowance', label: '활동비 계산', icon: 'calc' }, { to: '/forms', label: '기타 서식', icon: 'folder' }] },
+  { title: '설정', items: [{ to: '/vault', label: '백업·복원', icon: 'archive' }, { to: '/settings', label: '설정', icon: 'settings' }] },
 ]
 
 async function signOut() {
@@ -39,7 +36,7 @@ async function signOut() {
       <nav aria-label="주 메뉴">
         <template v-for="g in GROUPS" :key="g.title">
           <div v-if="g.title" class="group">{{ g.title }}</div>
-          <router-link v-for="i in g.items" :key="i.to" :to="i.to" class="nav"><NavIcon :name="i.icon" />{{ i.label }}</router-link>
+          <router-link v-for="i in g.items" :key="i.to" :to="i.to" class="nav" :class="{ 'router-link-exact-active': i.to !== '/' && route.path.startsWith(i.to + '/') }"><NavIcon :name="i.icon" />{{ i.label }}</router-link>
         </template>
         <template v-if="auth.user.role === 'ADMIN'">
           <div class="group">관리자</div>

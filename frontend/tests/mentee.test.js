@@ -47,3 +47,53 @@ describe('멘티 정보', () => {
     expect(getCurrentAlias()).toBe('수학 고2 A')
   })
 })
+
+import 'fake-indexeddb/auto'
+import { KEEP_AFTER_TERM, docStatus, menteePath, nextStep, sessionRows } from '../src/lib/mentee'
+import { clearAll, exportAlias, importAll, listItems, removeAlias, saveItem } from '../src/stores/vault'
+
+describe('멘티 작업 공간', () => {
+  const report = (no, over = {}) => item({ formId: 'activity_report', sessionNo: no, inputs: { session_no: String(no), session_date: `2026-10-${String(5 + 7 * no).padStart(2, '0')}`, status: '출석' }, ...over })
+  const profile = { subject: '수학', start_datetime: '2026-10-12T17:00' }
+
+  it('회차 목록은 16회차까지, 저장한 회차에는 날짜와 상태가 붙는다', () => {
+    const rows = sessionRows([report(1), report(2, { inputs: { session_no: '2', session_date: '2026-10-19', status: '무단결석' } })], profile)
+    expect(rows).toHaveLength(16)
+    expect(rows[0]).toMatchObject({ no: 1, saved: true, date: '2026-10-12', expected: '2026-10-12' })
+    expect(rows[1]).toMatchObject({ saved: true, status: '무단결석' })
+    expect(rows[2]).toMatchObject({ no: 3, saved: false, expected: '2026-10-26' })
+    expect(sessionRows([report(18)], null)).toHaveLength(18)
+  })
+
+  it('다음 할 일을 순서대로 안내한다', () => {
+    expect(nextStep([], null)).toContain('기본 정보')
+    expect(nextStep([], profile)).toContain('종합계획서①')
+    const plan = item({ formId: 'plan_initial' })
+    expect(nextStep([plan], profile)).toContain('1회차 활동보고서')
+    expect(nextStep([plan, report(1)], profile)).toContain('종합계획서②')
+    const file = item({ formId: 'plan_file' })
+    expect(nextStep([plan, file, report(1), report(2)], profile)).toContain('3회차 활동보고서')
+    const all = Array.from({ length: 16 }, (_, i) => report(i + 1))
+    expect(nextStep([plan, file, ...all], profile)).toContain('완료보고서')
+    expect(nextStep([plan, file, ...all, item({ formId: 'completion_report' })], profile)).toContain('회기 정리')
+    expect(docStatus([plan, report(1), report(1), report(2)]).reports).toBe(2)   // 같은 회차를 두 번 저장해도 한 번으로 센다
+    expect(menteePath('수학 고2 A', '/report/3')).toBe('/mentees/%EC%88%98%ED%95%99%20%EA%B3%A02%20A/report/3')
+  })
+
+  it('회기 정리는 기본 정보·완료보고서·인계 요약만 남기고, 다른 멘티는 건드리지 않는다', async () => {
+    await clearAll()
+    const A = '수학 고2 A'
+    for (const formId of ['mentee_profile', 'plan_initial', 'plan_file', 'completion_report', 'handover_summary']) await saveItem({ alias: A, formId, title: formId })
+    await saveItem({ alias: A, formId: 'activity_report', title: '1회차', sessionNo: 1 })
+    await saveItem({ alias: '영어 중2 B', formId: 'activity_report', title: '1회차', sessionNo: 1 })
+    const file = JSON.parse(JSON.stringify(await exportAlias(A)))
+    expect(file.items).toHaveLength(6)
+    expect(await removeAlias(A, KEEP_AFTER_TERM)).toBe(3)
+    expect((await listItems(A)).map((x) => x.formId).sort()).toEqual(['completion_report', 'handover_summary', 'mentee_profile'])
+    expect(await listItems('영어 중2 B')).toHaveLength(1)
+    expect(await removeAlias(A)).toBe(3)
+    expect(await listItems(A)).toHaveLength(0)
+    expect(await importAll(file)).toBe(6)                     // 내보낸 파일로 되살릴 수 있다
+    expect(await listItems(A)).toHaveLength(6)
+  })
+})

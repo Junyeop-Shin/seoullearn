@@ -1,17 +1,18 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { api } from '../api/client'
-import AliasInput from '../components/AliasInput.vue'
+import { useRoute } from 'vue-router'
+import MenteeHeader from '../components/MenteeHeader.vue'
 import DraftResult from '../components/DraftResult.vue'
 import SchemaForm from '../components/SchemaForm.vue'
 import { emptyInputs, inputFields, toPayload } from '../lib/formFields'
-import { preContactFromProfile, profileFromVault, subjectTimeText } from '../lib/mentee'
+import { menteePath, preContactFromProfile, profileFromVault, subjectTimeText } from '../lib/mentee'
 import { COURSE_ALIAS, COURSE_FORM, coursesFromVault, handoverFromVault } from '../lib/reports'
 import { toast } from '../lib/toast'
 import { listItems, saveItem } from '../stores/vault'
 
 // 종합계획서: ① 강의 목차 → ② 주차별 계획 → ③ 종합계획서①(플랫폼 입력) → ④ 종합계획서②(서식 파일)
-const alias = ref('')
+const alias = ref(String(useRoute().params.alias))
 const error = ref('')
 const busy = ref('')
 const status = ref('')
@@ -128,8 +129,8 @@ async function loadAnswers() {
       pickedCourse.value = course.id
       useCourse()
     }
-    status.value = '멘티 정보를 불러왔습니다.'
-  } else status.value = '이 별칭으로 저장된 멘티 정보가 없습니다. 내 멘티에서 적어 두면 일정과 목표가 자동으로 채워집니다.'
+    status.value = '기본 정보에서 일정과 목표를 불러왔습니다.'
+  } else status.value = '기본 정보가 아직 없습니다. 멘티 화면에서 적어 두면 일정과 목표가 자동으로 채워집니다.'
   const ho = handoverFromVault(items)
   if (ho) {
     for (const k of Object.keys(handover)) handover[k] = ho[k] || ''
@@ -173,11 +174,9 @@ const CONFIRM = '종합계획서①은 플랫폼에 등록한 뒤에는 수정�
 
 <template>
   <div class="shell">
+    <MenteeHeader :alias="alias" title="종합계획서" />
     <h1>종합계획서 작성</h1>
-    <div class="card">
-      <AliasInput v-model="alias" />
-      <p v-if="status" class="notice" data-test="profile-status">{{ status }}</p>
-    </div>
+    <p v-if="status" class="notice" data-test="profile-status">{{ status }}</p>
     <div v-if="error" class="box error">{{ error }}</div>
 
     <h2>① 강의 목차 붙여 넣기</h2>
@@ -239,7 +238,7 @@ const CONFIRM = '종합계획서①은 플랫폼에 등록한 뒤에는 수정�
           <div v-if="answers.level">학습 상황: {{ answers.level }}</div>
         </template>
         <div v-else>적어 둔 멘티 정보가 없습니다. 목표와 학습 상황 없이 만들면 학습목표와 학생진단이 거의 비게 됩니다.</div>
-        <router-link to="/mentees">내 멘티에서 고치기</router-link>
+        <router-link :to="menteePath(alias)">기본 정보에서 고치기</router-link>
       </div>
       <details>
         <summary>이전 멘토의 인계 요약이 있으면 입력 (멘토 교체)</summary>

@@ -77,3 +77,51 @@ export function setCurrentAlias(alias) {
     /* 저장하지 못해도 동작에는 지장이 없다 */
   }
 }
+
+export const TOTAL_SESSIONS = 16
+// 회기를 정리할 때 남기는 자료: 멘티 정보, 완료보고서, 인계 요약
+export const KEEP_AFTER_TERM = [PROFILE_FORM, 'completion_report', 'handover_summary']
+
+/** 회차 목록: 1~16회차(저장한 회차가 더 크면 거기까지). 저장한 회차에는 날짜와 상태를 붙인다. */
+export function sessionRows(items, profile) {
+  const latest = new Map()
+  for (const x of items) {
+    if (x.formId !== 'activity_report') continue
+    const no = Number(x.sessionNo ?? x.inputs?.session_no)
+    if (!no) continue
+    const prev = latest.get(no)
+    if (!prev || prev.savedAt < x.savedAt) latest.set(no, x)
+  }
+  const last = Math.max(TOTAL_SESSIONS, ...latest.keys())
+  const rows = []
+  for (let no = 1; no <= last; no += 1) {
+    const x = latest.get(no)
+    rows.push({ no, saved: !!x, id: x?.id, date: x?.inputs?.session_date || '', status: x?.inputs?.status || '',
+      expected: suggestDate(profile?.start_datetime, no) })
+  }
+  return rows
+}
+
+/** 멘티 작업 공간에 보여 줄 문서별 저장 여부. */
+export function docStatus(items) {
+  const latest = (formId) => items.filter((x) => x.formId === formId).sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))[0]
+  const at = (x) => (x ? x.savedAt.slice(0, 10) : '')
+  return {
+    plan_initial: at(latest('plan_initial')), plan_file: at(latest('plan_file')),
+    completion_report: at(latest('completion_report')), handover_summary: at(latest('handover_summary')),
+    reports: new Set(items.filter((x) => x.formId === 'activity_report').map((x) => Number(x.sessionNo ?? x.inputs?.session_no)).filter(Boolean)).size,
+  }
+}
+
+/** 지금 할 일 한 줄. 일정 정보가 없으면 날짜 없이 순서만 안내한다. */
+export function nextStep(items, profile) {
+  const s = docStatus(items)
+  if (!profile || !profile.subject) return '기본 정보를 먼저 적어 주세요.'
+  if (!s.plan_initial) return '종합계획서①을 작성할 차례입니다 (매칭 후 7일 이내, 플랫폼 입력).'
+  if (s.reports >= 1 && !s.plan_file) return '종합계획서②를 작성해 1회차 활동보고서에 첨부할 차례입니다.'
+  if (s.reports < TOTAL_SESSIONS) return `${nextSessionNo(items)}회차 활동보고서를 작성할 차례입니다 (멘토링 후 7일 이내).`
+  if (!s.completion_report) return '완료보고서를 작성할 차례입니다.'
+  return '이번 회기 문서를 모두 작성했습니다. 플랫폼 제출과 승인을 확인한 뒤 회기 정리를 해 주세요.'
+}
+
+export const menteePath = (alias, rest = '') => `/mentees/${encodeURIComponent(alias)}${rest}`

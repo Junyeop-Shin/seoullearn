@@ -1,102 +1,64 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
-import { PROFILE_FIELDS, PROFILE_FORM, emptyProfile, getCurrentAlias, nextSessionNo, profileFromVault, setCurrentAlias } from '../lib/mentee'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { PROFILE_FORM, docStatus, emptyProfile, menteePath, nextStep, profileFromVault } from '../lib/mentee'
 import { COURSE_ALIAS } from '../lib/reports'
-import { toast } from '../lib/toast'
 import { listAliases, listItems, saveItem } from '../stores/vault'
 
-// 내 멘티: 멘티별로 한 번 적어 두는 정보. 보고서와 계획서 화면이 이 값을 불러와 다시 입력하지 않게 한다.
-const mentees = ref([])   // [{ alias, profile, reports, next }]
+// 내 멘티: 멘티 목록. 멘티를 누르면 그 멘티의 작업 공간으로 간다.
+const router = useRouter()
+const mentees = ref([])
 const alias = ref('')
-const profile = reactive(emptyProfile())
-const editingId = ref(undefined)
 const error = ref('')
 
-async function refresh() {
+onMounted(async () => {
   const out = []
   for (const a of (await listAliases()).filter((x) => x !== COURSE_ALIAS)) {
     const items = await listItems(a)
-    out.push({ alias: a, profile: profileFromVault(items), reports: items.filter((x) => x.formId === 'activity_report').length, next: nextSessionNo(items) })
+    const profile = profileFromVault(items)
+    out.push({ alias: a, profile, status: docStatus(items), next: nextStep(items, profile) })
   }
   mentees.value = out
-}
+})
 
-async function edit(a) {
-  alias.value = a
-  setCurrentAlias(a)
-  const found = profileFromVault(await listItems(a))
-  Object.assign(profile, emptyProfile(), found || {})
-  editingId.value = found?._id
-  delete profile._id
-}
-
-function startNew() {
-  alias.value = ''
-  Object.assign(profile, emptyProfile())
-  editingId.value = undefined
-}
-
-async function save() {
+async function create() {
   error.value = ''
+  const name = alias.value.trim()
   try {
-    const item = await saveItem({ id: editingId.value, alias: alias.value, formId: PROFILE_FORM, title: '멘티 정보', draft: { ...profile } })
-    editingId.value = item.id
-    setCurrentAlias(item.alias)
-    toast('멘티 정보를 저장했습니다.')
-    await refresh()
+    if (mentees.value.some((m) => m.alias === name)) throw new Error('같은 별칭의 멘티가 이미 있습니다.')
+    await saveItem({ alias: name, formId: PROFILE_FORM, title: '멘티 정보', draft: emptyProfile() })
+    router.push(menteePath(name))
   } catch (e) {
     error.value = e.message
   }
 }
-
-onMounted(async () => {
-  await refresh()
-  const current = getCurrentAlias()
-  if (current && mentees.value.some((m) => m.alias === current)) await edit(current)
-})
 </script>
 
 <template>
   <div class="shell">
     <h1>내 멘티</h1>
-    <p class="muted">멘티마다 과목, 강좌, 일정을 한 번 적어 두면 활동보고서와 종합계획서 화면에서 다시 입력하지 않아도 됩니다. 이 브라우저에만 저장되고 서버로 보내지 않습니다.</p>
+    <p class="muted">멘티마다 종합계획서, 회차별 활동보고서, 완료보고서를 한곳에서 작성합니다. 자료는 이 브라우저에만 저장되고 서버로 보내지 않습니다.</p>
 
-    <div v-if="mentees.length" class="card" data-test="mentee-list">
-      <table>
-        <tr><th>별칭</th><th>과목</th><th>일정</th><th>저장한 활동보고서</th><th></th></tr>
-        <tr v-for="m in mentees" :key="m.alias">
-          <td><strong>{{ m.alias }}</strong></td>
-          <td>{{ m.profile?.subject || '-' }} <span v-if="m.profile?.mode" class="tag">{{ m.profile.mode }}</span></td>
-          <td>{{ m.profile?.weekday ? `매주 ${m.profile.weekday}요일` : '-' }}</td>
-          <td>{{ m.reports }}건 <span class="muted">(다음 {{ m.next }}회차)</span></td>
-          <td style="text-align: right"><button type="button" class="small" @click="edit(m.alias)">{{ m.profile ? '수정' : '정보 입력' }}</button></td>
-        </tr>
-      </table>
-    </div>
-
-    <h2>{{ editingId ? '멘티 정보 수정' : '멘티 정보 입력' }}</h2>
-    <form class="card" @submit.prevent="save">
-      <label class="field"><span class="name">멘티 별칭<span class="req">*</span></span>
-        <input v-model="alias" placeholder="예: 수학 고2 A" maxlength="30" required data-profile="alias" />
-        <span class="notice">실명을 쓰지 마세요. 과목처럼 본인만 알아볼 수 있는 이름을 씁니다.</span>
-      </label>
-      <div class="form-grid">
-        <label v-for="f in PROFILE_FIELDS" :key="f.key" class="field" :class="{ wide: f.wide }">
-          <span class="name">{{ f.label }}</span>
-          <select v-if="f.control === 'select'" v-model="profile[f.key]" :data-profile="f.key">
-            <option value="">선택해 주세요</option><option v-for="o in f.options" :key="o" :value="o">{{ o }}</option>
-          </select>
-          <textarea v-else-if="f.control === 'textarea'" v-model="profile[f.key]" rows="2" :data-profile="f.key"></textarea>
-          <input v-else v-model="profile[f.key]" :type="f.control" :placeholder="f.example ? `예: ${f.example}` : ''" :data-profile="f.key" />
-          <span v-if="f.help" class="notice">{{ f.help }}</span>
-        </label>
-      </div>
-      <div class="box warn">멘티의 이름, 학년, 학교, 연락처, 가정 사정은 적지 마세요. 이 화면에는 그런 칸이 없습니다.</div>
-      <div v-if="error" class="box error">{{ error }}</div>
+    <router-link v-for="m in mentees" :key="m.alias" :to="menteePath(m.alias)" class="card mentee-card" data-test="mentee-card">
       <div class="row">
-        <button class="primary">저장</button>
-        <button v-if="editingId || alias" type="button" @click="startNew">새 멘티 입력</button>
+        <strong style="font-size: 1.05rem">{{ m.alias }}</strong>
+        <span v-if="m.profile?.subject" class="tag">{{ m.profile.subject }}</span>
+        <span v-if="m.profile?.mode" class="tag">{{ m.profile.mode }}</span>
+        <span style="flex: 1"></span>
+        <span class="muted">활동보고서 {{ m.status.reports }}건</span>
       </div>
+      <div class="muted" style="margin-top: 4px">{{ m.next }}</div>
+    </router-link>
+    <p v-if="!mentees.length" class="card muted">아직 등록한 멘티가 없습니다. 아래에서 별칭을 정해 추가해 주세요.</p>
+
+    <h2>멘티 추가</h2>
+    <form class="card" @submit.prevent="create">
+      <label class="field"><span class="name">멘티 별칭</span>
+        <input v-model="alias" placeholder="예: 수학 고2 A" maxlength="30" required data-test="new-alias" />
+        <span class="notice">실명을 쓰지 마세요. 과목처럼 본인만 알아볼 수 있는 이름을 씁니다. 이름, 학년, 학교, 연락처는 이 도구에 적지 않습니다.</span>
+      </label>
+      <div v-if="error" class="box error">{{ error }}</div>
+      <button class="primary" :disabled="!alias.trim()">추가하고 시작하기</button>
     </form>
   </div>
 </template>

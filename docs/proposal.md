@@ -91,6 +91,6 @@
 
 ## 부록
 
-- 시연 순서: `docs/demo_scenario.md`
+- 화면 시연 순서: `docs/demo_scenario.md`
 - 측정 결과: `docs/rag_results.md`
 - 구조와 데이터 처리: `docs/architecture.md`

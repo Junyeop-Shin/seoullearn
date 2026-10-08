@@ -85,3 +85,25 @@ export async function importAll(data) {
   await tx('readwrite', (s) => valid.forEach((x) => s.put(JSON.parse(JSON.stringify(x)))))
   return valid.length
 }
+
+/** 한 멘티의 자료를 지운다. keep에 적은 양식(formId)은 남긴다. 지운 개수를 돌려준다. */
+export async function removeAlias(alias, keep = []) {
+  const targets = (await listItems(alias)).filter((x) => !keep.includes(x.formId))
+  await tx('readwrite', (s) => targets.forEach((x) => s.delete(x.id)))
+  return targets.length
+}
+
+/** 한 멘티의 자료만 파일로 내보낼 객체 (가져오기는 importAll로 한다). */
+export async function exportAlias(alias) {
+  return { format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), items: await listItems(alias) }
+}
+
+/** 내보낼 객체를 파일로 내려받는다. */
+export function downloadJson(data, name) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(url)
+}

@@ -512,7 +512,7 @@ validate_docs.py를 통과해야 하고, v2 검색 평가를 다시 돌려 전�
 
 - [x] 4-1 최종 평가: 모든 개선을 적용한 상태로 v1·v2 전체 평가, 비교표 확정 (eval/reports/final_eval.md)
 - [x] 4-2 README·아키텍처 문서 (기존 README의 실행·API 안내는 docs/usage.md로 옮김)
-- [ ] 4-3 데모 영상
+- [x] 4-3 데모 영상 → 찍지 않기로 함 (2026-10-08). 화면을 직접 보여 줄 때의 순서는 docs/demo_scenario.md
 - [x] 4-4 제안서 (2~4쪽) 초안 (docs/proposal.md. 제안자 정보, 설문 결과, 작성 시간은 직접 채울 자리)
 
 **지시문 (4-2)**
