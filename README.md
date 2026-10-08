@@ -16,6 +16,7 @@ ai-server/            Python AI 서버 (FastAPI)
     guard.py          아동 안전 신호 감지, 개인정보 가리기
     qa.py             검색 → 답변 생성 → 근거·문의처
     pipelines.py      비교할 RAG 설정 목록
+    forms/            양식 엔진, 활동보고서·종합계획서 훅, 사전 연락, 목차 파서, 주차별 계획
     router.py         의도 분류 라우터 (LangGraph: 가드 → 규칙 → LLM → qa/report/plan)
     inquiry.py        문의 초안
     vector_store.py   pgvector 벡터 저장소
@@ -147,6 +148,29 @@ curl -X POST localhost:8000/qa -H "Content-Type: application/json" \
 docker compose run --rm ai-server python /project/scripts/compare_vector_backends.py
 ```
 
+### 보고서 초안 (/drafts)
+
+양식 엔진(`app/forms/`)이 `forms/<form_id>.json` 스키마와 멘토 입력으로 초안을 만든다. 서버에는 아무것도 저장하지 않는다.
+
+| 경로 | 내용 | LLM |
+| --- | --- | --- |
+| `POST /drafts/activity_report` | 활동보고서 초안. 결석 회차 처리, 제출·증빙 안내 | 멘토가 쓴 사실을 문장으로 다듬기만 |
+| `POST /drafts/pre_contact` | 사전 연락 질문지와 문자 초안(90자 단위) | 쓰지 않음 |
+| `POST /drafts/course_outline` | 붙여 넣은 강의 목차 → 강 목록 | 규칙으로 못 읽은 줄만 |
+| `POST /drafts/weekly_plan` | 16회차 계획. 배분은 규칙 함수 | 회차별 멘토링 내용·상담 문장만 |
+| `POST /drafts/plan_initial` | 종합계획서① 초안 (플랫폼 입력용 문자 정리, 수정 불가 경고) | 학습목표·학생진단만 |
+| `POST /drafts/plan_file` | 종합계획서② 초안 (서식 항목 순서 텍스트) | 학습목표, 멘토 입력 다듬기 |
+
+- 필드의 `source`에 따라 처리가 갈린다: `user`는 입력 그대로, `placeholder`는 `[멘티명]` 같은 자리표시, `derived`는 규칙 계산, `user_text`는 다듬기, `llm_draft`는 초안.
+- 개인정보 칸에 입력이 오면 버리고 경고한다. 5점 척도, 시간, 회차, 날짜 계산은 LLM에 맡기지 않는다.
+- LLM이 쓴 문장에 입력에 없는 숫자가 있으면 그 문장을 빼고 경고한다.
+- 응답: `draft`(필드별 값), `missing_questions`(되물을 항목), `warnings`, `reminders`(제출·증빙 안내), `pii_masked`.
+- 새 양식은 `forms/`에 JSON 파일을 추가하면 `/drafts/<form_id>`로 바로 쓸 수 있다. 양식별 특수 처리는 `hooks_*.py`의 훅으로 분리한다.
+
+```bash
+docker compose run --rm ai-server python -m evaluation.report_eval [--judge]   # 초안 평가 (eval/report_eval/cases.json)
+```
+
 ### 의도 분류 라우터 (/chat)
 
 `POST /chat`은 말의 의도를 나눠 처리한다(LangGraph, `app/router.py`). 안전 가드가 먼저 보고, 규칙(키워드)으로 분류한 뒤 애매할 때만 LLM을 부른다.
@@ -170,6 +194,8 @@ docker compose run --rm ai-server python -m evaluation.intent_eval [--llm]   # �
 - `eval/reports/baseline_retrieval.md`, `embedding_choice.md`, `baseline_answer.md`: 1-A 기준 측정
 - `eval/reports/improvement_1b.md`: 1-B 개선을 하나씩 적용하며 다시 잰 결과
 - `eval/reports/compare.md`: 전체 비교표
+- `eval/reports/intent_eval.md`: 의도 분류 측정
+- `eval/reports/report_eval.md`, `report_eval_notes.md`: 보고서 초안 평가와 해석
 
 개선 하나를 적용한 뒤에는 `scripts/measure.sh`로 같은 평가셋을 다시 잰다.
 

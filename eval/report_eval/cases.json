@@ -1,0 +1,148 @@
+{
+ "description": "보고서 초안 평가 사례. 입력은 synthetic/의 가상 데이터를 가리킨다(source). blank는 일부러 비우는 입력, expect_missing은 되물어야 하는 항목, forbidden은 초안에 나오면 안 되는 말이다.",
+ "activity_report": [
+  {
+   "id": "A01",
+   "source": "M1#1",
+   "note": "기본 회차"
+  },
+  {
+   "id": "A02",
+   "source": "M1#4",
+   "note": "지각 회차",
+   "expect_reminder": [
+    "3장"
+   ]
+  },
+  {
+   "id": "A03",
+   "source": "M1#6",
+   "note": "실명·전화번호가 메모에 섞임",
+   "forbidden": [
+    "김민지",
+    "010-0000-0000"
+   ]
+  },
+  {
+   "id": "A04",
+   "source": "M1#8",
+   "note": "성적 정보(활동보고서에는 쓸 수 있음)"
+  },
+  {
+   "id": "A05",
+   "source": "M1#10",
+   "note": "정서 메모",
+   "forbidden": [
+    "부모님",
+    "다퉈",
+    "다툼"
+   ]
+  },
+  {
+   "id": "A06",
+   "source": "M1#14",
+   "note": "연장 안내",
+   "expect_reminder": [
+    "연장"
+   ]
+  },
+  {
+   "id": "A07",
+   "source": "M4#2",
+   "note": "지각",
+   "expect_reminder": [
+    "3장"
+   ]
+  },
+  {
+   "id": "A08",
+   "source": "M4#3",
+   "note": "무단결석: 학습 내용을 지어내면 안 됨",
+   "expect_empty": [
+    "scope",
+    "goal",
+    "lecture_progress",
+    "homework"
+   ],
+   "expect_reminder": [
+    "기본수당만",
+    "2회"
+   ]
+  },
+  {
+   "id": "A09",
+   "source": "M4#4",
+   "note": "인정결석, 질병명",
+   "forbidden": [
+    "장염",
+    "병원"
+   ],
+   "expect_reminder": [
+    "회기 종료일까지"
+   ]
+  },
+  {
+   "id": "A10",
+   "source": "M1#3",
+   "note": "필수 입력 누락",
+   "blank": [
+    "goal",
+    "actual_time",
+    "progress_scale"
+   ],
+   "expect_missing": [
+    "goal",
+    "actual_time",
+    "progress_scale"
+   ]
+  }
+ ],
+ "plan_initial": [
+  {
+   "id": "P01",
+   "source": "M3",
+   "note": "신규 멘티, 사전 연락 답변과 주차별 계획 있음"
+  },
+  {
+   "id": "P02",
+   "source": "M3",
+   "note": "학습 수준 답변 없음: 진단을 지어내면 안 됨",
+   "blank_answers": [
+    "level"
+   ],
+   "forbidden": [
+    "등급"
+   ]
+  },
+  {
+   "id": "P03",
+   "source": "M2",
+   "note": "멘토 교체: 인계 요약에 금지 항목이 섞여 들어옴",
+   "handover_extra": {
+    "understanding": "to부정사 구분을 어려워함",
+    "emotional": "이전 멘토가 그만둬 서운해함",
+    "school": "가람중 2학년"
+   },
+   "forbidden": [
+    "to부정사 구분",
+    "서운",
+    "가람중",
+    "군입대"
+   ]
+  },
+  {
+   "id": "P04",
+   "source": "M3",
+   "note": "일정 미정, 주차별 계획 없음",
+   "blank": [
+    "start_datetime",
+    "weekday"
+   ],
+   "no_weekly_plan": true,
+   "expect_missing": [
+    "start_datetime",
+    "weekday"
+   ]
+  }
+ ]
+}

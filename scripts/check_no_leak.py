@@ -1,14 +1,15 @@
 """입력 본문이 서버 어디에도 남지 않는지 검사한다.
 
-가상 회차 기록(synthetic/sessions_M1.json 등)의 내용으로 backend의 /api/qa와 /api/chat을 10번 호출한 뒤,
-보낸 문장의 조각이 아래 세 곳에 남았는지 찾는다.
+가상 회차 기록(synthetic/sessions_M1.json 등)의 내용으로 backend의 /api/qa와 /api/chat을 10번,
+활동보고서 초안(/api/drafts/activity_report)을 3번 호출한 뒤, 보낸 문장의 조각이 아래 세 곳에 남았는지 찾는다.
   1) backend, ai-server, db 컨테이너 로그
   2) DB 전체 (pg_dump)
-  3) .cache 폴더의 모든 파일
+  3) .cache 폴더에서 이번 호출 뒤에 새로 생기거나 늘어난 부분
+     (평가 실행이 남긴 캐시에는 같은 가상 데이터가 들어 있을 수 있어, 호출 전 상태와 비교한다)
 
   docker compose up -d backend          # db, ai-server도 함께 뜬다
   python scripts/check_no_leak.py
-남은 곳이 있으면 목록을 보여주고 종료 코드 1. 실제 LLM을 10번 안팎 호출한다 (가상 데이터만 보낸다).
+남은 곳이 있으면 목록을 보여주고 종료 코드 1. 실제 LLM을 15번 안팎 호출한다 (가상 데이터만 보낸다).
 """
 from __future__ import annotations
 
@@ -45,6 +46,17 @@ def build_messages() -> list[str]:
         text = " ".join(p for p in parts if p).strip()
         texts.append((text + " 이 내용으로 어떻게 하면 되나요?")[:900])
     return texts[:10]
+
+
+def build_drafts() -> list[dict]:
+    """활동보고서 초안 입력 3건: 실명·전화번호(6회차), 성적(8회차), 정서 메모(10회차)."""
+    m1 = json.loads((ROOT / "synthetic" / "sessions_M1.json").read_text(encoding="utf-8"))["sessions"]
+    out = []
+    for s in m1:
+        if s["session_no"] in (6, 8, 10):
+            out.append({"session_date": s["date"], "session_no": s["session_no"], "subject": "수학", "course": "가상 강좌",
+                        "status": s["status"], **s["mentor_input"]})
+    return out
 
 
 def fragments(messages: list[str], known_public: str) -> list[str]:
@@ -102,7 +114,7 @@ class Client:
             return e.code, e.read().decode("utf-8", "replace")
 
 
-def send(base: str, messages: list[str]) -> tuple[str, list[int]]:
+def send(base: str, messages: list[str], drafts: list[dict]) -> tuple[str, list[int]]:
     c = Client(base)
     username = "leakcheck_" + secrets.token_hex(4)
     password = secrets.token_urlsafe(16)
@@ -118,6 +130,9 @@ def send(base: str, messages: list[str]) -> tuple[str, list[int]]:
         path, body = ("/api/qa", {"question": m}) if n % 2 == 0 else ("/api/chat", {"message": m})
         code, _ = c.call("POST", path, body)
         codes.append(code)
+    for d in drafts:
+        code, _ = c.call("POST", "/api/drafts/activity_report", {"inputs": d})
+        codes.append(code)
     c.call("POST", "/api/auth/logout")
     return username, codes
 
@@ -127,7 +142,12 @@ def compose(*args: str) -> bytes:
     return subprocess.run(["docker", "compose", *args], cwd=ROOT, capture_output=True, check=False).stdout
 
 
-def scan(frags: list[str], since: str) -> list[tuple[str, list[str]]]:
+def cache_sizes() -> dict[str, int]:
+    cache = ROOT / ".cache"
+    return {str(f.relative_to(cache)): f.stat().st_size for f in cache.rglob("*") if f.is_file()} if cache.exists() else {}
+
+
+def scan(frags: list[str], since: str, before: dict[str, int]) -> list[tuple[str, list[str]]]:
     """(위치, 찾은 조각 목록)."""
     found = []
     for svc in SERVICES:
@@ -145,7 +165,10 @@ def scan(frags: list[str], since: str) -> list[tuple[str, list[str]]]:
     cache = ROOT / ".cache"
     for f in sorted(cache.rglob("*")) if cache.exists() else []:
         if f.is_file():
-            hit = find_in(f.read_bytes(), frags)
+            data, old = f.read_bytes(), before.get(str(f.relative_to(cache)))
+            if old is not None and len(data) >= old:
+                data = data[old:]  # 뒤에 덧붙은 부분만 본다. 줄었거나 새 파일이면 전체를 본다
+            hit = find_in(data, frags)
             if hit:
                 found.append((f".cache/{f.relative_to(cache)}", hit))
     return found
@@ -155,21 +178,22 @@ def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--base", default="http://localhost:8080")
     a = p.parse_args()
-    messages = build_messages()
-    frags = fragments(messages, public_text())
+    messages, drafts = build_messages(), build_drafts()
+    frags = fragments(messages + [" ".join(str(v) for v in d.values()) for d in drafts], public_text())
     if len(frags) < 50:
         raise SystemExit("검사할 조각이 너무 적습니다. 가상 데이터를 확인해 주세요.")
     since = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    username, codes = send(a.base, messages)
+    before = cache_sizes()
+    username, codes = send(a.base, messages, drafts)
     time.sleep(2)  # 로그가 밀려 나올 시간
     try:
-        found = scan(frags, since)
+        found = scan(frags, since, before)
     finally:
         compose("exec", "-T", "db", "psql", "-U", "seoullearn", "-d", "seoullearn", "-c",
                 f"DELETE FROM app_user WHERE username = '{username}'")
     ok_calls = sum(c == 200 for c in codes)
     print(f"호출 {len(codes)}회 (성공 {ok_calls}회, 상태 코드 {codes}), 검사한 조각 {len(frags)}개")
-    print(f"검사 대상: {', '.join(SERVICES)} 컨테이너 로그, DB 전체, .cache 폴더")
+    print(f"검사 대상: {', '.join(SERVICES)} 컨테이너 로그, DB 전체, .cache 폴더에 새로 쓰인 부분")
     if ok_calls < len(codes):
         print("경고: 실패한 호출이 있습니다. 실패한 호출은 LLM까지 가지 않았을 수 있어 검사가 약해집니다.")
     if not found:

@@ -520,5 +520,39 @@ class PlanDraftTest(unittest.TestCase):
             self.assertEqual(r.json()["sessions"][8]["kind"], "시험기간")
             self.assertEqual(c.post("/drafts/weekly_plan", json={"lectures": lectures, "done": 30}).status_code, 422)
 
+class ReportEvalTest(unittest.TestCase):
+    def test_report_eval_runs_with_fake_llm(self):
+        from evaluation import report_eval
+
+        s = report_eval.run(report_eval.FakeLLM())
+        a, p = s["forms"]["activity_report"], s["forms"]["plan_initial"]
+        self.assertEqual((a["n"], p["n"]), (10, 4))
+        self.assertEqual((a["exposed"], p["exposed"]), (0, 0))          # 가드와 필터는 LLM과 무관하게 동작한다
+        self.assertEqual(a["should_be_empty_but_filled"], 0)
+        self.assertEqual(a["missing_reminders"], 0)
+        self.assertEqual((a["reask_accuracy"], p["reask_accuracy"]), (100.0, 100.0))
+        self.assertIn("| 활동보고서 | 10건 |", report_eval.to_markdown(s, "fake", None))
+
+    def test_scoring_catches_fabrication_and_exposure(self):
+        from evaluation import report_eval
+
+        class Bad(report_eval.FakeLLM):
+            def complete(self, system, user):
+                out = json.loads(super().complete(system, user))
+                if "session_content" in out:
+                    out["session_content"] = "김민지 학생이 모의고사 97점을 받음"
+                return json.dumps(out, ensure_ascii=False)
+
+        case = {"id": "X", "source": "M1#6", "forbidden": ["김민지"]}
+        inputs = report_eval.activity_input(case)
+        res = forms.draft("activity_report", inputs, Bad())
+        row = report_eval.score("activity_report", case, inputs, {}, res)
+        self.assertEqual(row["exposed"], [])       # 엔진이 이름을 다시 가리고
+        self.assertEqual(row["fabricated"], [])    # 지어낸 숫자 문장을 뺐다
+        res.draft["session_content"] = "김민지 학생이 모의고사 97점을 받음"   # 엔진을 거치지 않은 글이면 채점에서 걸린다
+        row = report_eval.score("activity_report", case, inputs, {}, res)
+        self.assertEqual(row["exposed"], ["김민지"])
+        self.assertEqual(row["fabricated"], [("session_content", "97")])
+
 if __name__ == "__main__":
     unittest.main()
