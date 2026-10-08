@@ -5,7 +5,7 @@ import AliasInput from '../components/AliasInput.vue'
 import DraftResult from '../components/DraftResult.vue'
 import SchemaForm from '../components/SchemaForm.vue'
 import { emptyInputs, inputFields, toPayload } from '../lib/formFields'
-import { handoverFromVault } from '../lib/reports'
+import { COURSE_ALIAS, COURSE_FORM, coursesFromVault, handoverFromVault } from '../lib/reports'
 import { listItems, saveItem } from '../stores/vault'
 
 // 종합계획서: ① 강의 목차 → ② 주차별 계획 → ③ 종합계획서①(플랫폼 입력) → ④ 종합계획서②(서식 파일)
@@ -17,6 +17,37 @@ const status = ref('')
 // ① 목차
 const outlineText = ref('')
 const outline = ref(null)
+const courses = ref([])       // 보관함에 저장해 둔 내 강좌
+const pickedCourse = ref('')
+const courseName = ref('')
+const courseStatus = ref('')
+
+async function loadCourses() {
+  try {
+    courses.value = coursesFromVault(await listItems(COURSE_ALIAS))
+  } catch {
+    courses.value = []
+  }
+}
+
+function useCourse() {
+  const c = courses.value.find((x) => x.id === pickedCourse.value)
+  if (!c) return
+  outline.value = { lectures: c.lectures, warnings: [], unparsed: [] }
+  courseName.value = c.title
+  courseStatus.value = `'${c.title}' ${c.lectures.length}강을 불러왔습니다.`
+}
+
+async function saveCourse() {
+  try {
+    const same = courses.value.find((x) => x.title === courseName.value.trim())
+    await saveItem({ id: same?.id, alias: COURSE_ALIAS, formId: COURSE_FORM, title: courseName.value.trim(), draft: { lectures: outline.value.lectures } })
+    courseStatus.value = same ? '같은 이름의 강좌를 새 목차로 바꿔 저장했습니다.' : '내 강좌에 저장했습니다. 다음부터는 목록에서 고르면 됩니다.'
+    await loadCourses()
+  } catch (e) {
+    courseStatus.value = e.message
+  }
+}
 // ② 주차별 계획
 const opt = reactive({ done: 0, pace: '보통', startDate: '', examStart: '', examEnd: '', breakStart: '', breakEnd: '' })
 const plan = ref(null)
@@ -42,6 +73,7 @@ onMounted(async () => {
     ;[formInitial.value, formFile.value] = await Promise.all([api.form('plan_initial'), api.form('plan_file')])
     valuesInitial.value = emptyInputs(fieldsInitial.value)
     valuesFile.value = emptyInputs(fieldsFile.value)
+    await loadCourses()
   } catch (e) {
     error.value = e.message
   }
@@ -131,12 +163,24 @@ const CONFIRM = '종합계획서①은 플랫폼에 등록한 뒤에는 수정�
 
     <h2>① 강의 목차 붙여 넣기</h2>
     <div class="card">
-      <p class="muted">학습사이트 강좌 페이지에서 목차를 복사해 붙여 넣어 주세요. 이 도구가 학습사이트에 접속하지는 않습니다.</p>
+      <label v-if="courses.length" class="field" data-test="saved-courses"><span class="name">저장해 둔 강좌에서 고르기</span>
+        <select v-model="pickedCourse" @change="useCourse">
+          <option value="">선택해 주세요</option>
+          <option v-for="c in courses" :key="c.id" :value="c.id">{{ c.title }} ({{ c.lectures.length }}강)</option>
+        </select>
+      </label>
+      <p class="muted">{{ courses.length ? '새 강좌라면 ' : '' }}학습사이트 강좌 페이지에서 목차를 복사해 붙여 넣어 주세요. 이 도구가 학습사이트에 접속하지는 않습니다.</p>
       <textarea v-model="outlineText" rows="6" placeholder="1강 문학 감상의 관점&#10;2강 시적 화자와 정서&#10;…"></textarea>
       <button type="button" class="primary" style="margin-top: 8px" :disabled="!outlineText.trim() || busy === 'outline'" @click="parseOutline">강 목록으로 정리</button>
       <template v-if="outline">
         <p>{{ outline.lectures.length }}강을 읽었습니다.</p>
         <div v-if="outline.warnings.length" class="box warn"><ul><li v-for="w in outline.warnings" :key="w">{{ w }}</li></ul></div>
+        <div v-if="outline.lectures.length" class="row" data-test="save-course">
+          <input v-model="courseName" placeholder="강좌 이름 (예: 대성마이맥 고1 국어 문학 개념)" maxlength="60" style="flex: 1; min-width: 220px" aria-label="강좌 이름" />
+          <button type="button" :disabled="!courseName.trim()" @click="saveCourse">내 강좌로 저장</button>
+        </div>
+        <p v-if="courseStatus" class="notice">{{ courseStatus }}</p>
+        <p v-else-if="outline.lectures.length" class="notice">저장해 두면 다음 회기나 다른 멘티 때 다시 붙여 넣지 않아도 됩니다. 이 브라우저에만 저장됩니다.</p>
       </template>
     </div>
 

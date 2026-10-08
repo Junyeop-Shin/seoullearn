@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { toText } from '../lib/formFields'
+import { draftValueText } from '../lib/reports'
 import { clearAll, exportAll, importAll, listItems, removeItem } from '../stores/vault'
 
 // 보관함: 이 브라우저에만 있는 초안 목록. 파일로 내보내고 가져올 수 있다.
@@ -81,7 +81,7 @@ async function removeAll() {
       </table>
       <template v-for="x in list" :key="x.id + 'v'">
         <div v-if="open === x.id" class="mini" style="margin-top: 8px">
-          <div v-for="(v, k) in x.draft" :key="k" style="margin: 4px 0"><span class="t">{{ k }}</span><span style="white-space: pre-wrap">{{ toText(v) }}</span></div>
+          <div v-for="(v, k) in x.draft" :key="k" style="margin: 4px 0"><span class="t">{{ k }}</span><span style="white-space: pre-wrap">{{ draftValueText(v) }}</span></div>
         </div>
       </template>
     </div>

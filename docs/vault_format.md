@@ -32,6 +32,7 @@
 | `plan_file` | 완료보고서(학습목표 대비 성취도) | `draft.learning_goal` |
 | `handover_summary` | 다음 멘토의 종합계획서① 인계 요약 칸 | `draft` (`attendance_pattern`, `homework_pattern`, `attitude`, `course_progress`) |
 | `completion_report` | 보관용 | `draft` 전체 |
+| `course_outline` | 종합계획서의 강의 목차 (내 강좌) | `title`(강좌 이름), `draft.lectures` (`[{no, title, unit, minutes}]`). `alias`는 항상 `내 강좌` |
 
 읽는 코드는 `frontend/src/lib/reports.js`에 있다 (`reportsFromVault`, `goalsFromVault`, `handoverFromVault`).
 
