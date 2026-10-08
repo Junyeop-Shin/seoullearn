@@ -36,7 +36,7 @@ async function build() {
     <template v-if="res">
       <h2>문자 초안 <span class="tag">{{ res.sms.length }}자</span></h2>
       <div class="card">
-        <p class="muted">[멘토명], [멘티명]은 보내기 전에 직접 채워 주세요.</p>
+        <p class="muted">[멘토명], [멘티명], [멘토 연락처]는 보내기 전에 직접 채워 주세요. 서울런 플랫폼의 문자 보내기로 보내면 멘토 번호가 찍히지 않으므로, 회신받을 번호를 문자 안에 적어야 합니다.</p>
         <div class="mini" style="white-space: pre-wrap" data-test="sms">{{ res.sms.text }}</div>
         <div class="row" style="margin-top: 10px"><button type="button" class="primary" @click="copyText(res.sms.text)">문자 복사</button></div>
       </div>
