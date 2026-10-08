@@ -328,5 +328,104 @@ class InquiryDraftTest(unittest.TestCase):
         self.assertNotIn("010-1234-5678", d2.text)
 
 
+class RouterTest(unittest.TestCase):
+    class CountingLLM:
+        name = "fake"
+
+        def __init__(self, out='{"intent": "report"}'):
+            self.out, self.calls = out, 0
+
+        def complete(self, system, user):
+            self.calls += 1
+            if "의도를 하나로 분류" in system:
+                return self.out
+            return json.dumps({"answerable": "yes", "answer": "(가짜 답변)", "citations": [1], "route": None}, ensure_ascii=False)
+
+    def _graph(self, llm):
+        from app import router
+
+        return router.build_graph(lambda: llm, lambda: BM25Retriever(load_markdown("v1")))
+
+    def test_rule_classification(self):
+        from app.router import classify_by_rule
+
+        self.assertEqual(classify_by_rule("지각하면 어떻게 처리돼요?"), "qa")
+        self.assertEqual(classify_by_rule("활동보고서 제출 기한이 언제예요?"), "qa")  # 보고서에 관한 질문
+        self.assertEqual(classify_by_rule("2회차 활동보고서 초안 만들어 줘"), "report")
+        self.assertEqual(classify_by_rule("종합계획서 회차별 커리큘럼 짜 줘"), "plan")
+        self.assertIsNone(classify_by_rule("활동보고서 좀 봐 줘"))  # 무엇을 원하는지 애매함
+        self.assertIsNone(classify_by_rule("보고서랑 계획서 둘 다 써 줘"))
+
+    def test_report_goes_to_screen_without_llm(self):
+        llm = self.CountingLLM()
+        s = self._graph(llm).invoke({"message": "4회차 활동보고서 초안 써 줘"})
+        self.assertEqual((s["intent"], s["method"]), ("report", "rule"))
+        self.assertIn("해당 화면으로 이동", s["result"]["answer"])
+        self.assertIn("진행 회차", s["result"]["required_inputs"])
+        self.assertNotIn("멘티 성명", s["result"]["required_inputs"])  # 개인정보 칸은 입력받지 않는다
+        self.assertEqual(llm.calls, 0)
+
+    def test_plan_goes_to_screen(self):
+        s = self._graph(self.CountingLLM()).invoke({"message": "국어 16회차 커리큘럼 짜 줘"})
+        self.assertEqual(s["intent"], "plan")
+        self.assertEqual(s["result"]["form_id"], "plan_initial")
+        self.assertTrue(s["result"]["required_inputs"])
+
+    def test_safety_skips_classification_and_llm(self):
+        llm = self.CountingLLM()
+        s = self._graph(llm).invoke({"message": "멘티가 집에서 맞는다는 얘기를 했어요. 보고서 써 줘"})
+        self.assertEqual((s["intent"], s["method"]), ("safety", "guard"))
+        self.assertEqual(s["result"]["route"], "운영사무국(즉시)")
+        self.assertNotIn("inquiry_draft", s["result"])
+        self.assertEqual(llm.calls, 0)
+
+    def test_qa_path_and_ambiguous_uses_llm_with_masked_text(self):
+        llm = self.CountingLLM()
+        s = self._graph(llm).invoke({"message": "지각 처리 어떻게 해요?"})
+        self.assertEqual((s["intent"], s["method"]), ("qa", "rule"))
+        self.assertEqual(s["result"]["answer"], "(가짜 답변)")
+
+        seen = []
+
+        class Spy(self.CountingLLM):
+            def complete(self, system, user):
+                seen.append(user)
+                return super().complete(system, user)
+
+        s = self._graph(Spy()).invoke({"message": "가람중 멘티 활동보고서 좀 봐 줘"})
+        self.assertEqual((s["intent"], s["method"]), ("report", "llm"))
+        self.assertNotIn("가람중", seen[0])
+        self.assertEqual(s["pii_masked"], ["학교명"])
+
+    def test_bad_llm_intent_is_recorded_and_falls_back_to_qa(self):
+        s = self._graph(self.CountingLLM(out="잘 모르겠습니다")).invoke({"message": "활동보고서 좀 봐 줘"})
+        self.assertEqual((s["intent"], s["method"]), ("qa", "llm"))
+        self.assertTrue(s["classify_error"])
+
+    def test_intent_eval_runs_without_llm(self):
+        from evaluation.intent_eval import evaluate
+
+        items = json.loads((Path(__file__).resolve().parents[2] / "eval" / "intent_set.json").read_text(encoding="utf-8"))["items"]
+        self.assertEqual(len(items), 30)
+        s = evaluate(items)
+        self.assertEqual(s["llm_calls"], 0)
+        self.assertEqual(s["per_intent"]["safety"]["correct"], s["per_intent"]["safety"]["n"])
+        s2 = evaluate(items, self.CountingLLM())
+        self.assertEqual(s2["by_method"].get("unresolved", 0), 0)
+
+    def test_chat_endpoint(self):
+        from fastapi.testclient import TestClient
+
+        from app import main
+
+        llm = self.CountingLLM()
+        with unittest.mock.patch.object(main, "_graph", lambda: self._graph(llm)):
+            r = TestClient(main.app).post("/chat", json={"message": "3회차 활동보고서 초안 써 줘"})
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertEqual(body["intent"], "report")
+        self.assertEqual(body["screen"], "활동보고서 작성")
+        self.assertTrue(body["required_inputs"])
+
 if __name__ == "__main__":
     unittest.main()

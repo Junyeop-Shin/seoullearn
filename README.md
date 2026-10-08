@@ -16,7 +16,10 @@ ai-server/            Python AI 서버 (FastAPI)
     guard.py          아동 안전 신호 감지, 개인정보 가리기
     qa.py             검색 → 답변 생성 → 근거·문의처
     pipelines.py      비교할 RAG 설정 목록
-    main.py           API (/health, /qa)
+    router.py         의도 분류 라우터 (LangGraph: 가드 → 규칙 → LLM → qa/report/plan)
+    inquiry.py        문의 초안
+    vector_store.py   pgvector 벡터 저장소
+    main.py           API (/health, /qa, /chat)
   evaluation/
     run_eval.py       평가 실행
     judge.py          LLM 채점 (0~2점)
@@ -132,6 +135,22 @@ curl -X POST localhost:8000/qa -H "Content-Type: application/json" \
 
 ```bash
 docker compose run --rm ai-server python /project/scripts/compare_vector_backends.py
+```
+
+### 의도 분류 라우터 (/chat)
+
+`POST /chat`은 말의 의도를 나눠 처리한다(LangGraph, `app/router.py`). 안전 가드가 먼저 보고, 규칙(키워드)으로 분류한 뒤 애매할 때만 LLM을 부른다.
+
+| intent | 처리 |
+| --- | --- |
+| qa | `/qa`와 같은 답변, 근거, 문의처, 문의 초안 |
+| report | '활동보고서 작성' 화면 안내와 거기서 입력할 항목 목록 |
+| plan | '종합계획서 작성' 화면 안내와 입력할 항목 목록 |
+| safety | 운영사무국(즉시) 안내. 분류도 LLM 호출도 하지 않는다 |
+
+```bash
+curl -X POST localhost:8000/chat -H "Content-Type: application/json" -d '{"message": "3회차 활동보고서 초안 써 줘"}'
+docker compose run --rm ai-server python -m evaluation.intent_eval [--llm]   # 분류 정확도 (eval/intent_set.json)
 ```
 
 문의처 구분 기준(매칭 전은 운영사무국, 매칭 후 멘토링 운영은 온·오프라인 모두 이음단)은 `data/README.md` 참고.

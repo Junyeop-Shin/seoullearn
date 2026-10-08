@@ -16,6 +16,7 @@ services:
       - ./ai-server:/project/ai-server
       - ./data:/project/data:ro
       - ./eval:/project/eval
+      - ./forms:/project/forms:ro
       - ./scripts:/project/scripts:ro
       - ./.cache:/project/.cache
       # 임베딩 모델 다운로드 캐시 (한 번만 받음)

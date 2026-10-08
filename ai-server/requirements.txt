@@ -3,6 +3,7 @@ uvicorn[standard]>=0.30
 python-dotenv>=1.0
 numpy>=1.26
 langchain>=1.0
+langgraph>=1.0
 langchain-google-genai>=2.0
 # OpenAI로 바꿀 때 필요 (LLM_PROVIDER=openai)
 langchain-openai>=0.3
