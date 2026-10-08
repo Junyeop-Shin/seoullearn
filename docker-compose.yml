@@ -5,8 +5,9 @@ services:
     environment:
       # API 서버는 pgvector에서 검색한다. 평가(run_eval)는 이 값과 상관없이 file 방식이 기본이다.
       VECTOR_BACKEND: ${VECTOR_BACKEND:-pgvector}
-      # 답 못 한 질문 모음. 가린 질문 문장·분류·문의처·날짜만 저장한다. off면 저장하지 않는다
-      UNANSWERED_LOG: ${UNANSWERED_LOG:-on}
+      # 답 못 한 질문 모음. 기본은 꺼 둔다 (서버에 질문을 저장하지 않는다).
+      # on이면 가린 질문 문장·분류·문의처·날짜만 저장한다. 운영 기관과 협의한 뒤에 켠다
+      UNANSWERED_LOG: ${UNANSWERED_LOG:-off}
       DATABASE_URL: postgresql://seoullearn:${POSTGRES_PASSWORD:-seoullearn_dev}@db:5432/seoullearn
     depends_on:
       db:

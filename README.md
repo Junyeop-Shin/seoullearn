@@ -187,12 +187,15 @@ docker compose run --rm ai-server python -m evaluation.report_eval [--judge]   #
 
 ### 답 못 한 질문 모음
 
-매뉴얼로 답하지 못한 질문(`answerable`이 `no`·`partial`)을 모아 운영 측의 매뉴얼 보완 자료로 쓴다 (`app/unanswered.py`, `UNANSWERED_LOG=on`).
+매뉴얼로 답하지 못한 질문(`answerable`이 `no`·`partial`)을 모아 운영 측의 매뉴얼 보완 자료로 쓰는 기능이다 (`app/unanswered.py`).
+**기본은 꺼져 있다.** 꺼져 있으면 서버는 질문을 어디에도 저장하지 않는다. 운영 기관과 협의한 뒤 `.env`에 `UNANSWERED_LOG=on`을 넣어 켠다.
+
+켜면 이렇게 동작한다.
 
 - 저장하는 것: 가드로 가린 질문 문장, 분류, 문의처, 날짜(일 단위). 누가 물었는지(아이디, 접속 주소, 시각)는 저장하지 않는다.
 - 저장하지 않는 질문: 아동 안전 신호가 있는 것, 정서·가정·건강·성적 이야기가 든 것, 150자를 넘는 것(상황 설명일 가능성이 높다).
 - 관리자(ADMIN)만 `GET /api/admin/unanswered`, `/api/admin/unanswered/export.csv`로 보고, 항목을 지울 수 있다.
-- 이 기능은 "질문 원문을 서버에 남기지 않는다"는 규칙의 예외다. 끄려면 `.env`에 `UNANSWERED_LOG=off`.
+- 모인 질문에 운영 측이 답을 달아 문서로 만들면(`data/notice/`의 공지나 FAQ 형식), 그 문서가 다시 RAG 자료가 되어 같은 질문에 답할 수 있게 된다.
 
 ### 의도 분류 라우터 (/chat)
 
