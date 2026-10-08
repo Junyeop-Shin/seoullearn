@@ -4,7 +4,8 @@
   "version": "2026",
   "sources": [
     "manual-2026-5-2:57",
-    "manual-2026-5-2:58"
+    "manual-2026-5-2:58",
+    "notice-2026-n11"
   ],
   "when": "활동 5일 전까지, 서울런 홈페이지 공지에 안내된 신청 구글폼으로 멘토가 제출 (신청서 = 활동계획서)",
   "fields": [
@@ -119,6 +120,18 @@
       "id": "bp-5",
       "rule": "멘토링 중단 예정인 그룹은 진행할 수 없습니다.",
       "type": "reminder"
+    },
+    {
+      "id": "bp-0",
+      "rule": "신청 전에 멘티 보호자의 사전동의를 반드시 받아야 합니다.",
+      "type": "reminder",
+      "source": "notice-2026-n11"
+    },
+    {
+      "id": "bp-6",
+      "rule": "승인 여부는 신청서 제출 후 3~5일 이내에 개별 문자로 안내됩니다.",
+      "type": "reminder",
+      "source": "notice-2026-n11"
     }
   ],
   "open_questions": [

@@ -46,7 +46,11 @@ class CorpusTest(unittest.TestCase):
         self.assertGreater(len(v1), 80)
         self.assertTrue(all(c.doc_type == "manual" for c in v1))
         self.assertGreater(len(v2), len(v1))
-        self.assertFalse(any(c.status == "expired" for c in v2), "만료 공지는 기본 검색에서 빠져야 함")
+        expired = [c for c in v2 if c.status == "expired"]
+        self.assertTrue(expired and all(c.recurring == "yearly" for c in expired), "만료 공지는 매년 반복되는 공고만 지난 공고로 남는다")
+        self.assertTrue(expired[0].cite.startswith("지난 공고"))
+        self.assertIn("만료된 지난 공고", qa.build_context(expired[:1]))
+        self.assertIn("지난 공고 기준", qa.SYSTEM)
         self.assertTrue(all(c.page for c in v1))
 
 

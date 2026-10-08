@@ -30,12 +30,15 @@ class Chunk:
     status: str = "active"
     published: str = "unknown"
     supersedes: list[str] = field(default_factory=list)
+    recurring: str = ""  # yearly = 매년 반복되는 공고
 
     @property
     def cite(self) -> str:
         """사용자에게 보여줄 근거 표기."""
         if self.doc_type == "manual":
             return f"활동가이드 p.{self.page} {self.heading}"
+        if self.status == "expired":
+            return f"지난 공고 「{self.title}」 {self.heading}"
         return f"공지 「{self.title}」 {self.heading}"
 
 
@@ -62,7 +65,8 @@ def parse_page_range(p: str) -> tuple[int, int] | None:
 
 
 def load_markdown(corpus: str = "v1", include_expired: bool = False, data_dir: Path | None = None) -> list[Chunk]:
-    """corpus v1 = 매뉴얼만, v2 = 매뉴얼 + 공지."""
+    """corpus v1 = 매뉴얼만, v2 = 매뉴얼 + 공지.
+    만료된 공지는 빼되, 매년 반복되는 공고(recurring: yearly)는 '지난 공고'로 남겨 참고 정보로 쓴다."""
     data_dir = data_dir or settings.data_dir
     folders = ["manual"] + (["notice"] if corpus == "v2" else [])
     chunks: list[Chunk] = []
@@ -70,7 +74,7 @@ def load_markdown(corpus: str = "v1", include_expired: bool = False, data_dir: P
         for f in sorted((data_dir / folder).glob("*.md")):
             fm, body = front_matter(f.read_text(encoding="utf-8"))
             status = fm.get("status", "active")
-            if status == "expired" and not include_expired:
+            if status == "expired" and not include_expired and fm.get("recurring") != "yearly":
                 continue
             sections = re.split(r"(?m)^## ", body)
             for n, sec in enumerate(sections[1:], 1):
@@ -88,6 +92,7 @@ def load_markdown(corpus: str = "v1", include_expired: bool = False, data_dir: P
                     id=f"{fm['doc_id']}#{n}", doc_id=fm["doc_id"], title=fm.get("title", ""), heading=heading,
                     text=text, page=page, mtype=mtype, doc_type=fm.get("doc_type", "manual"), status=status,
                     published=fm.get("published", "unknown"), supersedes=fm.get("supersedes") or [],
+                    recurring=fm.get("recurring", ""),
                 ))
     return chunks
 

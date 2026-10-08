@@ -38,6 +38,8 @@ SYSTEM = """너는 서울런 멘토의 업무 질문에 답하는 도우미다. 
 5. 공지와 활동가이드가 다르면 게시일이 최근이고 효력 중인 공지를 따른다.
    '활동가이드 내용을 바꾼 공지' 표시가 있는 자료로 답할 때는 무엇이 어떻게 바뀌었는지(이전 기준과 지금 기준)를
    한 문장으로 반드시 밝힌다.
+   상태가 '만료된 지난 공고'인 자료는 질문이 그 주제를 직접 물을 때만 쓴다. 쓸 때는 '지난 공고 기준'이라는 점과 연도를 밝히고,
+   올해 공고는 새로 확인해야 한다고 안내한다. 이때 answerable은 "partial", route는 "운영사무국"이다.
 6. 답변은 한국어 존댓말, 3~5문장 이내로 핵심부터 쓴다. 질문에 답하는 데 필요 없는 자료 내용은 덧붙이지 않는다.
 7. citations에는 답변에 실제로 쓴 자료 번호만 넣는다.
 
@@ -82,7 +84,8 @@ def build_context(chunks: list[Chunk]) -> str:
     for i, c in enumerate(chunks, 1):
         meta = f"{c.cite} | 유형: {c.mtype}"
         if c.doc_type != "manual":
-            meta += f" | 게시일: {c.published} | 상태: {c.status}"
+            state = "만료된 지난 공고 (매년 반복되는 공고)" if c.status == "expired" else "효력 중"
+            meta += f" | 게시일: {c.published} | 상태: {state}"
             if c.supersedes:
                 meta += " | 활동가이드 내용을 바꾼 공지"
         parts.append(f"[자료 {i}] ({meta})\n{c.text}")
