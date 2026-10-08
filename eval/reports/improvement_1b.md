@@ -3,7 +3,7 @@
 2026-10-07, 로컬 Docker에서 측정. 개선을 하나씩 적용하고 매번 같은 평가셋(72문항)으로 다시 쟀다.
 
 - 임베딩 `dragonkue/multilingual-e5-small-ko-v2`, 답변 모델 `gpt-4.1-mini-2025-04-14`, 채점 모델 `gpt-5.4-mini-2026-03-17` (모두 1-A와 같음)
-- 전체 비교표: `eval/reports/compare.md`. 실행 결과 원본: `eval/runs/`
+- 전체 비교표: `eval/reports/compare_1b.md` (1-B 단계별 실행). 최종 평가의 비교표는 `compare.md`. 실행 결과 원본: `eval/runs/`
 - 다시 재는 명령: `scripts/measure.sh`
 
 ## 결론

@@ -30,6 +30,25 @@ from app.retrieval import get_reranker
 from .metrics import evidence_match, gold_ranks, summarize
 
 
+class ShuffledRetriever:
+    """검색된 상위 k개의 순서만 섞는다 (내용은 같다). 답변 지표가 자료 순서에 따라 얼마나 흔들리는지 보고,
+    여러 번 재서 평균을 내기 위한 것이다. 같은 seed와 질문이면 항상 같은 순서가 나온다."""
+
+    def __init__(self, inner, seed: int):
+        self.inner, self.seed = inner, seed
+        self.name = f"{getattr(inner, 'name', 'retriever')}+shuffle{seed}"
+
+    def __getattr__(self, name):   # embedder, reranker 같은 속성은 안쪽 검색기의 것을 그대로 보여 준다
+        return getattr(self.inner, name)
+
+    def search(self, query: str, k: int):
+        import random
+
+        hits = list(self.inner.search(query, k))
+        random.Random(f"{self.seed}:{query}").shuffle(hits)
+        return hits
+
+
 class FakeLLM:
     """네트워크 없이 흐름만 확인하는 가짜 모델. 1번 자료를 근거로 '답할 수 있음'이라고 답한다."""
 
@@ -61,10 +80,12 @@ def load_items(path: Path, corpus: str, ids: set[str] | None, limit: int | None)
 
 def run(config: str, corpus: str, retrieval_only: bool = False, fake_llm: bool = False, limit: int | None = None,
         ids: set[str] | None = None, embedder=None, out_dir: Path | None = None, k: int | None = None,
-        note: str = "", reranker=None, vector_backend: str = "file") -> tuple[Path, dict]:
+        note: str = "", reranker=None, vector_backend: str = "file", order_seed: int | None = None) -> tuple[Path, dict]:
     k = k or settings.top_k
     # 평가는 DB 없이 돌도록 기본이 file 방식이다
     retriever, chunks = build_retriever(config, corpus, embedder=embedder, reranker=reranker, vector_backend=vector_backend)
+    if order_seed:   # 0이나 None이면 검색 순서 그대로
+        retriever = ShuffledRetriever(retriever, order_seed)
     by_id = {c.id: c for c in chunks}
     superseding_docs = {c.doc_id for c in chunks if c.supersedes}  # 매뉴얼 내용을 대체한 공지
     llm = None if retrieval_only else (FakeLLM() if fake_llm else get_eval_model("answer"))
@@ -73,7 +94,8 @@ def run(config: str, corpus: str, retrieval_only: bool = False, fake_llm: bool =
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     emb = _embedder_name(retriever)
     emb_tag = f"_{re.sub(r'[^A-Za-z0-9.-]+', '-', emb.split('/')[-1])}" if emb else ""
-    out = out_dir / f"{stamp}_{config}{emb_tag}_{corpus}{'_retrieval' if retrieval_only else ''}.jsonl"
+    seed_tag = f"_seed{order_seed}" if order_seed else ""
+    out = out_dir / f"{stamp}_{config}{emb_tag}_{corpus}{seed_tag}{'_retrieval' if retrieval_only else ''}.jsonl"
 
     records = []
     items = list(load_items(settings.root / "eval" / "eval_set.json", corpus, ids, limit))
@@ -103,7 +125,7 @@ def run(config: str, corpus: str, retrieval_only: bool = False, fake_llm: bool =
         "retrieval_only": retrieval_only, "llm": None if llm is None else llm.name,
         "embedding": _embedder_name(retriever),
         "reranker": getattr(getattr(retriever, "reranker", None), "name", None),
-        "chunks": len(chunks), "created": stamp, "note": note, **summarize(records, k),
+        "chunks": len(chunks), "created": stamp, "note": note, "order_seed": order_seed or 0, **summarize(records, k),
     }
     out.with_suffix(".summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     return out, summary
@@ -122,6 +144,7 @@ def main():
     p.add_argument("--embedding-provider", choices=["local", "gemini", "hash"])
     p.add_argument("--reranker-model", help="이번 실행만 리랭커 모델 바꾸기 (rerank 설정에서만 쓰인다)")
     p.add_argument("--vector-backend", default="file", choices=["file", "pgvector"])
+    p.add_argument("--order-seed", type=int, default=0, help="1 이상이면 검색된 자료의 순서를 그 값으로 섞는다 (답변 지표의 흔들림 측정용)")
     p.add_argument("--note", default="", help="비교표에 적을 메모 (예: 가드 수정 후)")
     a = p.parse_args()
     t0 = time.time()
@@ -131,7 +154,7 @@ def main():
     out, s = run(a.config, a.corpus, a.retrieval_only, a.fake_llm, a.limit, set(a.ids.split(",")) if a.ids else None,
                  embedder=embedder, k=a.k, note=a.note,
                  reranker=get_reranker(a.reranker_model) if a.reranker_model else None,
-                 vector_backend=a.vector_backend)
+                 vector_backend=a.vector_backend, order_seed=a.order_seed)
     print(json.dumps({k: v for k, v in s.items() if k != "by_category"}, ensure_ascii=False, indent=2))
     print(f"저장: {out}  ({time.time() - t0:.0f}초)")
 

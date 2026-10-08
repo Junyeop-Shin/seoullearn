@@ -190,6 +190,20 @@ class RouteAndEmbeddingTest(unittest.TestCase):
         self.assertEqual(spy.queries, ["지각"])
 
 
+class ShuffleTest(unittest.TestCase):
+    def test_shuffle_keeps_the_same_documents_and_is_repeatable(self):
+        from evaluation.run_eval import ShuffledRetriever
+
+        inner = BM25Retriever(load_markdown("v1"))
+        base = [c.id for c, _ in inner.search("지각 처리 어떻게 해요?", 5)]
+        a = [c.id for c, _ in ShuffledRetriever(inner, 1).search("지각 처리 어떻게 해요?", 5)]
+        b = [c.id for c, _ in ShuffledRetriever(inner, 1).search("지각 처리 어떻게 해요?", 5)]
+        c = [c.id for c, _ in ShuffledRetriever(inner, 2).search("지각 처리 어떻게 해요?", 5)]
+        self.assertEqual(sorted(a), sorted(base))
+        self.assertEqual(a, b)
+        self.assertTrue(a != base or c != base)
+
+
 class EndToEndTest(unittest.TestCase):
     def test_eval_runner_with_fake_llm(self):
         from evaluation.run_eval import run
