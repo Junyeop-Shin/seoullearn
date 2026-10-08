@@ -43,6 +43,10 @@
     {"key": "requests", "label": "건의사항", "type": "text", "required": false, "source": "user_text", "pii": false, "handover": "deny",
      "guidance": "멘토링 일정 변경, 장소 변경 등"}
   ],
+  "extra_inputs": [
+    {"key": "status", "label": "회차 상태", "type": "enum", "required": true, "options": ["출석", "지각", "무단결석", "인정결석"], "default": "출석",
+     "guidance": "서식의 칸은 아니다. 결석 회차는 학습 내용 칸을 비우고 증빙 안내를 붙이는 데 쓴다."}
+  ],
   "attachments": [
     {"key": "attendance_photos", "label": "출결 증빙 사진 (시작·종료 2장)", "required": true,
      "guidance": "AI가 다루지 않는다. 초안 끝에 첨부 안내만 표시"}

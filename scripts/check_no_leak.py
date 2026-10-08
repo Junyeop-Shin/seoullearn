@@ -2,7 +2,7 @@
 
 가상 회차 기록(synthetic/sessions_M1.json 등)의 내용으로 backend의 /api/qa와 /api/chat을 10번,
 활동보고서 초안(/api/drafts/activity_report)을 3번 호출한 뒤, 보낸 문장의 조각이 아래 세 곳에 남았는지 찾는다.
-  1) backend, ai-server, db 컨테이너 로그
+  1) frontend, backend, ai-server, db 컨테이너 로그
   2) DB 전체 (pg_dump)
   3) .cache 폴더에서 이번 호출 뒤에 새로 생기거나 늘어난 부분
      (평가 실행이 남긴 캐시에는 같은 가상 데이터가 들어 있을 수 있어, 호출 전 상태와 비교한다)
@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SERVICES = ["backend", "ai-server", "db"]
+SERVICES = ["frontend", "backend", "ai-server", "db"]
 MIN_FRAGMENT = 8  # 이보다 짧은 조각은 우연히 겹칠 수 있어 쓰지 않는다
 
 

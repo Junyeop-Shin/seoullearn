@@ -27,6 +27,7 @@ ai-server/            Python AI 서버 (FastAPI)
     metrics.py        지표 계산
     report.py         설정별 비교표
   tests/              오프라인 테스트 (API 키 불필요)
+frontend/             Vue 3 화면: 매뉴얼 질문, 사전 연락, 종합계획서, 활동보고서, 보관함 (frontend/README.md)
 backend/              Spring Boot 업무 백엔드: 로그인·역할, 양식 스키마 API, AI 서버 중계 (backend/README.md)
 data/                 RAG 원본 문서 (data/README.md)
 eval/                 평가셋, 평가 결과, 리포트
@@ -114,6 +115,15 @@ docker compose run --rm ai-server python -m evaluation.report eval/runs/*.summar
 | 인용 | citation_precision | 답변에 단 근거가 실제 정답 근거인가 |
 | 공지 | change_noted_rate | 매뉴얼을 바꾼 공지가 근거일 때 답변이 바뀐 점을 밝혔는가 (v2, 낱말 검사) |
 | 채점 | correctness_avg, fully_correct | LLM 채점 점수 (0~2) |
+
+## 화면 실행
+
+```bash
+docker compose up -d frontend ai-server     # backend, db도 함께 뜬다
+# http://localhost:3000 에서 멘토 계정을 만들고 시작한다
+```
+
+데모 순서와 녹화 대본은 `docs/demo_scenario.md`, 작성 시간 기록표는 `docs/time_measurement.md`, 포트폴리오용 RAG 결과는 `docs/rag_results.md`에 있다.
 
 ## API 실행
 

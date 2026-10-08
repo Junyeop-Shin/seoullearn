@@ -1,0 +1,87 @@
+// 브라우저 보관함 (IndexedDB). 멘토가 만든 초안을 멘티 별칭별로 이 브라우저 안에만 둔다. 서버로 보내지 않는다.
+// 데이터 형식은 docs/vault_format.md 참고.
+const DB_NAME = 'seoullearn-mentor-vault'
+const STORE = 'items'
+export const FORMAT = 'seoullearn-mentor-vault'
+export const VERSION = 1
+
+function open() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, VERSION)
+    req.onupgradeneeded = () => {
+      const store = req.result.createObjectStore(STORE, { keyPath: 'id' })
+      store.createIndex('alias', 'alias')
+    }
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+async function tx(mode, fn) {
+  const db = await open()
+  try {
+    return await new Promise((resolve, reject) => {
+      const t = db.transaction(STORE, mode)
+      const out = fn(t.objectStore(STORE))
+      t.oncomplete = () => resolve(out && 'result' in out ? out.result : out)
+      t.onerror = () => reject(t.error)
+      t.onabort = () => reject(t.error)
+    })
+  } finally {
+    db.close()
+  }
+}
+
+function newId() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+/** 보관함 항목 하나를 저장한다. id가 있으면 덮어쓴다. */
+export async function saveItem({ id, alias, formId, title, sessionNo = null, inputs = {}, extra = {}, draft = {} }) {
+  const cleanAlias = String(alias || '').trim()
+  if (!cleanAlias) throw new Error('멘티 별칭을 입력해 주세요.')
+  if (!formId) throw new Error('양식이 지정되지 않았습니다.')
+  // 저장 전에 일반 객체로 복사한다 (Vue 반응형 객체는 IndexedDB에 넣을 수 없다)
+  const item = JSON.parse(
+    JSON.stringify({
+      id: id || newId(), alias: cleanAlias, formId, title: title || formId, sessionNo,
+      savedAt: new Date().toISOString(), inputs, extra, draft,
+    }),
+  )
+  await tx('readwrite', (s) => s.put(item))
+  return item
+}
+
+export async function listItems(alias) {
+  const all = await tx('readonly', (s) => s.getAll())
+  const items = alias ? all.filter((x) => x.alias === alias) : all
+  return items.sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))
+}
+
+export async function listAliases() {
+  return [...new Set((await listItems()).map((x) => x.alias))].sort((a, b) => a.localeCompare(b, 'ko'))
+}
+
+export async function removeItem(id) {
+  await tx('readwrite', (s) => s.delete(id))
+}
+
+export async function clearAll() {
+  await tx('readwrite', (s) => s.clear())
+}
+
+/** 보관함 전체를 파일로 내보낼 객체. */
+export async function exportAll() {
+  return { format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), items: await listItems() }
+}
+
+/** 내보낸 파일 내용을 가져온다. 같은 id는 덮어쓴다. 가져온 개수를 돌려준다. */
+export async function importAll(data) {
+  if (!data || data.format !== FORMAT || !Array.isArray(data.items)) {
+    throw new Error('보관함 파일이 아닙니다. 이 도구에서 내보낸 파일을 선택해 주세요.')
+  }
+  if (data.version > VERSION) throw new Error('더 새로운 버전에서 내보낸 파일입니다.')
+  const valid = data.items.filter((x) => x && typeof x.id === 'string' && typeof x.alias === 'string' && typeof x.formId === 'string')
+  await tx('readwrite', (s) => valid.forEach((x) => s.put(JSON.parse(JSON.stringify(x)))))
+  return valid.length
+}

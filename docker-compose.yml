@@ -37,8 +37,11 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      # frontend(nginx)가 넘겨주는 접속 주소를 쓴다 (로그인 실패 제한이 사용자별로 걸리게)
+      SERVER_FORWARD_HEADERS_STRATEGY: native
     ports:
-      - "8080:8080"
+      # 이 PC에서만 직접 접근할 수 있다 (점검 스크립트, curl용). 사용자는 frontend로 들어온다
+      - "127.0.0.1:8080:8080"
     volumes:
       - ./forms:/forms:ro
     depends_on:
@@ -46,6 +49,14 @@ services:
         condition: service_healthy
       ai-server:
         condition: service_started
+
+  # 화면 (Vue). 정적 파일을 내주고 /api 요청을 backend로 넘긴다. http://localhost:3000
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
 
   # 회원 테이블(app_user)과 벡터 색인(rag_chunks) 저장소. 멘티 관련 데이터는 넣지 않는다. 포트는 밖으로 열지 않는다.
   db:
