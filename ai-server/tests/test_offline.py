@@ -232,6 +232,55 @@ class ChangeNotedMetricTest(unittest.TestCase):
         self.assertEqual(s["answer"]["change_noted_rate"], 50.0)
 
 
+class LLMCacheTest(unittest.TestCase):
+    def test_api_server_models_do_not_cache(self):
+        # API 서버가 쓰는 경로(main._llm → get_chat_model)는 캐시를 켜지 않아야 한다
+        import inspect
+
+        from app import llm, main
+
+        self.assertFalse(inspect.signature(llm.get_chat_model).parameters["use_cache"].default)
+        self.assertFalse(inspect.signature(llm.LangChainLLM.__init__).parameters["use_cache"].default)
+        self.assertIn('get_chat_model("answer")', inspect.getsource(main._llm))
+        self.assertNotIn("get_eval_model", inspect.getsource(main))
+        self.assertNotIn("get_eval_model", inspect.getsource(__import__("app.router", fromlist=["x"])))
+
+    def test_no_cache_means_no_file(self):
+        from app.llm import LangChainLLM
+
+        with tempfile.TemporaryDirectory() as tmp, unittest.mock.patch("app.llm.settings") as st, \
+                unittest.mock.patch("langchain.chat_models.init_chat_model") as init:
+            st.cache_dir, st.llm_rpm, st.llm_max_retries = Path(tmp), 0, 0
+            init.return_value.invoke.return_value.content = "답변"
+            self.assertEqual(LangChainLLM("fake", "fake").complete("s", "가람중 멘티 질문"), "답변")
+            self.assertEqual(list(Path(tmp).iterdir()), [])
+            self.assertEqual(LangChainLLM("fake", "fake", use_cache=True).complete("s", "평가 질문"), "답변")
+            self.assertEqual([p.name for p in Path(tmp).iterdir()], ["llm_cache.jsonl"])
+
+
+class LeakCheckScriptTest(unittest.TestCase):
+    def _mod(self):
+        import importlib.util
+
+        path = Path(__file__).resolve().parents[2] / "scripts" / "check_no_leak.py"
+        spec = importlib.util.spec_from_file_location("check_no_leak", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_fragments_and_detection(self):
+        c = self._mod()
+        frags = c.fragments(["멘티가 부모님이랑 크게 다퉈서 집중을 못 했어요 010-0000-0000 활동보고서 작성"], "활동보고서 작성")
+        self.assertIn("010-0000-0000", frags)
+        self.assertNotIn("활동보고서 작성", frags)  # 매뉴얼에 원래 있는 말은 조각으로 쓰지 않는다
+        self.assertTrue(all(len(f) >= c.MIN_FRAGMENT for f in frags))
+        target = "부모님이랑 크게"
+        self.assertIn(target, frags)
+        self.assertEqual(c.find_in("로그 한 줄: 부모님이랑 크게 다퉈서".encode("utf-8"), [target]), [target])
+        self.assertEqual(c.find_in(json.dumps({"v": "부모님이랑 크게"}).encode("ascii"), [target]), [target])  # \\uXXXX로 저장된 경우
+        self.assertEqual(c.find_in("qa len=30 answerable=yes".encode("utf-8"), frags), [])
+
+
 class LLMFailureTest(unittest.TestCase):
     def _answer(self, exc):
         from app import qa

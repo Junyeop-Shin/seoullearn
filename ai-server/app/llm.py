@@ -71,7 +71,7 @@ class LLMUnavailableError(RuntimeError):
 
 
 class LangChainLLM:
-    def __init__(self, provider: str, model: str, temperature: float = 0.0, use_cache: bool = True):
+    def __init__(self, provider: str, model: str, temperature: float = 0.0, use_cache: bool = False):
         from langchain.chat_models import init_chat_model  # 지연 import: 오프라인 테스트에는 불필요
 
         self.name = f"{provider}:{model}"
@@ -106,10 +106,17 @@ class LangChainLLM:
         raise RuntimeError("unreachable")
 
 
-def get_chat_model(role: str = "answer") -> ChatLLM:
+def get_chat_model(role: str = "answer", use_cache: bool = False) -> ChatLLM:
+    """use_cache는 평가 실행에서만 켠다 (get_eval_model). API 서버는 응답을 디스크에 남기면 안 되므로 항상 끈다."""
     if role == "judge":
-        return LangChainLLM(settings.judge_provider, settings.judge_model)
-    return LangChainLLM(settings.llm_provider, settings.llm_model)
+        return LangChainLLM(settings.judge_provider, settings.judge_model, use_cache=use_cache)
+    return LangChainLLM(settings.llm_provider, settings.llm_model, use_cache=use_cache)
+
+
+def get_eval_model(role: str = "answer") -> ChatLLM:
+    """평가용 모델. 가상 데이터만 다루므로 응답을 .cache/llm_cache.jsonl에 저장해 다시 잴 때 호출을 아낀다.
+    LLM_CACHE=off면 평가에서도 저장하지 않는다."""
+    return get_chat_model(role, use_cache=settings.llm_cache)
 
 
 # ---------------------------------------------------------------- embeddings

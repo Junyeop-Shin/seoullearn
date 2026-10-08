@@ -23,7 +23,7 @@ from pathlib import Path
 
 from app import qa
 from app.config import settings
-from app.llm import get_chat_model, get_embedder
+from app.llm import get_eval_model, get_embedder
 from app.pipelines import CONFIGS, build_retriever
 from app.retrieval import get_reranker
 
@@ -67,7 +67,7 @@ def run(config: str, corpus: str, retrieval_only: bool = False, fake_llm: bool =
     retriever, chunks = build_retriever(config, corpus, embedder=embedder, reranker=reranker, vector_backend=vector_backend)
     by_id = {c.id: c for c in chunks}
     superseding_docs = {c.doc_id for c in chunks if c.supersedes}  # 매뉴얼 내용을 대체한 공지
-    llm = None if retrieval_only else (FakeLLM() if fake_llm else get_chat_model("answer"))
+    llm = None if retrieval_only else (FakeLLM() if fake_llm else get_eval_model("answer"))
     out_dir = out_dir or settings.root / "eval" / "runs"
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")

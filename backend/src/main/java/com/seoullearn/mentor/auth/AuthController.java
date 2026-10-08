@@ -7,6 +7,7 @@ import com.seoullearn.mentor.common.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.time.Duration;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,9 +34,12 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
+    private final LoginAttemptLimiter limiter;
 
     public AuthController(AppUserRepository users, PasswordEncoder passwordEncoder,
-            AuthenticationManager authenticationManager, SecurityContextRepository securityContextRepository) {
+            AuthenticationManager authenticationManager, SecurityContextRepository securityContextRepository,
+            LoginAttemptLimiter limiter) {
+        this.limiter = limiter;
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -62,14 +66,24 @@ public class AuthController {
     @PostMapping("/login")
     public UserResponse login(@Valid @RequestBody LoginRequest req, HttpServletRequest request,
             HttpServletResponse response) {
+        String address = request.getRemoteAddr();
+        Duration locked = limiter.lockedFor(req.username(), address);
+        if (!locked.isZero()) {
+            // 잠긴 동안에는 비밀번호가 맞아도 확인하지 않는다
+            long minutes = Math.max(1, (locked.toSeconds() + 59) / 60);
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS,
+                    "로그인 시도가 너무 많습니다. " + minutes + "분 후에 다시 시도해 주세요.");
+        }
         Authentication auth;
         try {
             auth = authenticationManager.authenticate(
                     UsernamePasswordAuthenticationToken.unauthenticated(req.username(), req.password()));
         } catch (AuthenticationException e) {
-            // 아이디가 없는지 비밀번호가 틀렸는지 구분해 알려주지 않는다
+            // 없는 아이디도 똑같이 센다. 아이디가 없는지 비밀번호가 틀렸는지 구분해 알려주지 않는다
+            limiter.recordFailure(req.username(), address);
             throw new ApiException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다.");
         }
+        limiter.recordSuccess(req.username(), address);
         if (request.getSession(false) != null) {
             request.changeSessionId(); // 세션 고정 공격 방지
         }

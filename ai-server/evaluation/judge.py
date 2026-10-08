@@ -12,7 +12,7 @@ import json
 import sys
 from pathlib import Path
 
-from app.llm import get_chat_model
+from app.llm import get_eval_model
 
 from .metrics import summarize
 
@@ -45,7 +45,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("run_file", type=Path)
     a = p.parse_args()
-    llm = get_chat_model("judge")
+    llm = get_eval_model("judge")
     lines = [json.loads(x) for x in a.run_file.read_text(encoding="utf-8").splitlines() if x.strip()]
     for n, r in enumerate(lines, 1):
         if r.get("pred") and not r.get("judge"):

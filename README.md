@@ -60,7 +60,7 @@ python -m unittest discover -s tests -v
 
 ## 평가 실행 순서
 
-API 무료 한도를 아끼기 위해 **검색만 측정(LLM 호출 없음) → 답변 측정 → 채점** 순서로 간다. 같은 질문·같은 모델 호출은 `.cache/llm_cache.jsonl`에 남아 다시 돌려도 한도를 쓰지 않는다.
+호출 비용을 아끼기 위해 **검색만 측정(LLM 호출 없음) → 답변 측정 → 채점** 순서로 간다. 평가 실행에서는 같은 질문·같은 모델의 응답이 `.cache/llm_cache.jsonl`에 남아 다시 돌려도 호출하지 않는다(`LLM_CACHE=off`로 끌 수 있다).
 
 ```bash
 # 1) 검색만 측정: API 호출 0회
@@ -123,7 +123,14 @@ docker compose up
 curl -X POST localhost:8000/qa -H "Content-Type: application/json" -d '{"question": "지각 처리 어떻게 해요?"}'
 ```
 
-질문 원문은 서버 로그에 남기지 않는다. 이름·전화번호·학교명 등은 LLM에 보내기 전에 가린다.
+질문 원문은 서버 로그에 남기지 않는다. 이름·전화번호·학교명 등은 LLM에 보내기 전에 가린다. API 서버는 LLM 응답을 디스크에 저장하지 않는다(평가 실행만 `.cache/llm_cache.jsonl`을 쓴다).
+
+입력 본문이 로그, DB, 캐시 어디에도 남지 않는지는 아래로 확인한다. 가상 회차 기록으로 `/api/qa`, `/api/chat`을 10번 호출한 뒤 세 곳을 뒤진다. 기능을 추가할 때마다 다시 돌린다.
+
+```bash
+docker compose up -d backend
+python scripts/check_no_leak.py
+```
 
 문의처가 이음단이면 멘토가 보낸 소속 이음단 오픈채팅 주소(`ieumdan_chat_url`, `https://open.kakao.com/...`만 허용)를 `route_link`로 돌려준다. 이 주소는 멘토 브라우저에 저장하고 서버에는 저장하지 않는다.
 

@@ -13,7 +13,7 @@ from pathlib import Path
 
 from app import guard
 from app.config import settings
-from app.llm import ChatLLM, get_chat_model
+from app.llm import ChatLLM, get_eval_model
 from app.router import classify_by_llm, classify_by_rule
 
 
@@ -61,7 +61,7 @@ def main():
     p.add_argument("--set", type=Path, default=settings.root / "eval" / "intent_set.json")
     a = p.parse_args()
     items = json.loads(a.set.read_text(encoding="utf-8"))["items"]
-    llm = get_chat_model("answer") if a.llm else None
+    llm = get_eval_model("answer") if a.llm else None
     s = evaluate(items, llm)
     s["llm"] = llm.name if llm else None
     out = settings.root / "eval" / "runs" / f"intent_eval{'_llm' if a.llm else ''}.json"

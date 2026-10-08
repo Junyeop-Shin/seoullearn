@@ -48,6 +48,8 @@ class Settings:
     # 무료 등급 요청 한도 대응. 분당 요청 수 상한.
     llm_rpm: float = float(os.getenv("LLM_RPM", "8"))
     llm_max_retries: int = int(os.getenv("LLM_MAX_RETRIES", "5"))
+    # 평가 실행의 LLM 응답 캐시. API 서버는 이 값과 상관없이 캐시를 쓰지 않는다.
+    llm_cache: bool = os.getenv("LLM_CACHE", "on").lower() != "off"
 
     @property
     def data_dir(self) -> Path:
