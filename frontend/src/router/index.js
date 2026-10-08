@@ -15,6 +15,7 @@ const routes = [
   { path: '/allowance', component: () => import('../views/AllowanceView.vue') },
   { path: '/forms', component: () => import('../views/OtherFormsView.vue') },
   { path: '/forms/:formId', component: () => import('../views/OtherFormsView.vue') },
+  { path: '/mentees', component: () => import('../views/MenteesView.vue') },
   { path: '/vault', component: () => import('../views/VaultView.vue') },
   { path: '/settings', component: () => import('../views/SettingsView.vue') },
   { path: '/:rest(.*)*', redirect: '/' },

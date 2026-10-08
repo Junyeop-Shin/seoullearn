@@ -1,19 +1,13 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { ref } from 'vue'
 import { api } from '../api/client'
-import AliasInput from '../components/AliasInput.vue'
 import { copyText } from '../lib/copy'
-import { saveItem } from '../stores/vault'
 
-// 사전 연락: 확인할 질문 목록과 문자 초안. 받은 답변은 보관함에 두었다가 종합계획서①에 쓴다.
+// 사전 연락: 매칭 직후 보낼 문자 초안. 통화에서 들은 내용은 '내 멘티'에 적어 두면 종합계획서에 쓰인다.
 const mode = ref('온라인')
 const callTime = ref('')
 const res = ref(null)
-const answers = reactive({})
-const alias = ref('')
-const status = ref('')
 const error = ref('')
-const copied = ref(-1)
 
 async function build() {
   error.value = ''
@@ -23,57 +17,31 @@ async function build() {
     error.value = e.message
   }
 }
-
-async function copy(text, i) {
-  copied.value = (await copyText(text)) ? i : -1
-}
-
-async function save() {
-  try {
-    await saveItem({ alias: alias.value, formId: 'pre_contact', title: '사전 연락 답변', inputs: { mode: mode.value }, draft: { ...answers } })
-    status.value = '보관함에 저장했습니다. 종합계획서① 화면에서 불러올 수 있습니다.'
-  } catch (e) {
-    status.value = e.message
-  }
-}
 </script>
 
 <template>
   <div class="shell">
     <h1>사전 연락</h1>
+    <p class="muted">매칭 직후 멘티(보호자)에게 보낼 문자 초안을 만듭니다.</p>
     <form class="card" @submit.prevent="build">
-      <label class="field"><span class="name">멘토링 유형</span>
-        <select v-model="mode"><option>온라인</option><option>오프라인</option></select>
-      </label>
-      <label class="field"><span class="name">전화할 시각 (선택)</span><input v-model="callTime" placeholder="예: 19시" maxlength="20" /></label>
-      <button class="primary">질문지와 문자 초안 만들기</button>
+      <div class="form-grid">
+        <label class="field"><span class="name">멘토링 유형</span>
+          <select v-model="mode"><option>온라인</option><option>오프라인</option></select>
+        </label>
+        <label class="field"><span class="name">전화할 시각 (선택)</span><input v-model="callTime" placeholder="예: 19시" maxlength="20" /></label>
+      </div>
+      <button class="primary">문자 초안 만들기</button>
     </form>
     <div v-if="error" class="box error">{{ error }}</div>
     <template v-if="res">
-      <h2>문자 초안 ({{ res.sms.length }}자)</h2>
+      <h2>문자 초안 <span class="tag">{{ res.sms.length }}자</span></h2>
       <div class="card">
-        <p class="muted">[멘토명], [멘티명]은 보내기 전에 직접 채워 주세요. 90자 단위로 나눠 보여 드립니다.</p>
-        <div v-for="(p, i) in res.sms.parts" :key="i" class="mini" style="margin: 6px 0">
-          <span class="t">{{ i + 1 }} / {{ res.sms.parts.length }} ({{ p.length }}자)</span>{{ p }}
-        </div>
-        <div class="row">
-          <button type="button" class="small" @click="copy(res.sms.text, 0)">전체 복사</button>
-          <span v-if="copied === 0" class="ok">복사했습니다</span>
-        </div>
-      </div>
-      <h2>통화에서 확인할 것</h2>
-      <div class="card">
-        <p class="muted">{{ res.call_script }}</p>
-        <label v-for="q in res.questions" :key="q.key" class="field">
-          <span class="name">{{ q.ask }}</span>
-          <span v-if="q.pii" class="notice">{{ q.note }}</span>
-          <textarea v-else v-model="answers[q.key]" placeholder="통화에서 들은 내용을 짧게 적어 주세요"></textarea>
-          <span v-if="!q.pii && q.note" class="notice">{{ q.note }}</span>
-        </label>
-        <AliasInput v-model="alias" />
-        <div class="row"><button type="button" @click="save">답변을 보관함에 저장</button><span>{{ status }}</span></div>
+        <p class="muted">[멘토명], [멘티명]은 보내기 전에 직접 채워 주세요.</p>
+        <div class="mini" style="white-space: pre-wrap" data-test="sms">{{ res.sms.text }}</div>
+        <div class="row" style="margin-top: 10px"><button type="button" class="primary" @click="copyText(res.sms.text)">문자 복사</button></div>
       </div>
       <div class="box warn"><ul><li v-for="n in res.notes" :key="n">{{ n }}</li></ul></div>
+      <p class="muted">통화에서 들은 과목, 일정, 목표는 <router-link to="/mentees">내 멘티</router-link>에 적어 두면 종합계획서와 활동보고서에 자동으로 채워집니다.</p>
     </template>
   </div>
 </template>

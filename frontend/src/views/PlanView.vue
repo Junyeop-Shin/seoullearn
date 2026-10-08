@@ -1,11 +1,13 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { api } from '../api/client'
 import AliasInput from '../components/AliasInput.vue'
 import DraftResult from '../components/DraftResult.vue'
 import SchemaForm from '../components/SchemaForm.vue'
 import { emptyInputs, inputFields, toPayload } from '../lib/formFields'
+import { preContactFromProfile, profileFromVault, subjectTimeText } from '../lib/mentee'
 import { COURSE_ALIAS, COURSE_FORM, coursesFromVault, handoverFromVault } from '../lib/reports'
+import { toast } from '../lib/toast'
 import { listItems, saveItem } from '../stores/vault'
 
 // 종합계획서: ① 강의 목차 → ② 주차별 계획 → ③ 종합계획서①(플랫폼 입력) → ④ 종합계획서②(서식 파일)
@@ -74,6 +76,7 @@ onMounted(async () => {
     valuesInitial.value = emptyInputs(fieldsInitial.value)
     valuesFile.value = emptyInputs(fieldsFile.value)
     await loadCourses()
+    await loadAnswers()
   } catch (e) {
     error.value = e.message
   }
@@ -91,6 +94,8 @@ async function run(name, fn) {
   }
 }
 
+watch(alias, loadAnswers)
+
 const parseOutline = () => run('outline', async () => {
   outline.value = await api.courseOutline(outlineText.value)
 })
@@ -103,14 +108,28 @@ const makePlan = () => run('plan', async () => {
   })
 })
 
+// 멘티를 고르면 '내 멘티'에 적어 둔 일정·과목·목표와 저장해 둔 인계 요약을 불러온다
 async function loadAnswers() {
+  status.value = ''
+  if (!alias.value.trim() || !formInitial.value) return
   const items = await listItems(alias.value.trim())
-  const found = items.find((x) => x.formId === 'pre_contact')
-  if (found) {
-    answers.value = found.draft
-    mode.value = found.inputs?.mode || mode.value
-    status.value = '보관함의 사전 연락 답변을 불러왔습니다.'
-  } else status.value = '이 별칭으로 저장된 사전 연락 답변이 없습니다.'
+  const p = profileFromVault(items)
+  if (p) {
+    answers.value = preContactFromProfile(p)
+    if (p.mode) mode.value = p.mode
+    const v = { ...valuesInitial.value }
+    for (const k of ['duration', 'weekday', 'start_datetime']) if (p[k] && !String(v[k] ?? '').trim()) v[k] = p[k]
+    valuesInitial.value = v
+    if (p.start_datetime && !opt.startDate) opt.startDate = p.start_datetime.slice(0, 10)
+    const st = subjectTimeText(p)
+    if (st && !String(valuesFile.value.subject_time ?? '').trim()) valuesFile.value = { ...valuesFile.value, subject_time: st }
+    const course = courses.value.find((c) => p.course && (c.title === p.course || p.course.includes(c.title) || c.title.includes(p.course)))
+    if (course && !outline.value) {
+      pickedCourse.value = course.id
+      useCourse()
+    }
+    status.value = '멘티 정보를 불러왔습니다.'
+  } else status.value = '이 별칭으로 저장된 멘티 정보가 없습니다. 내 멘티에서 적어 두면 일정과 목표가 자동으로 채워집니다.'
   const ho = handoverFromVault(items)
   if (ho) {
     for (const k of Object.keys(handover)) handover[k] = ho[k] || ''
@@ -143,9 +162,9 @@ async function save(formId, title, draft) {
   try {
     await saveItem({ alias: alias.value, formId, title, inputs: toPayload(fieldsInitial.value, valuesInitial.value),
       extra: { weekly_plan: plan.value?.sessions || [] }, draft })
-    status.value = '보관함에 저장했습니다.'
+    toast('보관함에 저장했습니다.')
   } catch (e) {
-    status.value = e.message
+    toast(e.message)
   }
 }
 
@@ -157,7 +176,7 @@ const CONFIRM = '종합계획서①은 플랫폼에 등록한 뒤에는 수정�
     <h1>종합계획서 작성</h1>
     <div class="card">
       <AliasInput v-model="alias" />
-      <div class="row"><button type="button" class="small" @click="loadAnswers">사전 연락 답변 불러오기</button><span>{{ status }}</span></div>
+      <p v-if="status" class="notice" data-test="profile-status">{{ status }}</p>
     </div>
     <div v-if="error" class="box error">{{ error }}</div>
 
@@ -211,6 +230,17 @@ const CONFIRM = '종합계획서①은 플랫폼에 등록한 뒤에는 수정�
     <form v-if="formInitial" class="card" @submit.prevent="draftInitial">
       <label class="field"><span class="name">멘토링 유형</span><select v-model="mode"><option>온라인</option><option>오프라인</option></select></label>
       <SchemaForm v-model="valuesInitial" :fields="fieldsInitial" />
+      <div class="mini" data-test="profile-used">
+        <span class="t">초안에 쓰는 멘티 정보</span>
+        <template v-if="Object.keys(answers).length">
+          <div v-if="answers.subject_confirm">과목·유형: {{ answers.subject_confirm }}</div>
+          <div v-if="answers.site_course">강좌: {{ answers.site_course }}</div>
+          <div v-if="answers.goal">목표: {{ answers.goal }}</div>
+          <div v-if="answers.level">학습 상황: {{ answers.level }}</div>
+        </template>
+        <div v-else>적어 둔 멘티 정보가 없습니다. 목표와 학습 상황 없이 만들면 학습목표와 학생진단이 거의 비게 됩니다.</div>
+        <router-link to="/mentees">내 멘티에서 고치기</router-link>
+      </div>
       <details>
         <summary>이전 멘토의 인계 요약이 있으면 입력 (멘토 교체)</summary>
         <label v-for="[k, label] in HANDOVER" :key="k" class="field"><span class="name">{{ label }}</span><textarea v-model="handover[k]"></textarea></label>

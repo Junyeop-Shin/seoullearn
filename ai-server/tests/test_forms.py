@@ -233,6 +233,11 @@ class PreContactTest(unittest.TestCase):
         self.assertIn("서로온 앱", r["sms"]["text"])
         self.assertTrue(all(len(p) <= 90 for p in r["sms"]["parts"]))
         self.assertEqual("".join(r["sms"]["parts"]).replace(" ", ""), r["sms"]["text"].replace("\n", "").replace(" ", ""))
+        self.assertNotIn("\n", r["sms"]["text"])                      # 섹션 없이 줄글 한 덩어리
+        self.assertNotIn("16회", r["sms"]["text"])                     # 회기 길이는 그룹마다 다를 수 있어 적지 않는다
+        self.assertNotIn("4개월", r["sms"]["text"])
+        self.assertTrue(r["sms"]["text"].endswith("전화가 어렵거나 연락 가능한 시간이 따로 있으시면 이 번호로 연락 부탁드립니다."))
+        self.assertIn("오늘 19시 이후에", r["sms"]["text"])
         self.assertTrue(next(q for q in r["questions"] if q["key"] == "contact")["pii"])
 
     def test_offline_adds_place_note(self):

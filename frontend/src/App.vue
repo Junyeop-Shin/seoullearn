@@ -18,7 +18,7 @@ const GROUPS = [
   { title: '회기를 마칠 때', items: [{ to: '/completion', label: '완료보고서', icon: 'flag' }, { to: '/handover', label: '인계 요약', icon: 'swap' }] },
   { title: '오프라인 멘토링', items: [{ to: '/ieumdan', label: '이음단 요청', icon: 'send' }, { to: '/places', label: '협약 장소', icon: 'pin' }] },
   { title: '도구', items: [{ to: '/allowance', label: '활동비 계산', icon: 'calc' }, { to: '/forms', label: '기타 서식', icon: 'folder' }] },
-  { title: '내 자료', items: [{ to: '/vault', label: '보관함', icon: 'archive' }, { to: '/settings', label: '설정', icon: 'settings' }] },
+  { title: '내 자료', items: [{ to: '/mentees', label: '내 멘티', icon: 'people' }, { to: '/vault', label: '보관함', icon: 'archive' }, { to: '/settings', label: '설정', icon: 'settings' }] },
 ]
 
 async function signOut() {

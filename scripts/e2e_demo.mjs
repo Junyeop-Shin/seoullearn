@@ -1,12 +1,14 @@
 // MVP 데모 시나리오를 실제 브라우저(헤드리스 크롬)로 끝까지 눌러 보는 점검 스크립트.
-// 로그인 → 설정 → 매뉴얼 질문 3개 → 활동보고서 → 사전 연락 → 종합계획서①(신규·교체) → 보관함 내보내기·삭제·가져오기
+// 로그인 → 설정 → 매뉴얼 질문 3개 → 활동보고서 → 사전 연락 문자 → 내 멘티 → 종합계획서①(신규·교체) → 보관함 내보내기·삭제·가져오기
 //
 //   docker compose up -d frontend ai-server
 //   npm install --no-save playwright && npx playwright install chromium   (저장소 밖 임시 폴더에서 해도 된다)
-//   node scripts/e2e_demo.mjs <스크린샷 저장 폴더>
+//   (playwright를 설치한 폴더에서) node <저장소>/scripts/e2e_demo.mjs <스크린샷 저장 폴더>
 //
 // 실제 LLM을 10번 안팎 호출한다. 가상 문장만 쓴다. 끝나면 만든 계정(e2e_*)은 DB에서 직접 지운다.
-import { chromium } from 'playwright'
+import { createRequire } from 'node:module'
+import { resolve } from 'node:path'
+const { chromium } = createRequire(resolve(process.cwd(), 'x.js'))('playwright')   // playwright를 설치한 폴더에서 실행한다
 const base = 'http://localhost:3000'
 const user = 'e2e_' + Math.random().toString(36).slice(2, 8)
 const log = (...a) => console.log(...a)
@@ -75,31 +77,30 @@ await page.getByRole('button', { name: '보관함에 저장' }).click()
 await page.waitForSelector('text=보관함에 저장했습니다')
 await shot('2-report')
 
-// 사전 연락 → 보관함
+// 사전 연락 문자 → 내 멘티에 정보 저장
 await page.goto(base + '/pre-contact')
-await page.getByRole('button', { name: '질문지와 문자 초안 만들기' }).click()
-await page.waitForSelector('text=통화에서 확인할 것')
-log('사전 연락: 문자 조각', await page.locator('.mini .t').count(), '질문', await page.locator('label.field textarea').count())
-const tas = page.locator('label.field textarea')
-await tas.nth(0).fill('국어, 온라인 맞음'); await tas.nth(1).fill('월요일 저녁 8시 이후'); await tas.nth(2).fill('모의고사 국어 3~4등급, 문학이 약함'); await tas.nth(4).fill('문학 감 잡기, 인강 끝까지 듣기')
-await page.locator('input[list=alias-list]').fill('국어 고1 C')
-await page.getByRole('button', { name: '답변을 보관함에 저장' }).click()
-await page.waitForSelector('text=보관함에 저장했습니다')
+await page.getByRole('button', { name: '문자 초안 만들기' }).click()
+await page.waitForSelector('[data-test=sms]')
+log('사전 연락 문자:', (await page.locator('[data-test=sms]').innerText()).length, '자')
+await page.goto(base + '/mentees')
+for (const [k, v] of Object.entries({ alias: '국어 고1 C', subject: '국어', course: '(가상) 고1 국어 문학 개념', goal: '문학 감 잡기, 인강 끝까지 듣기', level: '모의고사 국어 3~4등급, 문학이 약함' })) await page.locator(`[data-profile=${k}]`).fill(v)
+await page.locator('[data-profile=mode]').selectOption('온라인'); await page.locator('[data-profile=duration]').selectOption('60'); await page.locator('[data-profile=weekday]').selectOption('월')
+await page.locator('[data-profile=start_datetime]').fill('2026-10-12T20:00')
+await page.getByRole('button', { name: '저장', exact: true }).click()
+await page.waitForSelector('text=멘티 정보를 저장했습니다')
 
 // 시나리오 3: 신규 멘티 종합계획서①
 await page.goto(base + '/plan')
 await page.waitForSelector('[data-key=duration]')
 await page.locator('input[list=alias-list]').fill('국어 고1 C')
-await page.getByRole('button', { name: '사전 연락 답변 불러오기' }).click()
-await page.waitForSelector('text=불러왔습니다')
+await page.waitForSelector('text=멘티 정보를 불러왔습니다')
 await page.locator('textarea').first().fill(Array.from({ length: 24 }, (_, i) => `${i + 1}강 문학 개념 ${i + 1}`).join('\n'))
 await page.getByRole('button', { name: '강 목록으로 정리' }).click()
 await page.waitForSelector('text=24강을 읽었습니다')
-await page.locator('input[type=date]').first().fill('2026-10-12')
 await page.getByRole('button', { name: '16회차 계획 만들기' }).click()
 await page.waitForSelector('table tr >> nth=16', { timeout: 90000 })
 log('주차별 계획 1회차:', await page.locator('table tr >> nth=1').innerText())
-await fill('duration', '60'); await fill('weekday', '월'); await page.locator('[data-key=start_datetime]').fill('2026-10-12T20:00')
+log('멘티 정보에서 채워진 일정:', await page.locator('[data-key=weekday]').inputValue(), await page.locator('[data-key=start_datetime]').inputValue())
 await page.getByRole('button', { name: '종합계획서① 초안 만들기' }).click()
 await page.waitForSelector('[data-draft=learning_goal]', { timeout: 90000 })
 log('종합계획서① 학습목표:', await page.locator('[data-draft=learning_goal]').inputValue())

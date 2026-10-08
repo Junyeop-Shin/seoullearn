@@ -27,11 +27,11 @@
 | `formId` | 2단계에서 쓰는 곳 | 주로 읽는 것 |
 | --- | --- | --- |
 | `activity_report` | 완료보고서(회차별 수행 리스트), 인계 요약 | `sessionNo`, `draft` 전체 |
-| `pre_contact` | 종합계획서① | `draft` (질문 key별 답변), `inputs.mode` |
 | `plan_initial` | 종합계획서②, 완료보고서(학습목표) | `draft.learning_goal`, `extra.weekly_plan` |
 | `plan_file` | 완료보고서(학습목표 대비 성취도) | `draft.learning_goal` |
 | `handover_summary` | 다음 멘토의 종합계획서① 인계 요약 칸 | `draft` (`attendance_pattern`, `homework_pattern`, `attitude`, `course_progress`) |
 | `completion_report` | 보관용 | `draft` 전체 |
+| `mentee_profile` | 활동보고서·종합계획서 화면의 자동 입력 | `draft` (`subject`, `mode`, `course`, `duration`, `weekday`, `start_datetime`, `goal`, `level`). 이름·학년·학교·연락처 칸은 없다 |
 | `course_outline` | 종합계획서의 강의 목차 (내 강좌) | `title`(강좌 이름), `draft.lectures` (`[{no, title, unit, minutes}]`). `alias`는 항상 `내 강좌` |
 
 읽는 코드는 `frontend/src/lib/reports.js`에 있다 (`reportsFromVault`, `goalsFromVault`, `handoverFromVault`).
