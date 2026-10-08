@@ -3,7 +3,7 @@
 Spring Boot 업무 백엔드. 화면(Vue)은 이 서비스의 `/api`로만 요청한다.
 
 - Java 21, Spring Boot 4.1, Gradle
-- DB: PostgreSQL (`db` 서비스). 테이블은 `app_user` 하나뿐이다
+- DB: PostgreSQL (`db` 서비스). backend가 쓰는 테이블은 `app_user`(회원)와 `unanswered_question`(답 못 한 질문 모음) 둘이다
 
 ## 하는 일
 
@@ -12,11 +12,13 @@ Spring Boot 업무 백엔드. 화면(Vue)은 이 서비스의 `/api`로만 요�
 | 로그인·역할 | `/api/auth/*`, `/api/admin/*` | 멘토(MENTOR), 관리자(ADMIN). 아이디·비밀번호 해시·역할만 저장한다 |
 | 양식 스키마 | `GET /api/forms`, `GET /api/forms/{formId}` | 저장소의 `forms/*.json`을 그대로 제공한다. 파일을 추가하면 목록에 바로 나온다 |
 | AI 서버 중계 | `POST /api/qa`, `POST /api/chat`, `/api/drafts/**` | 로그인한 사용자의 요청을 ai-server로 넘기고 응답을 그대로 돌려준다 |
+| 답 못 한 질문 모음 | `GET /api/admin/unanswered`, `GET /api/admin/unanswered/export.csv`, `DELETE /api/admin/unanswered/{id}` | 관리자만. ai-server가 모은 가린 질문 문장을 보고, CSV로 내보내고, 지운다 |
 
 ## 저장하지 않는 것
 
 - 실명, 학교, 연락처, 가입 일시. `app_user`에는 `id, username, password_hash, role` 열만 있다.
 - 질문, 답변, 보고서 내용. 중계하는 본문은 해석하지도 저장하지도 않는다.
+- 예외는 답 못 한 질문 모음이다. ai-server가 가린 질문 문장·분류·문의처·날짜만 `unanswered_question`에 넣는다. 질문한 사람을 알 수 있는 열은 없다.
 - 로그에는 `/api` 요청마다 메서드, 경로, 상태 코드, 처리 시간만 남는다(`api-access`). 본문, 쿼리 문자열, 사용자 아이디는 남기지 않는다.
 
 ## 로그인 방식

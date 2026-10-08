@@ -170,6 +170,10 @@ docker compose run --rm ai-server python /project/scripts/compare_vector_backend
 | `POST /drafts/weekly_plan` | 16회차 계획. 배분은 규칙 함수 | 회차별 멘토링 내용·상담 문장만 |
 | `POST /drafts/plan_initial` | 종합계획서① 초안 (플랫폼 입력용 문자 정리, 수정 불가 경고) | 학습목표·학생진단만 |
 | `POST /drafts/plan_file` | 종합계획서② 초안 (서식 항목 순서 텍스트) | 학습목표, 멘토 입력 다듬기 |
+| `POST /drafts/split_reports` | 플랫폼에서 복사한 활동보고서 여러 개를 회차별로 분리 | 쓰지 않음 |
+| `POST /drafts/completion_report` | 완료보고서 초안. 수행 리스트·통계는 규칙, 감성케어 칸은 멘토 입력만 | 멘토링 내용·성취도 |
+| `POST /drafts/handover_summary` | 멘토 교체 인계 요약. 허용 항목 네 가지만, 항목마다 출처 칸만 모아 따로 질의 | 항목별 요약 |
+| `POST /drafts/ieumdan_request` | 이음단 장소·일정 요청 메시지. 3일 전 규칙을 날짜 계산으로 확인 | 쓰지 않음 |
 
 - 필드의 `source`에 따라 처리가 갈린다: `user`는 입력 그대로, `placeholder`는 `[멘티명]` 같은 자리표시, `derived`는 규칙 계산, `user_text`는 다듬기, `llm_draft`는 초안.
 - 개인정보 칸에 입력이 오면 버리고 경고한다. 5점 척도, 시간, 회차, 날짜 계산은 LLM에 맡기지 않는다.
@@ -180,6 +184,15 @@ docker compose run --rm ai-server python /project/scripts/compare_vector_backend
 ```bash
 docker compose run --rm ai-server python -m evaluation.report_eval [--judge]   # 초안 평가 (eval/report_eval/cases.json)
 ```
+
+### 답 못 한 질문 모음
+
+매뉴얼로 답하지 못한 질문(`answerable`이 `no`·`partial`)을 모아 운영 측의 매뉴얼 보완 자료로 쓴다 (`app/unanswered.py`, `UNANSWERED_LOG=on`).
+
+- 저장하는 것: 가드로 가린 질문 문장, 분류, 문의처, 날짜(일 단위). 누가 물었는지(아이디, 접속 주소, 시각)는 저장하지 않는다.
+- 저장하지 않는 질문: 아동 안전 신호가 있는 것, 정서·가정·건강·성적 이야기가 든 것, 150자를 넘는 것(상황 설명일 가능성이 높다).
+- 관리자(ADMIN)만 `GET /api/admin/unanswered`, `/api/admin/unanswered/export.csv`로 보고, 항목을 지울 수 있다.
+- 이 기능은 "질문 원문을 서버에 남기지 않는다"는 규칙의 예외다. 끄려면 `.env`에 `UNANSWERED_LOG=off`.
 
 ### 의도 분류 라우터 (/chat)
 

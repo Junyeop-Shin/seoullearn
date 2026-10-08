@@ -2,20 +2,23 @@
 
 저장하는 것은 가드로 가린 질문 문장, 분류(no·partial), 문의처, 날짜(일 단위)뿐이다.
 누가 물었는지(아이디, 접속 주소, 시각)는 저장하지 않는다.
-아동 안전 신호가 있거나 정서·가정·건강 이야기가 든 질문은 저장하지 않는다.
+아동 안전 신호가 있거나, 정서·가정·건강·성적 이야기가 들었거나, 상황을 길게 풀어 쓴 질문은 저장하지 않는다
+(멘티 개인의 사정일 가능성이 높다). 매뉴얼에 대한 짧은 질문만 모은다.
 UNANSWERED_LOG=off면 아무것도 저장하지 않는다.
 """
 from __future__ import annotations
 
 import logging
 import os
+import re
 
 from . import guard
 from .config import settings
 from .forms import sensitive
 
 log = logging.getLogger("ai-server")
-MAX_LEN = 300
+MAX_LEN = 150   # 이보다 긴 글은 상황 설명일 가능성이 높아 저장하지 않는다
+_ACADEMIC = re.compile(r"성적|등급|점수|\d+\s*점|석차|등수")
 
 # backend/src/main/resources/schema.sql의 정의와 같아야 한다
 SCHEMA = """
@@ -43,7 +46,9 @@ def to_store(question: str, answerable: str, safety: bool = False) -> str | None
     if sensitive.filter_text(g.text)[1]:   # 정서·가정·건강 이야기가 섞인 질문은 남기지 않는다
         return None
     text = " ".join(g.text.split())
-    return text[:MAX_LEN] if len(text) >= 2 else None
+    if len(text) < 2 or len(text) > MAX_LEN or _ACADEMIC.search(text):
+        return None
+    return text
 
 
 def _insert(question: str, answerable: str, route: str | None) -> None:

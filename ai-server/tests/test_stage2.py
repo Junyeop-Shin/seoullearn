@@ -238,7 +238,8 @@ class UnansweredTest(unittest.TestCase):
         self.assertIsNone(unanswered.to_store("멘티가 집에서 맞는다고 하는데 어떻게 해요?", "no"))        # 아동 안전
         self.assertIsNone(unanswered.to_store("멘티가 부모님이랑 다퉈서 힘들다는데 상담 규정이 있나요?", "partial"))  # 정서·가정
         self.assertIsNone(unanswered.to_store("질문", "no", safety=True))
-        self.assertEqual(len(unanswered.to_store("가" * 500, "partial")), 300)
+        self.assertIsNone(unanswered.to_store("가" * 151, "partial"))                                  # 길게 풀어 쓴 상황 설명
+        self.assertIsNone(unanswered.to_store("중간고사 4등급 나온 멘티도 시간확대 되나요?", "no"))        # 성적 이야기
 
     def test_off_by_default_and_failures_do_not_raise(self):
         with unittest.mock.patch.object(unanswered, "_insert") as ins:

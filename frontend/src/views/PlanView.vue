@@ -5,6 +5,7 @@ import AliasInput from '../components/AliasInput.vue'
 import DraftResult from '../components/DraftResult.vue'
 import SchemaForm from '../components/SchemaForm.vue'
 import { emptyInputs, inputFields, toPayload } from '../lib/formFields'
+import { handoverFromVault } from '../lib/reports'
 import { listItems, saveItem } from '../stores/vault'
 
 // 종합계획서: ① 강의 목차 → ② 주차별 계획 → ③ 종합계획서①(플랫폼 입력) → ④ 종합계획서②(서식 파일)
@@ -78,6 +79,11 @@ async function loadAnswers() {
     mode.value = found.inputs?.mode || mode.value
     status.value = '보관함의 사전 연락 답변을 불러왔습니다.'
   } else status.value = '이 별칭으로 저장된 사전 연락 답변이 없습니다.'
+  const ho = handoverFromVault(items)
+  if (ho) {
+    for (const k of Object.keys(handover)) handover[k] = ho[k] || ''
+    status.value += ' 보관함의 인계 요약도 불러왔습니다.'
+  }
 }
 
 function handoverGiven() {

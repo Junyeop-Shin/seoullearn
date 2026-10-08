@@ -3,7 +3,8 @@
 가상 회차 기록(synthetic/sessions_M1.json 등)의 내용으로 backend의 /api/qa와 /api/chat을 10번,
 활동보고서 초안(/api/drafts/activity_report)을 3번 호출한 뒤, 보낸 문장의 조각이 아래 세 곳에 남았는지 찾는다.
   1) frontend, backend, ai-server, db 컨테이너 로그
-  2) DB 전체 (pg_dump)
+  2) DB 전체 (pg_dump). '답 못 한 질문 모음' 테이블은 가린 질문 문장을 일부러 저장하므로 따로 검사한다:
+     전화번호·이름·학교명과 정서·성적 내용이 없는지, 질문한 사람을 알 수 있는 열이 없는지
   3) .cache 폴더에서 이번 호출 뒤에 새로 생기거나 늘어난 부분
      (평가 실행이 남긴 캐시에는 같은 가상 데이터가 들어 있을 수 있어, 호출 전 상태와 비교한다)
 
@@ -45,7 +46,10 @@ def build_messages() -> list[str]:
         parts = [i.get("notes", ""), i.get("attendance", ""), i.get("homework", ""), i.get("etc", ""), i.get("requests", "")]
         text = " ".join(p for p in parts if p).strip()
         texts.append((text + " 이 내용으로 어떻게 하면 되나요?")[:900])
-    return texts[:10]
+    # 마지막 둘은 짧은 질문으로 바꾼다: '답 못 한 질문 모음'에 저장될 만한 모양이고 개인정보가 섞여 있다
+    short = ["가람중 멘티 활동인증서를 영문으로도 받을 수 있나요? 010-0000-0000",
+             "김민지 학생 어머님이 멘토 자격증 사본을 달라고 하시는데 줘도 되나요?"]
+    return texts[:8] + short
 
 
 def build_drafts() -> list[dict]:
@@ -156,7 +160,8 @@ def scan(frags: list[str], since: str, before: dict[str, int]) -> list[tuple[str
         hit = find_in(logs.stdout + logs.stderr, frags)
         if hit:
             found.append((f"{svc} 컨테이너 로그", hit))
-    dump = compose("exec", "-T", "db", "pg_dump", "-U", "seoullearn", "--data-only", "--inserts", "seoullearn")
+    dump = compose("exec", "-T", "db", "pg_dump", "-U", "seoullearn", "--data-only", "--inserts",
+                   "--exclude-table-data=unanswered_question", "seoullearn")
     if not dump:
         raise SystemExit("DB 내용을 읽지 못했습니다. db 컨테이너가 떠 있는지 확인해 주세요.")
     hit = find_in(dump, frags)
@@ -174,6 +179,36 @@ def scan(frags: list[str], since: str, before: dict[str, int]) -> list[tuple[str
     return found
 
 
+# ------------------------------------------------------------------ 답 못 한 질문 모음
+UNANSWERED_COLUMNS = {"id", "question", "answerable", "route", "created_on"}
+# 가상 데이터에 넣어 둔 개인정보와, 저장되면 안 되는 내용의 표지
+TRAPS = re.compile(r"01[016789][- .]?\d{3,4}[- .]?\d{4}|김민지|가람중|부모님|다퉈|다퉜|등급|성적|장염|군입대")
+
+
+def psql(sql: str) -> list[str]:
+    out = compose("exec", "-T", "db", "psql", "-U", "seoullearn", "-d", "seoullearn", "-At", "-c", sql)
+    return [x for x in out.decode("utf-8", "replace").splitlines() if x.strip()]
+
+
+def unanswered_max_id() -> int:
+    rows = psql("SELECT COALESCE(MAX(id), 0) FROM unanswered_question")
+    return int(rows[0]) if rows and rows[0].isdigit() else 0
+
+
+def check_unanswered(before_id: int) -> tuple[list[str], int]:
+    """(문제 목록, 이번 호출로 저장된 건수). 검사 뒤 이번 호출로 생긴 행은 지운다."""
+    problems = []
+    cols = set(psql("SELECT column_name FROM information_schema.columns WHERE table_name = 'unanswered_question'"))
+    if cols and cols != UNANSWERED_COLUMNS:
+        problems.append(f"답 못 한 질문 테이블에 예상 밖의 열이 있습니다: {sorted(cols - UNANSWERED_COLUMNS)}")
+    rows = psql(f"SELECT question FROM unanswered_question WHERE id > {before_id}")
+    bad = [r for r in rows if TRAPS.search(r)]
+    if bad:
+        problems.append(f"답 못 한 질문 테이블에 개인정보·민감 내용이 든 행이 {len(bad)}건 있습니다 (예: {bad[0][:30]!r})")
+    psql(f"DELETE FROM unanswered_question WHERE id > {before_id}")
+    return problems, len(rows)
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--base", default="http://localhost:8080")
@@ -184,10 +219,12 @@ def main() -> int:
         raise SystemExit("검사할 조각이 너무 적습니다. 가상 데이터를 확인해 주세요.")
     since = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     before = cache_sizes()
+    before_id = unanswered_max_id()
     username, codes = send(a.base, messages, drafts)
     time.sleep(2)  # 로그가 밀려 나올 시간
     try:
         found = scan(frags, since, before)
+        problems, stored = check_unanswered(before_id)
     finally:
         compose("exec", "-T", "db", "psql", "-U", "seoullearn", "-d", "seoullearn", "-c",
                 f"DELETE FROM app_user WHERE username = '{username}'")
@@ -196,9 +233,14 @@ def main() -> int:
     print(f"검사 대상: {', '.join(SERVICES)} 컨테이너 로그, DB 전체, .cache 폴더에 새로 쓰인 부분")
     if ok_calls < len(codes):
         print("경고: 실패한 호출이 있습니다. 실패한 호출은 LLM까지 가지 않았을 수 있어 검사가 약해집니다.")
-    if not found:
+    print(f"답 못 한 질문 모음에 저장된 건수: {stored}건 (검사 뒤 삭제)")
+    for p in problems:
+        print(f"- {p}")
+    if not found and not problems:
         print("OK: 입력 본문 조각이 남은 곳이 없습니다.")
         return 0 if ok_calls == len(codes) else 1
+    if not found:
+        return 1
     print("\n입력 본문 조각이 남은 곳:")
     for where, hit in found:
         print(f"- {where}: {len(hit)}개 (예: {hit[0][:30]!r})")

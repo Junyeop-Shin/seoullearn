@@ -231,9 +231,10 @@ class BackendApiTests {
         String logs = output.getAll();
         assertThat(logs).containsPattern("POST /api/qa status=200 ms=\\d+");
         assertThat(logs).doesNotContain("가람중", "010-0000-1234", "지각했는데", AI_ANSWER, "mentor-pass-1", "mentor_j1");
-        // DB에도 질문이 남지 않는다: 테이블은 app_user 하나뿐이다
+        // backend는 중계한 질문을 DB에 쓰지 않는다. 테이블은 회원과 '답 못 한 질문 모음'(ai-server가 가린 문장만 넣음) 둘뿐이다
         List<String> tables = jdbc.queryForList(
                 "SELECT LOWER(table_name) FROM information_schema.tables WHERE table_schema = 'PUBLIC'", String.class);
-        assertThat(tables).containsExactly("app_user");
+        assertThat(tables).containsExactlyInAnyOrder("app_user", "unanswered_question");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM unanswered_question WHERE question LIKE '%지각했는데%'", Integer.class)).isZero();
     }
 }

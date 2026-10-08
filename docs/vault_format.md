@@ -30,6 +30,10 @@
 | `pre_contact` | 종합계획서① | `draft` (질문 key별 답변), `inputs.mode` |
 | `plan_initial` | 종합계획서②, 완료보고서(학습목표) | `draft.learning_goal`, `extra.weekly_plan` |
 | `plan_file` | 완료보고서(학습목표 대비 성취도) | `draft.learning_goal` |
+| `handover_summary` | 다음 멘토의 종합계획서① 인계 요약 칸 | `draft` (`attendance_pattern`, `homework_pattern`, `attitude`, `course_progress`) |
+| `completion_report` | 보관용 | `draft` 전체 |
+
+읽는 코드는 `frontend/src/lib/reports.js`에 있다 (`reportsFromVault`, `goalsFromVault`, `handoverFromVault`).
 
 같은 멘티의 활동보고서는 `alias`가 같고 `formId`가 `activity_report`인 항목을 `sessionNo` 순으로 읽는다. 같은 회차가 여러 번 저장돼 있으면 `savedAt`이 가장 늦은 것을 쓴다.
 
