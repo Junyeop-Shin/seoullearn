@@ -1,0 +1,2947 @@
+{
+ "format": "seoullearn-mentor-vault",
+ "version": 1,
+ "exportedAt": "2026-10-08T00:00:00.000Z",
+ "sample": true,
+ "items": [
+  {
+   "id": "demo-001",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "mentee_profile",
+   "title": "멘티 정보",
+   "sessionNo": null,
+   "savedAt": "2026-03-04T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "subject": "수학",
+    "mode": "온라인",
+    "duration": "60",
+    "weekday": "월",
+    "start_datetime": "2026-03-09T17:00",
+    "goal": "시발점 수1 완강, 기말고사 수학 3등급, 오답노트 습관",
+    "level": "인강 의존도가 높고 오답 정리를 미루는 편",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ"
+   }
+  },
+  {
+   "id": "demo-002",
+   "alias": "내 강좌",
+   "formId": "course_outline",
+   "title": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+   "sessionNo": null,
+   "savedAt": "2026-03-04T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "lectures": [
+     {
+      "no": 1,
+      "title": "Theme 1. 거듭제곱근과 지수법칙",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 2,
+      "title": "Theme 2. 로그의 뜻과 성질",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 3,
+      "title": "Theme 3. 상용로그",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 4,
+      "title": "Theme 4. 지수함수의 뜻과 그래프",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 5,
+      "title": "Theme 5. 지수함수 그래프의 활용",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 6,
+      "title": "Theme 6. 로그함수의 뜻과 그래프",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 7,
+      "title": "Theme 7. 로그함수의 그래프의 활용",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 8,
+      "title": "Theme 8. 지수방정식과 지수부등식",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 9,
+      "title": "Theme 9. 로그방정식과 로그부등식",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 10,
+      "title": "Theme 10. 일반각",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 11,
+      "title": "Theme 11. 호도법과 부채꼴",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 12,
+      "title": "Theme 12. 삼각함수의 뜻",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 13,
+      "title": "Theme 13. 삼각함수의 각의 변환",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 14,
+      "title": "Theme 14. 삼각함수의 그래프",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 15,
+      "title": "Theme 15. 삼각함수 그래프의 평행이동 / 최대와 최소",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 16,
+      "title": "Theme 16. 삼각방정식과 삼각부등식",
+      "unit": null,
+      "minutes": null
+     }
+    ]
+   }
+  },
+  {
+   "id": "demo-003",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "plan_initial",
+   "title": "종합계획서①",
+   "sessionNo": null,
+   "savedAt": "2026-03-07T12:00:00.000Z",
+   "inputs": {
+    "duration": "60",
+    "weekday": "월",
+    "start_datetime": "2026-03-09 17:00"
+   },
+   "extra": {
+    "weekly_plan": [
+     {
+      "no": 1,
+      "date": "2026-03-09",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 1,
+        "title": "Theme 1. 거듭제곱근과 지수법칙",
+        "parts": 2
+       }
+      ],
+      "vacation": false,
+      "online": "1강 Theme 1. 거듭제곱근과 지수법칙",
+      "mentoring": "거듭제곱근과 지수법칙 개념 정리",
+      "counsel": "오답노트 작성법 상담",
+      "line": "(온라인 강의) 1강 Theme 1. 거듭제곱근과 지수법칙 / (멘토링 내용) 거듭제곱근과 지수법칙 개념 정리 / (상담) 오답노트 작성법 상담"
+     },
+     {
+      "no": 2,
+      "date": "2026-03-16",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 2,
+        "title": "Theme 2. 로그의 뜻과 성질",
+        "parts": 2
+       }
+      ],
+      "vacation": false,
+      "online": "2강 Theme 2. 로그의 뜻과 성질",
+      "mentoring": "로그의 뜻과 성질 이해하기",
+      "counsel": "기말고사 대비 학습법",
+      "line": "(온라인 강의) 2강 Theme 2. 로그의 뜻과 성질 / (멘토링 내용) 로그의 뜻과 성질 이해하기 / (상담) 기말고사 대비 학습법"
+     },
+     {
+      "no": 3,
+      "date": "2026-03-23",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 3,
+        "title": "Theme 3. 상용로그",
+        "parts": 1,
+        "workbook": "Step 1 - Theme 1, 2, 3"
+       }
+      ],
+      "vacation": false,
+      "online": "3강 Theme 3. 상용로그",
+      "mentoring": "상용로그 개념과 문제풀이",
+      "counsel": "진도별 학습 계획 점검",
+      "line": "(온라인 강의) 3강 Theme 3. 상용로그 / (멘토링 내용) 상용로그 개념과 문제풀이 / (상담) 진도별 학습 계획 점검"
+     },
+     {
+      "no": 4,
+      "date": "2026-03-30",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 4,
+        "title": "Theme 4. 지수함수의 뜻과 그래프",
+        "parts": 1
+       }
+      ],
+      "vacation": false,
+      "online": "4강 Theme 4. 지수함수의 뜻과 그래프",
+      "mentoring": "지수함수 뜻과 그래프 분석",
+      "counsel": "수학 공부 습관 점검",
+      "line": "(온라인 강의) 4강 Theme 4. 지수함수의 뜻과 그래프 / (멘토링 내용) 지수함수 뜻과 그래프 분석 / (상담) 수학 공부 습관 점검"
+     },
+     {
+      "no": 5,
+      "date": "2026-04-06",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 5,
+        "title": "Theme 5. 지수함수 그래프의 활용",
+        "parts": 1,
+        "workbook": "Step 1 - Theme 4, 5"
+       }
+      ],
+      "vacation": false,
+      "online": "5강 Theme 5. 지수함수 그래프의 활용",
+      "mentoring": "지수함수 그래프 활용 문제풀이",
+      "counsel": "오답노트 활용법 상담",
+      "line": "(온라인 강의) 5강 Theme 5. 지수함수 그래프의 활용 / (멘토링 내용) 지수함수 그래프 활용 문제풀이 / (상담) 오답노트 활용법 상담"
+     },
+     {
+      "no": 6,
+      "date": "2026-04-13",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 6,
+        "title": "Theme 6. 로그함수의 뜻과 그래프",
+        "parts": 1
+       }
+      ],
+      "vacation": false,
+      "online": "6강 Theme 6. 로그함수의 뜻과 그래프",
+      "mentoring": "로그함수 뜻과 그래프 이해",
+      "counsel": "기말고사 목표 점검",
+      "line": "(온라인 강의) 6강 Theme 6. 로그함수의 뜻과 그래프 / (멘토링 내용) 로그함수 뜻과 그래프 이해 / (상담) 기말고사 목표 점검"
+     },
+     {
+      "no": 7,
+      "date": "2026-04-20",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 7,
+        "title": "Theme 7. 로그함수의 그래프의 활용",
+        "parts": 1,
+        "workbook": "Step 1 - Theme 6, 7"
+       }
+      ],
+      "vacation": false,
+      "online": "7강 Theme 7. 로그함수의 그래프의 활용",
+      "mentoring": "로그함수 그래프 활용 문제풀이",
+      "counsel": "학습 동기 부여 상담",
+      "line": "(온라인 강의) 7강 Theme 7. 로그함수의 그래프의 활용 / (멘토링 내용) 로그함수 그래프 활용 문제풀이 / (상담) 학습 동기 부여 상담"
+     },
+     {
+      "no": 8,
+      "date": "2026-04-27",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 8,
+        "title": "Theme 8. 지수방정식과 지수부등식",
+        "parts": 1
+       },
+       {
+        "no": 9,
+        "title": "Theme 9. 로그방정식과 로그부등식",
+        "parts": 1,
+        "workbook": "Step 1 - Theme 8, 9"
+       }
+      ],
+      "vacation": false,
+      "online": "8강 Theme 8. 지수방정식과 지수부등식, 9강 Theme 9. 로그방정식과 로그부등식",
+      "mentoring": "지수·로그 방정식과 부등식 풀이",
+      "counsel": "진학 목표 상담",
+      "line": "(온라인 강의) 8강 Theme 8. 지수방정식과 지수부등식, 9강 Theme 9. 로그방정식과 로그부등식 / (멘토링 내용) 지수·로그 방정식과 부등식 풀이 / (상담) 진학 목표 상담"
+     },
+     {
+      "no": 9,
+      "date": "2026-05-04",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 10,
+        "title": "Theme 10. 일반각",
+        "parts": 1,
+        "chapter": "Step 2 - Chapter 1"
+       }
+      ],
+      "vacation": false,
+      "online": "10강 Theme 10. 일반각",
+      "mentoring": "일반각 개념과 문제풀이",
+      "counsel": "시험 대비 전략 상담",
+      "line": "(온라인 강의) 10강 Theme 10. 일반각 / (멘토링 내용) 일반각 개념과 문제풀이 / (상담) 시험 대비 전략 상담"
+     },
+     {
+      "no": 10,
+      "date": "2026-05-11",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 11,
+        "title": "Theme 11. 호도법과 부채꼴",
+        "parts": 1,
+        "workbook": "Step 1 - Theme 10, 11"
+       }
+      ],
+      "vacation": false,
+      "online": "11강 Theme 11. 호도법과 부채꼴",
+      "mentoring": "호도법과 부채꼴 개념 정리",
+      "counsel": "학습 시간 관리 상담",
+      "line": "(온라인 강의) 11강 Theme 11. 호도법과 부채꼴 / (멘토링 내용) 호도법과 부채꼴 개념 정리 / (상담) 학습 시간 관리 상담"
+     },
+     {
+      "no": 11,
+      "date": "2026-05-18",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 12,
+        "title": "Theme 12. 삼각함수의 뜻",
+        "parts": 2
+       }
+      ],
+      "vacation": false,
+      "online": "12강 Theme 12. 삼각함수의 뜻",
+      "mentoring": "삼각함수 뜻과 기본 개념",
+      "counsel": "오답노트 습관 점검",
+      "line": "(온라인 강의) 12강 Theme 12. 삼각함수의 뜻 / (멘토링 내용) 삼각함수 뜻과 기본 개념 / (상담) 오답노트 습관 점검"
+     },
+     {
+      "no": 12,
+      "date": "2026-05-25",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 13,
+        "title": "Theme 13. 삼각함수의 각의 변환",
+        "parts": 1,
+        "workbook": "Step 1 - Theme 12, 13"
+       }
+      ],
+      "vacation": false,
+      "online": "13강 Theme 13. 삼각함수의 각의 변환",
+      "mentoring": "삼각함수 각의 변환 문제풀이",
+      "counsel": "기말고사 대비 상담",
+      "line": "(온라인 강의) 13강 Theme 13. 삼각함수의 각의 변환 / (멘토링 내용) 삼각함수 각의 변환 문제풀이 / (상담) 기말고사 대비 상담"
+     },
+     {
+      "no": 13,
+      "date": "2026-06-01",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 14,
+        "title": "Theme 14. 삼각함수의 그래프",
+        "parts": 2
+       }
+      ],
+      "vacation": false,
+      "online": "14강 Theme 14. 삼각함수의 그래프",
+      "mentoring": "삼각함수 그래프 이해와 풀이",
+      "counsel": "학습 진도 점검",
+      "line": "(온라인 강의) 14강 Theme 14. 삼각함수의 그래프 / (멘토링 내용) 삼각함수 그래프 이해와 풀이 / (상담) 학습 진도 점검"
+     },
+     {
+      "no": 14,
+      "date": "2026-06-08",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 15,
+        "title": "Theme 15. 삼각함수 그래프의 평행이동 / 최대와 최소",
+        "parts": 1
+       }
+      ],
+      "vacation": false,
+      "online": "15강 Theme 15. 삼각함수 그래프의 평행이동 / 최대와 최소",
+      "mentoring": "삼각함수 그래프 평행이동과 최대최소",
+      "counsel": "학습 계획 조정",
+      "line": "(온라인 강의) 15강 Theme 15. 삼각함수 그래프의 평행이동 / 최대와 최소 / (멘토링 내용) 삼각함수 그래프 평행이동과 최대최소 / (상담) 학습 계획 조정"
+     },
+     {
+      "no": 15,
+      "date": "2026-06-15",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 16,
+        "title": "Theme 16. 삼각방정식과 삼각부등식",
+        "parts": 1,
+        "workbook": "Step 1 - Theme 14, 15, 16"
+       }
+      ],
+      "vacation": false,
+      "online": "16강 Theme 16. 삼각방정식과 삼각부등식",
+      "mentoring": "삼각방정식과 부등식 문제풀이",
+      "counsel": "시험 대비 학습법",
+      "line": "(온라인 강의) 16강 Theme 16. 삼각방정식과 삼각부등식 / (멘토링 내용) 삼각방정식과 부등식 문제풀이 / (상담) 시험 대비 학습법"
+     },
+     {
+      "no": 16,
+      "date": "2026-06-22",
+      "kind": "정리",
+      "lectures": [],
+      "vacation": false,
+      "online": "수강 강의 총정리",
+      "mentoring": "총정리 및 개념 복습",
+      "counsel": "다음 회기 연장 상담",
+      "line": "(온라인 강의) 수강 강의 총정리 / (멘토링 내용) 총정리 및 개념 복습 / (상담) 다음 회기 연장 상담"
+     }
+    ]
+   },
+   "draft": {
+    "duration": "60",
+    "weekday": "월",
+    "start_datetime": "2026-03-09 17:00",
+    "structure": "10분 온라인 강의 수강 확인 및 질의응답 / 30분 개념 학습과 문제 풀이 / 10분 오답 정리 / 10분 상담 및 다음 회차 안내",
+    "rules": "멘토링 시간 준수하기, 일정 변경은 미리 논의하기, 인강은 계획대로 수강하고 과제 해 오기",
+    "curriculum": [
+     "1회차 (온라인 강의) 1강 Theme 1. 거듭제곱근과 지수법칙 / (멘토링 내용) 거듭제곱근과 지수법칙 개념 정리 / (상담) 오답노트 작성법 상담",
+     "2회차 (온라인 강의) 2강 Theme 2. 로그의 뜻과 성질 / (멘토링 내용) 로그의 뜻과 성질 이해하기 / (상담) 기말고사 대비 학습법",
+     "3회차 (온라인 강의) 3강 Theme 3. 상용로그 / (멘토링 내용) 상용로그 개념과 문제풀이 / (상담) 진도별 학습 계획 점검",
+     "4회차 (온라인 강의) 4강 Theme 4. 지수함수의 뜻과 그래프 / (멘토링 내용) 지수함수 뜻과 그래프 분석 / (상담) 수학 공부 습관 점검",
+     "5회차 (온라인 강의) 5강 Theme 5. 지수함수 그래프의 활용 / (멘토링 내용) 지수함수 그래프 활용 문제풀이 / (상담) 오답노트 활용법 상담",
+     "6회차 (온라인 강의) 6강 Theme 6. 로그함수의 뜻과 그래프 / (멘토링 내용) 로그함수 뜻과 그래프 이해 / (상담) 기말고사 목표 점검",
+     "7회차 (온라인 강의) 7강 Theme 7. 로그함수의 그래프의 활용 / (멘토링 내용) 로그함수 그래프 활용 문제풀이 / (상담) 학습 동기 부여 상담",
+     "8회차 (온라인 강의) 8강 Theme 8. 지수방정식과 지수부등식, 9강 Theme 9. 로그방정식과 로그부등식 / (멘토링 내용) 지수, 로그 방정식과 부등식 풀이 / (상담) 진학 목표 상담",
+     "9회차 (온라인 강의) 10강 Theme 10. 일반각 / (멘토링 내용) 일반각 개념과 문제풀이 / (상담) 시험 대비 전략 상담",
+     "10회차 (온라인 강의) 11강 Theme 11. 호도법과 부채꼴 / (멘토링 내용) 호도법과 부채꼴 개념 정리 / (상담) 학습 시간 관리 상담",
+     "11회차 (온라인 강의) 12강 Theme 12. 삼각함수의 뜻 / (멘토링 내용) 삼각함수 뜻과 기본 개념 / (상담) 오답노트 습관 점검",
+     "12회차 (온라인 강의) 13강 Theme 13. 삼각함수의 각의 변환 / (멘토링 내용) 삼각함수 각의 변환 문제풀이 / (상담) 기말고사 대비 상담",
+     "13회차 (온라인 강의) 14강 Theme 14. 삼각함수의 그래프 / (멘토링 내용) 삼각함수 그래프 이해와 풀이 / (상담) 학습 진도 점검",
+     "14회차 (온라인 강의) 15강 Theme 15. 삼각함수 그래프의 평행이동 / 최대와 최소 / (멘토링 내용) 삼각함수 그래프 평행이동과 최대최소 / (상담) 학습 계획 조정",
+     "15회차 (온라인 강의) 16강 Theme 16. 삼각방정식과 삼각부등식 / (멘토링 내용) 삼각방정식과 부등식 문제풀이 / (상담) 시험 대비 학습법",
+     "16회차 (온라인 강의) 수강 강의 총정리 / (멘토링 내용) 총정리 및 개념 복습 / (상담) 다음 회기 연장 상담"
+    ],
+    "learning_goal": "메가스터디 수학의 시작, 시발점 - 수1 강좌를 완강하는 것을 목표로 함. 기말고사 수학 3등급 달성과 오답노트 습관 형성을 목표로 함.",
+    "diagnosis": "인강 의존도가 높고 오답 정리를 미루는 편임. 1회차에 자세한 상담 예정임."
+   }
+  },
+  {
+   "id": "demo-004",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 1회차",
+   "sessionNo": 1,
+   "savedAt": "2026-03-11T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-03-09",
+    "session_no": "1",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:03~18:05",
+    "scope": "T1 거듭제곱근과 지수법칙",
+    "goal": "거듭제곱근 개념 이해, 지수법칙 계산",
+    "attendance": "정시 입장",
+    "lecture_progress": "T1① 수강, ② 미수강",
+    "homework": "첫 회차라 없음",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "OT 겸 상담. 목표 기말 3등급, 수Ⅰ 완강. 거듭제곱근 개념 설명, 계산 10문제 중 6개 맞음. 부호 실수 많음. 숙제 T1② 듣고 교재 풀기"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-03-09",
+    "session_no": "1",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:03~18:05",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "T1 거듭제곱근과 지수법칙",
+    "goal": "거듭제곱근 개념 이해, 지수법칙 계산",
+    "attendance": "정시 입장",
+    "lecture_progress": "T1① 수강, ② 미수강",
+    "homework": "첫 회차라 없음",
+    "session_content": "OT 겸 상담을 진행함. 목표는 기말 3등급이며, 수Ⅰ 완강을 희망함. 거듭제곱근 개념을 설명하였고, 계산 문제 10문제 중 6문제를 맞춤. 부호 실수 사례가 많았음. 숙제로 T1②를 듣고 교재를 풀기로 함."
+   }
+  },
+  {
+   "id": "demo-005",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 2회차",
+   "sessionNo": 2,
+   "savedAt": "2026-03-18T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-03-16",
+    "session_no": "2",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:00~18:02",
+    "scope": "T2 로그의 뜻과 성질",
+    "goal": "로그 정의와 성질로 식 계산",
+    "attendance": "정시",
+    "lecture_progress": "T1② 수강, T2① 수강, T2② 미수강",
+    "homework": "교재 풀었는데 채점 안 해옴",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "로그 성질 설명, 밑 변환 헷갈려함. 퀴즈 5문제 3개. 채점은 꼭 해오기로 약속"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-03-16",
+    "session_no": "2",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:00~18:02",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "T2 로그의 뜻과 성질",
+    "goal": "로그 정의와 성질로 식 계산",
+    "attendance": "정시 출석",
+    "lecture_progress": "T1② 수강, T2① 수강, T2② 미수강",
+    "homework": "교재 풀었는데 채점하지 않음",
+    "session_content": "로그 성질 설명함. 밑 변환을 헷갈려함. 퀴즈 5문제 중 3문제 맞음. 채점은 꼭 해오기로 약속함."
+   }
+  },
+  {
+   "id": "demo-006",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 3회차",
+   "sessionNo": 3,
+   "savedAt": "2026-03-25T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-03-23",
+    "session_no": "3",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:01~18:03",
+    "scope": "T3 상용로그, Step1 T1~3",
+    "goal": "상용로그 계산과 Step1 문제 적용",
+    "attendance": "정시",
+    "lecture_progress": "T2②, T3 수강 완료",
+    "homework": "채점까지 해옴, 오답 정리는 안 함",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "Step1 문제 같이 풀이. 상용로그 지표 가수 개념 다시 설명. 오답노트 양식 알려줌"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-03-23",
+    "session_no": "3",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:01~18:03",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "T3 상용로그, Step1 T1~3",
+    "goal": "상용로그 계산과 Step1 문제 적용",
+    "attendance": "정시",
+    "lecture_progress": "T2②, T3 수강 완료",
+    "homework": "채점까지 해옴, 오답 정리는 안 함",
+    "session_content": "Step1 문제 같이 풀이. 상용로그 지표 가수 개념 다시 설명. 오답노트 양식 알려줌"
+   }
+  },
+  {
+   "id": "demo-007",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 4회차",
+   "sessionNo": 4,
+   "savedAt": "2026-04-01T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-03-30",
+    "session_no": "4",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "지각",
+    "actual_time": "17:00~18:01",
+    "scope": "T4 지수함수의 뜻과 그래프",
+    "goal": "지수함수 그래프 개형과 성질",
+    "attendance": "20분 지각 (학원 끝나고 늦음)",
+    "lecture_progress": "T4 미수강",
+    "homework": "오답노트 3문제만 함",
+    "progress_scale": "노력필요",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "인강 안 들어서 개념부터 직접 설명. 그래프 평행이동 질문 많음. 다음주까지 T4, T5 듣기로"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-03-30",
+    "session_no": "4",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:00~18:01",
+    "progress_scale": "노력필요",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "T4 지수함수의 뜻과 그래프",
+    "goal": "지수함수 그래프 개형과 성질",
+    "attendance": "20분 지각함",
+    "lecture_progress": "T4 미수강함",
+    "homework": "오답노트 3문제 수행함",
+    "session_content": "인강 미수강으로 개념부터 직접 설명함. 그래프 평행이동에 대해 질문이 많았음. 다음 주까지 T4, T5 수강하기로 함."
+   }
+  },
+  {
+   "id": "demo-008",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 5회차",
+   "sessionNo": 5,
+   "savedAt": "2026-04-08T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-04-06",
+    "session_no": "5",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:00~18:00",
+    "scope": "T5 지수함수 그래프의 활용, Step1 T4~5",
+    "goal": "지수함수 최대최소, 그래프 활용 문제",
+    "attendance": "5분 전 입장",
+    "lecture_progress": "T4, T5 수강 완료",
+    "homework": "Step1 T4 풀고 오답 정리함",
+    "progress_scale": "잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "session_content": "지난주 약속 지킴. 최대최소 문제 잘 풂. 학습플래너 쓰기 시작"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-04-06",
+    "session_no": "5",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:00~18:00",
+    "progress_scale": "잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "scope": "T5 지수함수 그래프의 활용과 Step1 T4~5를 학습함",
+    "goal": "지수함수 최대최소와 그래프 활용 문제를 학습함",
+    "attendance": "5분 전에 입장함",
+    "lecture_progress": "T4와 T5 강의를 수강 완료함",
+    "homework": "Step1 T4 문제를 풀고 오답을 정리함",
+    "session_content": "지난주 약속을 지켰으며 최대최소 문제를 잘 풂. 학습플래너를 쓰기 시작함"
+   }
+  },
+  {
+   "id": "demo-009",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 6회차",
+   "sessionNo": 6,
+   "savedAt": "2026-04-15T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-04-13",
+    "session_no": "6",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:02~18:04",
+    "scope": "T6 로그함수의 뜻과 그래프",
+    "goal": "로그함수와 지수함수의 역함수 관계 이해",
+    "attendance": "정시",
+    "lecture_progress": "T6 수강",
+    "homework": "Step1 T5 완료",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "역함수 관계 그래프로 설명. [이름] [이름] 어머님이 [전화번호]로 시험범위 상담 원하심. 중간고사 범위 T1~T8 예정"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-04-13",
+    "session_no": "6",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:02~18:04",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "T6 로그함수의 뜻과 그래프",
+    "goal": "로그함수와 지수함수의 역함수 관계 이해",
+    "attendance": "정시",
+    "lecture_progress": "T6 수강",
+    "homework": "Step1 T5 완료",
+    "session_content": "역함수 관계 그래프로 설명. 어머님이 시험범위 상담 원하심. 중간고사 범위 T1~T8 예정"
+   }
+  },
+  {
+   "id": "demo-010",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 7회차",
+   "sessionNo": 7,
+   "savedAt": "2026-04-22T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-04-20",
+    "session_no": "7",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:00~18:01",
+    "scope": "T7 로그함수 그래프의 활용, 중간고사 대비",
+    "goal": "로그함수 활용 문제와 시험 범위 복습",
+    "attendance": "정시",
+    "lecture_progress": "T7 수강, T8 미수강",
+    "homework": "Step1 T6~7 절반",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "4/27 멘토링은 멘티 중간고사로 쉼, 5/4 재개",
+    "session_content": "시험 대비 기출 5문제. 다음주 중간고사 주간이라 협의해서 4/27은 쉬기로 함"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-04-20",
+    "session_no": "7",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:00~18:01",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "",
+    "scope": "T7 로그함수 그래프의 활용과 중간고사 대비를 학습함",
+    "goal": "로그함수 활용 문제와 시험 범위를 복습함",
+    "attendance": "정시에 출석함",
+    "lecture_progress": "T7 강의를 수강하였고 T8 강의는 수강하지 않음",
+    "homework": "Step1 T6~7 과제의 절반을 수행함",
+    "session_content": "시험 대비 기출 5문제를 학습하였으며, 다음 주 중간고사 주간이라 4월 27일은 쉬기로 협의함",
+    "requests": "4월 27일 멘토링은 멘티 중간고사로 인해 쉬고 5월 4일에 재개하기로 함"
+   }
+  },
+  {
+   "id": "demo-011",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 8회차",
+   "sessionNo": 8,
+   "savedAt": "2026-05-06T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-05-04",
+    "session_no": "8",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:00~18:00",
+    "scope": "T8 지수방정식과 지수부등식",
+    "goal": "밑을 같게 해서 방정식·부등식 풀기",
+    "attendance": "정시",
+    "lecture_progress": "T8 수강",
+    "homework": "시험 끝나서 숙제 없음",
+    "progress_scale": "보통",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "session_content": "중간고사 4등급 나옴, 계산 실수로 2문제 틀렸다고 함. 부등식 방향 바뀌는 조건 정리"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-05-04",
+    "session_no": "8",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:00~18:00",
+    "progress_scale": "보통",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "scope": "T8 지수방정식과 지수부등식",
+    "goal": "밑을 같게 해서 방정식·부등식 풀기",
+    "attendance": "정시에 출석함",
+    "lecture_progress": "T8 인강을 수강함",
+    "homework": "시험이 끝나서 숙제가 없음",
+    "session_content": "중간고사 4등급이 나왔으며 계산 실수로 2문제를 틀렸다고 함. 부등식 방향이 바뀌는 조건을 정리함."
+   }
+  },
+  {
+   "id": "demo-012",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 9회차",
+   "sessionNo": 9,
+   "savedAt": "2026-05-13T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-05-11",
+    "session_no": "9",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:01~18:02",
+    "scope": "T9 로그방정식과 로그부등식, Step1 T8~9",
+    "goal": "진수 조건을 고려한 로그방정식 풀이",
+    "attendance": "정시",
+    "lecture_progress": "T9 수강",
+    "homework": "Step1 T8 완료, 오답노트 씀",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "진수 조건 빼먹는 실수 반복. 체크리스트 만들어줌"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-05-11",
+    "session_no": "9",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:01~18:02",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "T9 로그방정식과 로그부등식, Step1 T8~9",
+    "goal": "진수 조건을 고려한 로그방정식 풀이",
+    "attendance": "정시",
+    "lecture_progress": "T9 수강",
+    "homework": "Step1 T8 완료, 오답노트 씀",
+    "session_content": "진수 조건 빼먹는 실수 반복. 체크리스트 만들어줌"
+   }
+  },
+  {
+   "id": "demo-013",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 10회차",
+   "sessionNo": 10,
+   "savedAt": "2026-05-20T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-05-18",
+    "session_no": "10",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:00~18:01",
+    "scope": "T10 일반각",
+    "goal": "일반각과 동경 이해",
+    "attendance": "정시",
+    "lecture_progress": "T10 수강",
+    "homework": "Step1 T9 완료",
+    "progress_scale": "잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "session_content": "일반각 개념 금방 이해함. 마지막 10분은 부모님이랑 크게 다퉈서 집중 안 된다고 해서 얘기 들어줌"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-05-18",
+    "session_no": "10",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:00~18:01",
+    "progress_scale": "잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "scope": "T10 일반각",
+    "goal": "일반각과 동경 이해",
+    "attendance": "정시 출석함",
+    "lecture_progress": "T10 인강 수강함",
+    "homework": "Step1 T9 과제 완료함",
+    "session_content": "일반각 개념을 금방 이해함"
+   }
+  },
+  {
+   "id": "demo-014",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 11회차",
+   "sessionNo": 11,
+   "savedAt": "2026-05-27T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-05-25",
+    "session_no": "11",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:00~18:00",
+    "scope": "T11 호도법과 부채꼴, Step1 T10~11",
+    "goal": "호도법 변환과 부채꼴 넓이·호의 길이",
+    "attendance": "정시",
+    "lecture_progress": "T11 수강",
+    "homework": "플래너대로 인강 2강씩 들음",
+    "progress_scale": "매우 잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "session_content": "스스로 플래너 지킴. 호도법 변환 연습 15문제 13개"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-05-25",
+    "session_no": "11",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:00~18:00",
+    "progress_scale": "매우 잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "scope": "T11 호도법과 부채꼴, Step1 T10~11",
+    "goal": "호도법 변환과 부채꼴 넓이·호의 길이",
+    "attendance": "정시",
+    "lecture_progress": "T11 수강",
+    "homework": "플래너대로 인강 2강씩 들음",
+    "session_content": "스스로 플래너 지킴. 호도법 변환 연습 15문제 중 13개 맞음"
+   }
+  },
+  {
+   "id": "demo-015",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 12회차",
+   "sessionNo": 12,
+   "savedAt": "2026-06-03T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-06-01",
+    "session_no": "12",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:00~18:02",
+    "scope": "T12 삼각함수의 뜻",
+    "goal": "삼각함수 정의와 부호",
+    "attendance": "정시",
+    "lecture_progress": "T12①② 수강",
+    "homework": "Step1 T10~11 완료",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "사분면별 부호 헷갈림. 표로 정리해줌. 장학금 제도 궁금해해서 같이 찾아봄"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-06-01",
+    "session_no": "12",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:00~18:02",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "T12 삼각함수의 뜻",
+    "goal": "삼각함수 정의와 부호",
+    "attendance": "정시",
+    "lecture_progress": "T12①② 수강",
+    "homework": "Step1 T10~11 완료",
+    "session_content": "사분면별 부호를 헷갈려하여 표로 정리해 주었음. 장학금 제도에 대해 궁금해하여 함께 찾아보았음."
+   }
+  },
+  {
+   "id": "demo-016",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 13회차",
+   "sessionNo": 13,
+   "savedAt": "2026-06-10T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-06-08",
+    "session_no": "13",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:01~18:03",
+    "scope": "T13 삼각함수의 각의 변환, Step1 T12~13",
+    "goal": "각 변환 공식 적용",
+    "attendance": "정시",
+    "lecture_progress": "T13 수강",
+    "homework": "오답노트 꾸준히 씀",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "공식 암기보다 단위원으로 이해하게 함"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-06-08",
+    "session_no": "13",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:01~18:03",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "T13 삼각함수의 각의 변환, Step1 T12~13",
+    "goal": "각 변환 공식 적용",
+    "attendance": "정시 출석함",
+    "lecture_progress": "T13 수강함",
+    "homework": "오답노트 꾸준히 씀",
+    "session_content": "공식 암기보다 단위원으로 이해하게 함"
+   }
+  },
+  {
+   "id": "demo-017",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 14회차",
+   "sessionNo": 14,
+   "savedAt": "2026-06-17T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-06-15",
+    "session_no": "14",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:00~18:01",
+    "scope": "T14 삼각함수의 그래프",
+    "goal": "주기와 최대최소 읽기",
+    "attendance": "정시",
+    "lecture_progress": "T14①② 수강",
+    "homework": "Step1 T12~13 완료",
+    "progress_scale": "잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "session_content": "그래프 주기 문제 잘 풂. 연장 의사 물어봄, 멘티도 원함"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-06-15",
+    "session_no": "14",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:00~18:01",
+    "progress_scale": "잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "scope": "T14 삼각함수의 그래프",
+    "goal": "주기와 최대최소 읽기",
+    "attendance": "정시",
+    "lecture_progress": "T14①② 수강",
+    "homework": "Step1 T12~13 완료",
+    "session_content": "그래프 주기 문제 잘 풂. 연장 의사 물어봄, 멘티도 원함"
+   }
+  },
+  {
+   "id": "demo-018",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 15회차",
+   "sessionNo": 15,
+   "savedAt": "2026-06-24T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-06-22",
+    "session_no": "15",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:00~18:00",
+    "scope": "T15 삼각함수 그래프의 평행이동, 최대와 최소",
+    "goal": "평행이동과 최대최소 문제",
+    "attendance": "정시",
+    "lecture_progress": "T15 수강",
+    "homework": "Step1 T14 완료",
+    "progress_scale": "매우 잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "session_content": "기말 대비 시작. 연장 신청함"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-06-22",
+    "session_no": "15",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:00~18:00",
+    "progress_scale": "매우 잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "scope": "T15 삼각함수 그래프의 평행이동, 최대와 최소",
+    "goal": "평행이동과 최대최소 문제",
+    "attendance": "정시 출석",
+    "lecture_progress": "T15 수강함",
+    "homework": "Step1 T14 완료함",
+    "session_content": "기말 대비를 시작하였으며, 연장 신청함"
+   }
+  },
+  {
+   "id": "demo-019",
+   "alias": "수학 A (회기 마무리)",
+   "formId": "activity_report",
+   "title": "활동보고서 16회차",
+   "sessionNo": 16,
+   "savedAt": "2026-07-01T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-06-29",
+    "session_no": "16",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "status": "출석",
+    "actual_time": "17:00~18:02",
+    "scope": "T16 삼각방정식과 삼각부등식, Step1 T14~16",
+    "goal": "삼각방정식 풀이, 회기 정리",
+    "attendance": "정시",
+    "lecture_progress": "T16 수강, 수Ⅰ 완강",
+    "homework": "Step1 전부 완료",
+    "progress_scale": "매우 잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "session_content": "수Ⅰ 완강. 16회차 돌아보기, 다음 회기는 기말 이후 수Ⅱ 하기로"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-06-29",
+    "session_no": "16",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "actual_time": "17:00~18:02",
+    "progress_scale": "매우 잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "scope": "T16 삼각방정식과 삼각부등식, Step1 T14~16",
+    "goal": "삼각방정식 풀이, 회기 정리",
+    "attendance": "정시 출석함",
+    "lecture_progress": "T16 수강, 수Ⅰ 완강함",
+    "homework": "Step1 전부 완료함",
+    "session_content": "수Ⅰ 완강함. 16회차 돌아봄, 다음 회기는 기말 이후 수Ⅱ 하기로 함"
+   }
+  },
+  {
+   "id": "demo-020",
+   "alias": "영어 B (멘토 교체 예정)",
+   "formId": "mentee_profile",
+   "title": "멘티 정보",
+   "sessionNo": null,
+   "savedAt": "2026-03-06T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "subject": "영어",
+    "mode": "오프라인",
+    "duration": "60",
+    "weekday": "수",
+    "start_datetime": "2026-03-11T19:00",
+    "goal": "문법 기본 다지기, 단어 암기 습관",
+    "level": "문법 인강은 꾸준히 듣고 단어 과제를 자주 덜 해 옴",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본"
+   }
+  },
+  {
+   "id": "demo-021",
+   "alias": "내 강좌",
+   "formId": "course_outline",
+   "title": "밀크T 중학 (가상) 중2 영어 문법 기본",
+   "sessionNo": null,
+   "savedAt": "2026-03-06T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "lectures": [
+     {
+      "no": 1,
+      "title": "1강 문장의 5형식",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 2,
+      "title": "2강 현재완료",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 3,
+      "title": "3강 현재완료 진행",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 4,
+      "title": "4강 조동사 can, may",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 5,
+      "title": "5강 조동사 must, have to",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 6,
+      "title": "6강 to부정사의 명사적 용법",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 7,
+      "title": "7강 to부정사의 형용사·부사적 용법",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 8,
+      "title": "8강 동명사",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 9,
+      "title": "9강 동명사와 to부정사 비교",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 10,
+      "title": "10강 수동태 기본",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 11,
+      "title": "11강 수동태 시제",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 12,
+      "title": "12강 비교급과 최상급",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 13,
+      "title": "13강 원급 비교",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 14,
+      "title": "14강 관계대명사 who, which",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 15,
+      "title": "15강 관계대명사 that, what",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 16,
+      "title": "16강 접속사 when, because, if",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 17,
+      "title": "17강 간접의문문",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 18,
+      "title": "18강 분사",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 19,
+      "title": "19강 종합 문제 1",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 20,
+      "title": "20강 종합 문제 2",
+      "unit": null,
+      "minutes": null
+     }
+    ]
+   }
+  },
+  {
+   "id": "demo-022",
+   "alias": "영어 B (멘토 교체 예정)",
+   "formId": "plan_initial",
+   "title": "종합계획서①",
+   "sessionNo": null,
+   "savedAt": "2026-03-09T12:00:00.000Z",
+   "inputs": {
+    "duration": "60",
+    "weekday": "수",
+    "start_datetime": "2026-03-11 19:00"
+   },
+   "extra": {
+    "weekly_plan": [
+     {
+      "no": 1,
+      "date": "2026-03-11",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 1,
+        "title": "1강 문장의 5형식"
+       }
+      ],
+      "vacation": false,
+      "online": "1강 문장의 5형식",
+      "mentoring": "문장의 5형식 개념 정리",
+      "counsel": "기본 문법 이해 점검",
+      "line": "(온라인 강의) 1강 문장의 5형식 / (멘토링 내용) 문장의 5형식 개념 정리 / (상담) 기본 문법 이해 점검"
+     },
+     {
+      "no": 2,
+      "date": "2026-03-18",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 2,
+        "title": "2강 현재완료"
+       },
+       {
+        "no": 3,
+        "title": "3강 현재완료 진행"
+       }
+      ],
+      "vacation": false,
+      "online": "2강 현재완료, 3강 현재완료 진행",
+      "mentoring": "현재완료와 진행형 설명",
+      "counsel": "단어 암기 습관 점검",
+      "line": "(온라인 강의) 2강 현재완료, 3강 현재완료 진행 / (멘토링 내용) 현재완료와 진행형 설명 / (상담) 단어 암기 습관 점검"
+     },
+     {
+      "no": 3,
+      "date": "2026-03-25",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 4,
+        "title": "4강 조동사 can, may"
+       }
+      ],
+      "vacation": false,
+      "online": "4강 조동사 can, may",
+      "mentoring": "조동사 can, may 용법 정리",
+      "counsel": "학습 계획 점검",
+      "line": "(온라인 강의) 4강 조동사 can, may / (멘토링 내용) 조동사 can, may 용법 정리 / (상담) 학습 계획 점검"
+     },
+     {
+      "no": 4,
+      "date": "2026-04-01",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 5,
+        "title": "5강 조동사 must, have to"
+       }
+      ],
+      "vacation": false,
+      "online": "5강 조동사 must, have to",
+      "mentoring": "조동사 must, have to 설명",
+      "counsel": "진도별 이해도 상담",
+      "line": "(온라인 강의) 5강 조동사 must, have to / (멘토링 내용) 조동사 must, have to 설명 / (상담) 진도별 이해도 상담"
+     },
+     {
+      "no": 5,
+      "date": "2026-04-08",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 6,
+        "title": "6강 to부정사의 명사적 용법"
+       },
+       {
+        "no": 7,
+        "title": "7강 to부정사의 형용사·부사적 용법"
+       }
+      ],
+      "vacation": false,
+      "online": "6강 to부정사의 명사적 용법, 7강 to부정사의 형용사·부사적 용법",
+      "mentoring": "to부정사의 용법 정리",
+      "counsel": "단어 암기 방법 상담",
+      "line": "(온라인 강의) 6강 to부정사의 명사적 용법, 7강 to부정사의 형용사·부사적 용법 / (멘토링 내용) to부정사의 용법 정리 / (상담) 단어 암기 방법 상담"
+     },
+     {
+      "no": 6,
+      "date": "2026-04-15",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 8,
+        "title": "8강 동명사"
+       }
+      ],
+      "vacation": false,
+      "online": "8강 동명사",
+      "mentoring": "동명사 개념과 용법 정리",
+      "counsel": "학습 동기 부여",
+      "line": "(온라인 강의) 8강 동명사 / (멘토링 내용) 동명사 개념과 용법 정리 / (상담) 학습 동기 부여"
+     },
+     {
+      "no": 7,
+      "date": "2026-04-22",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 9,
+        "title": "9강 동명사와 to부정사 비교"
+       }
+      ],
+      "vacation": false,
+      "online": "9강 동명사와 to부정사 비교",
+      "mentoring": "동명사와 to부정사 비교",
+      "counsel": "문법 이해도 상담",
+      "line": "(온라인 강의) 9강 동명사와 to부정사 비교 / (멘토링 내용) 동명사와 to부정사 비교 / (상담) 문법 이해도 상담"
+     },
+     {
+      "no": 8,
+      "date": "2026-04-29",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 10,
+        "title": "10강 수동태 기본"
+       },
+       {
+        "no": 11,
+        "title": "11강 수동태 시제"
+       }
+      ],
+      "vacation": false,
+      "online": "10강 수동태 기본, 11강 수동태 시제",
+      "mentoring": "수동태 기본과 시제 설명",
+      "counsel": "복습 방법 상담",
+      "line": "(온라인 강의) 10강 수동태 기본, 11강 수동태 시제 / (멘토링 내용) 수동태 기본과 시제 설명 / (상담) 복습 방법 상담"
+     },
+     {
+      "no": 9,
+      "date": "2026-05-06",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 12,
+        "title": "12강 비교급과 최상급"
+       }
+      ],
+      "vacation": false,
+      "online": "12강 비교급과 최상급",
+      "mentoring": "비교급과 최상급 개념 정리",
+      "counsel": "단어 암기 점검",
+      "line": "(온라인 강의) 12강 비교급과 최상급 / (멘토링 내용) 비교급과 최상급 개념 정리 / (상담) 단어 암기 점검"
+     },
+     {
+      "no": 10,
+      "date": "2026-05-13",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 13,
+        "title": "13강 원급 비교"
+       }
+      ],
+      "vacation": false,
+      "online": "13강 원급 비교",
+      "mentoring": "원급 비교 개념 설명",
+      "counsel": "학습 진도 상담",
+      "line": "(온라인 강의) 13강 원급 비교 / (멘토링 내용) 원급 비교 개념 설명 / (상담) 학습 진도 상담"
+     },
+     {
+      "no": 11,
+      "date": "2026-05-20",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 14,
+        "title": "14강 관계대명사 who, which"
+       },
+       {
+        "no": 15,
+        "title": "15강 관계대명사 that, what"
+       }
+      ],
+      "vacation": false,
+      "online": "14강 관계대명사 who, which, 15강 관계대명사 that, what",
+      "mentoring": "관계대명사 who, which, that, what",
+      "counsel": "문법 응용 상담",
+      "line": "(온라인 강의) 14강 관계대명사 who, which, 15강 관계대명사 that, what / (멘토링 내용) 관계대명사 who, which, that, what / (상담) 문법 응용 상담"
+     },
+     {
+      "no": 12,
+      "date": "2026-05-27",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 16,
+        "title": "16강 접속사 when, because, if"
+       }
+      ],
+      "vacation": false,
+      "online": "16강 접속사 when, because, if",
+      "mentoring": "접속사 when, because, if 설명",
+      "counsel": "학습 계획 점검",
+      "line": "(온라인 강의) 16강 접속사 when, because, if / (멘토링 내용) 접속사 when, because, if 설명 / (상담) 학습 계획 점검"
+     },
+     {
+      "no": 13,
+      "date": "2026-06-03",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 17,
+        "title": "17강 간접의문문"
+       }
+      ],
+      "vacation": false,
+      "online": "17강 간접의문문",
+      "mentoring": "간접의문문 개념 정리",
+      "counsel": "진학 관련 상담",
+      "line": "(온라인 강의) 17강 간접의문문 / (멘토링 내용) 간접의문문 개념 정리 / (상담) 진학 관련 상담"
+     },
+     {
+      "no": 14,
+      "date": "2026-06-10",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 18,
+        "title": "18강 분사"
+       },
+       {
+        "no": 19,
+        "title": "19강 종합 문제 1"
+       }
+      ],
+      "vacation": false,
+      "online": "18강 분사, 19강 종합 문제 1",
+      "mentoring": "분사와 종합 문제 풀이",
+      "counsel": "학습 전략 상담",
+      "line": "(온라인 강의) 18강 분사, 19강 종합 문제 1 / (멘토링 내용) 분사와 종합 문제 풀이 / (상담) 학습 전략 상담"
+     },
+     {
+      "no": 15,
+      "date": "2026-06-17",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 20,
+        "title": "20강 종합 문제 2"
+       }
+      ],
+      "vacation": false,
+      "online": "20강 종합 문제 2",
+      "mentoring": "종합 문제 2 풀이",
+      "counsel": "시험 대비 상담",
+      "line": "(온라인 강의) 20강 종합 문제 2 / (멘토링 내용) 종합 문제 2 풀이 / (상담) 시험 대비 상담"
+     },
+     {
+      "no": 16,
+      "date": "2026-06-24",
+      "kind": "정리",
+      "lectures": [],
+      "vacation": false,
+      "online": "수강 강의 총정리",
+      "mentoring": "총정리 및 복습 계획",
+      "counsel": "다음 회기 연장 상담",
+      "line": "(온라인 강의) 수강 강의 총정리 / (멘토링 내용) 총정리 및 복습 계획 / (상담) 다음 회기 연장 상담"
+     }
+    ]
+   },
+   "draft": {
+    "duration": "60",
+    "weekday": "수",
+    "start_datetime": "2026-03-11 19:00",
+    "structure": "10분 온라인 강의 수강 확인 및 질의응답 / 30분 개념 학습과 문제 풀이 / 10분 오답 정리 / 10분 상담 및 다음 회차 안내",
+    "rules": "멘토링 시간 준수하기, 일정 변경은 미리 논의하기, 인강은 계획대로 수강하고 과제 해 오기",
+    "curriculum": [
+     "1회차 (온라인 강의) 1강 문장의 5형식 / (멘토링 내용) 문장의 5형식 개념 정리 / (상담) 기본 문법 이해 점검",
+     "2회차 (온라인 강의) 2강 현재완료, 3강 현재완료 진행 / (멘토링 내용) 현재완료와 진행형 설명 / (상담) 단어 암기 습관 점검",
+     "3회차 (온라인 강의) 4강 조동사 can, may / (멘토링 내용) 조동사 can, may 용법 정리 / (상담) 학습 계획 점검",
+     "4회차 (온라인 강의) 5강 조동사 must, have to / (멘토링 내용) 조동사 must, have to 설명 / (상담) 진도별 이해도 상담",
+     "5회차 (온라인 강의) 6강 to부정사의 명사적 용법, 7강 to부정사의 형용사, 부사적 용법 / (멘토링 내용) to부정사의 용법 정리 / (상담) 단어 암기 방법 상담",
+     "6회차 (온라인 강의) 8강 동명사 / (멘토링 내용) 동명사 개념과 용법 정리 / (상담) 학습 동기 부여",
+     "7회차 (온라인 강의) 9강 동명사와 to부정사 비교 / (멘토링 내용) 동명사와 to부정사 비교 / (상담) 문법 이해도 상담",
+     "8회차 (온라인 강의) 10강 수동태 기본, 11강 수동태 시제 / (멘토링 내용) 수동태 기본과 시제 설명 / (상담) 복습 방법 상담",
+     "9회차 (온라인 강의) 12강 비교급과 최상급 / (멘토링 내용) 비교급과 최상급 개념 정리 / (상담) 단어 암기 점검",
+     "10회차 (온라인 강의) 13강 원급 비교 / (멘토링 내용) 원급 비교 개념 설명 / (상담) 학습 진도 상담",
+     "11회차 (온라인 강의) 14강 관계대명사 who, which, 15강 관계대명사 that, what / (멘토링 내용) 관계대명사 who, which, that, what / (상담) 문법 응용 상담",
+     "12회차 (온라인 강의) 16강 접속사 when, because, if / (멘토링 내용) 접속사 when, because, if 설명 / (상담) 학습 계획 점검",
+     "13회차 (온라인 강의) 17강 간접의문문 / (멘토링 내용) 간접의문문 개념 정리 / (상담) 진학 관련 상담",
+     "14회차 (온라인 강의) 18강 분사, 19강 종합 문제 1 / (멘토링 내용) 분사와 종합 문제 풀이 / (상담) 학습 전략 상담",
+     "15회차 (온라인 강의) 20강 종합 문제 2 / (멘토링 내용) 종합 문제 2 풀이 / (상담) 시험 대비 상담",
+     "16회차 (온라인 강의) 수강 강의 총정리 / (멘토링 내용) 총정리 및 복습 계획 / (상담) 다음 회기 연장 상담"
+    ],
+    "learning_goal": "밀크T 중학 (가상) 중2 영어 문법 기본 강좌를 통해 문법 기본을 다지고 단어 암기 습관을 형성하는 것을 목표로 함.",
+    "diagnosis": "문법 인강은 꾸준히 듣고 있으나 단어 과제 수행이 자주 미흡함. 1회차에 자세한 상담 예정."
+   }
+  },
+  {
+   "id": "demo-023",
+   "alias": "영어 B (멘토 교체 예정)",
+   "formId": "activity_report",
+   "title": "활동보고서 1회차",
+   "sessionNo": 1,
+   "savedAt": "2026-03-13T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-03-11",
+    "session_no": "1",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "status": "출석",
+    "actual_time": "19:00~20:02",
+    "scope": "1강 문장의 5형식",
+    "goal": "문장 형식 구별",
+    "attendance": "10분 일찍 도착",
+    "lecture_progress": "1강 수강",
+    "homework": "없음 (첫 회차)",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "상담. 영어 단어 외우기 싫어함. 문법 인강은 재밌대. 매주 단어 30개 숙제 정함"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-03-11",
+    "session_no": "1",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "actual_time": "19:00~20:02",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "1강 문장의 5형식임",
+    "goal": "문장 형식 구별임",
+    "attendance": "10분 일찍 도착함",
+    "lecture_progress": "1강 수강함",
+    "homework": "없음 (첫 회차)임",
+    "session_content": "상담함. 영어 단어 외우기 싫어함. 문법 인강은 재밌다고 함. 매주 단어 30개 숙제를 정함."
+   }
+  },
+  {
+   "id": "demo-024",
+   "alias": "영어 B (멘토 교체 예정)",
+   "formId": "activity_report",
+   "title": "활동보고서 2회차",
+   "sessionNo": 2,
+   "savedAt": "2026-03-20T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-03-18",
+    "session_no": "2",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "status": "출석",
+    "actual_time": "19:00~20:00",
+    "scope": "2강 현재완료",
+    "goal": "현재완료 용법 4가지 구분",
+    "attendance": "정시",
+    "lecture_progress": "2강 수강",
+    "homework": "단어 30개 중 12개만 외움",
+    "progress_scale": "보통",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "session_content": "현재완료 용법 잘 구분. 단어는 시험 봤는데 절반도 못 맞힘"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-03-18",
+    "session_no": "2",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "actual_time": "19:00~20:00",
+    "progress_scale": "보통",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "scope": "2강 현재완료",
+    "goal": "현재완료 용법 4가지 구분",
+    "attendance": "정시에 출석함",
+    "lecture_progress": "2강 수강함",
+    "homework": "단어 30개 중 12개만 외움",
+    "session_content": "현재완료 용법을 잘 구분함. 단어 시험에서 절반도 맞히지 못함."
+   }
+  },
+  {
+   "id": "demo-025",
+   "alias": "영어 B (멘토 교체 예정)",
+   "formId": "activity_report",
+   "title": "활동보고서 3회차",
+   "sessionNo": 3,
+   "savedAt": "2026-03-27T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-03-25",
+    "session_no": "3",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "status": "출석",
+    "actual_time": "19:01~20:03",
+    "scope": "3강 현재완료 진행",
+    "goal": "현재완료와 현재완료 진행 비교",
+    "attendance": "정시",
+    "lecture_progress": "3강 수강",
+    "homework": "단어 20개 외움",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "스터디룸 에어컨이 너무 셈",
+    "requests": "",
+    "session_content": "단어 숙제 20개로 줄여줌. 문법 퀴즈 8/10"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-03-25",
+    "session_no": "3",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "actual_time": "19:01~20:03",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "requests": "",
+    "scope": "3강 현재완료 진행",
+    "goal": "현재완료와 현재완료 진행 비교",
+    "attendance": "정시에 출석함",
+    "lecture_progress": "3강 수강함",
+    "homework": "단어 20개 외움",
+    "session_content": "단어 숙제 20개로 줄여줌. 문법 퀴즈 8/10",
+    "etc": "스터디룸 에어컨이 너무 셈"
+   }
+  },
+  {
+   "id": "demo-026",
+   "alias": "영어 B (멘토 교체 예정)",
+   "formId": "activity_report",
+   "title": "활동보고서 4회차",
+   "sessionNo": 4,
+   "savedAt": "2026-04-03T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-04-01",
+    "session_no": "4",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "status": "출석",
+    "actual_time": "19:00~20:01",
+    "scope": "4~5강 조동사",
+    "goal": "조동사 의미 구별",
+    "attendance": "정시",
+    "lecture_progress": "4, 5강 수강",
+    "homework": "단어 20개 다 외움",
+    "progress_scale": "잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "session_content": "처음으로 단어 숙제 다 해옴. 칭찬함"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-04-01",
+    "session_no": "4",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "actual_time": "19:00~20:01",
+    "progress_scale": "잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "",
+    "scope": "4~5강 조동사",
+    "goal": "조동사 의미 구별",
+    "attendance": "정시 출석함",
+    "lecture_progress": "4, 5강 수강함",
+    "homework": "단어 20개 다 외움",
+    "session_content": "처음으로 단어 숙제 다 해옴. 칭찬함"
+   }
+  },
+  {
+   "id": "demo-027",
+   "alias": "영어 B (멘토 교체 예정)",
+   "formId": "activity_report",
+   "title": "활동보고서 5회차",
+   "sessionNo": 5,
+   "savedAt": "2026-04-10T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-04-08",
+    "session_no": "5",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "status": "출석",
+    "actual_time": "19:00~20:00",
+    "scope": "6강 to부정사의 명사적 용법",
+    "goal": "to부정사 명사적 용법 문장 만들기",
+    "attendance": "정시",
+    "lecture_progress": "6강 수강",
+    "homework": "단어 10개만 외움",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "[학교명] 중간고사 범위가 3과까지래서 교과서 본문도 조금 봄"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-04-08",
+    "session_no": "5",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "actual_time": "19:00~20:00",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "6강 to부정사의 명사적 용법",
+    "goal": "to부정사 명사적 용법 문장 만들기",
+    "attendance": "정시 출석",
+    "lecture_progress": "6강 수강함",
+    "homework": "단어 10개만 외움",
+    "session_content": "중간고사 범위가 3과까지여서 교과서 본문도 조금 봄"
+   }
+  },
+  {
+   "id": "demo-028",
+   "alias": "영어 B (멘토 교체 예정)",
+   "formId": "activity_report",
+   "title": "활동보고서 6회차",
+   "sessionNo": 6,
+   "savedAt": "2026-04-17T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-04-15",
+    "session_no": "6",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "status": "출석",
+    "actual_time": "19:02~20:03",
+    "scope": "중간고사 대비 (교과서 1~3과)",
+    "goal": "시험 범위 문법 복습",
+    "attendance": "정시",
+    "lecture_progress": "7강 미수강 (시험 준비)",
+    "homework": "단어 안 해옴",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "시험 대비로 인강 대신 교과서 문법 정리"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-04-15",
+    "session_no": "6",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "actual_time": "19:02~20:03",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "중간고사 대비 (교과서 1~3과)",
+    "goal": "시험 범위 문법 복습",
+    "attendance": "정시에 출석함",
+    "lecture_progress": "7강을 미수강함 (시험 준비로 인해)",
+    "homework": "단어 과제를 해오지 않음",
+    "session_content": "시험 대비로 인강 대신 교과서 문법을 정리함"
+   }
+  },
+  {
+   "id": "demo-029",
+   "alias": "영어 B (멘토 교체 예정)",
+   "formId": "activity_report",
+   "title": "활동보고서 7회차",
+   "sessionNo": 7,
+   "savedAt": "2026-04-24T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-04-22",
+    "session_no": "7",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "status": "출석",
+    "actual_time": "19:00~20:01",
+    "scope": "7강 to부정사의 형용사·부사적 용법",
+    "goal": "to부정사 용법 구별",
+    "attendance": "정시",
+    "lecture_progress": "7강 수강",
+    "homework": "단어 15개",
+    "progress_scale": "보통",
+    "understanding_scale": "노력필요",
+    "etc": "",
+    "requests": "",
+    "session_content": "형용사적·부사적 구분 어려워함. 다음에 다시"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-04-22",
+    "session_no": "7",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "actual_time": "19:00~20:01",
+    "progress_scale": "보통",
+    "understanding_scale": "노력필요",
+    "etc": "",
+    "requests": "",
+    "scope": "7강 to부정사의 형용사·부사적 용법",
+    "goal": "to부정사 용법 구별",
+    "attendance": "정시 출석함",
+    "lecture_progress": "7강 수강함",
+    "homework": "단어 15개 수행함",
+    "session_content": "형용사적·부사적 용법 구분을 어려워함. 다음에 다시 학습할 예정임."
+   }
+  },
+  {
+   "id": "demo-030",
+   "alias": "영어 B (멘토 교체 예정)",
+   "formId": "activity_report",
+   "title": "활동보고서 8회차",
+   "sessionNo": 8,
+   "savedAt": "2026-05-01T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-04-29",
+    "session_no": "8",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "status": "출석",
+    "actual_time": "19:00~20:00",
+    "scope": "7강 복습, 8강 동명사",
+    "goal": "to부정사 복습, 동명사 기본",
+    "attendance": "정시",
+    "lecture_progress": "8강 수강",
+    "homework": "단어 20개 다 외움",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "멘토 개인 사정(군입대)으로 이번 회차까지 진행",
+    "session_content": "제가 다음달 군입대라 오늘이 마지막이라고 말함. 멘티가 서운해함. 새 멘토님한테 단어 숙제 계속 받고 싶대"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-04-29",
+    "session_no": "8",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "영어",
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "actual_time": "19:00~20:00",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "scope": "7강 복습, 8강 동명사",
+    "goal": "to부정사 복습, 동명사 기본",
+    "attendance": "정시 출석",
+    "lecture_progress": "8강 수강",
+    "homework": "단어 20개 다 외움",
+    "session_content": "멘토가 다음달 군입대라 오늘이 마지막이라고 말함. 멘티가 서운해함. 새 멘토님한테 단어 숙제 계속 받고 싶어함.",
+    "requests": "멘토 개인 사정(군입대)으로 이번 회차까지 진행"
+   }
+  },
+  {
+   "id": "demo-031",
+   "alias": "국어 C (매칭 직후)",
+   "formId": "mentee_profile",
+   "title": "멘티 정보",
+   "sessionNo": null,
+   "savedAt": "2026-10-07T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "subject": "국어",
+    "mode": "온라인",
+    "duration": "60",
+    "weekday": "월",
+    "start_datetime": "2026-10-12T20:00",
+    "goal": "문학 감 잡기, 인강 끝까지 듣기",
+    "level": "문학이 특히 약하다고 함. 강좌는 신청만 하고 아직 안 들음",
+    "course": "대성마이맥 (가상) 고1 국어 문학 개념"
+   }
+  },
+  {
+   "id": "demo-032",
+   "alias": "내 강좌",
+   "formId": "course_outline",
+   "title": "대성마이맥 (가상) 고1 국어 문학 개념",
+   "sessionNo": null,
+   "savedAt": "2026-10-07T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "lectures": [
+     {
+      "no": 1,
+      "title": "1강 문학 감상의 관점",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 2,
+      "title": "2강 시적 화자와 정서",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 3,
+      "title": "3강 시의 표현 방법",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 4,
+      "title": "4강 시의 운율과 이미지",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 5,
+      "title": "5강 현대시 실전 1",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 6,
+      "title": "6강 현대시 실전 2",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 7,
+      "title": "7강 고전시가 기본",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 8,
+      "title": "8강 고전시가 실전",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 9,
+      "title": "9강 소설의 시점",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 10,
+      "title": "10강 소설의 인물과 갈등",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 11,
+      "title": "11강 서술 방식과 문체",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 12,
+      "title": "12강 현대소설 실전 1",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 13,
+      "title": "13강 현대소설 실전 2",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 14,
+      "title": "14강 고전소설 기본",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 15,
+      "title": "15강 고전소설 실전",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 16,
+      "title": "16강 극과 수필",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 17,
+      "title": "17강 갈래 복합 1",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 18,
+      "title": "18강 갈래 복합 2",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 19,
+      "title": "19강 문학 어휘",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 20,
+      "title": "20강 기출 분석 1",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 21,
+      "title": "21강 기출 분석 2",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 22,
+      "title": "22강 기출 분석 3",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 23,
+      "title": "23강 실전 모의고사 1",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 24,
+      "title": "24강 실전 모의고사 2",
+      "unit": null,
+      "minutes": null
+     }
+    ]
+   }
+  },
+  {
+   "id": "demo-033",
+   "alias": "수학 D (결석이 있는 회기)",
+   "formId": "mentee_profile",
+   "title": "멘티 정보",
+   "sessionNo": null,
+   "savedAt": "2026-08-24T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "subject": "수학",
+    "mode": "오프라인",
+    "duration": "60",
+    "weekday": "토",
+    "start_datetime": "2026-08-29T10:00",
+    "goal": "다음 검정고시 합격",
+    "level": "아르바이트로 지각과 결석이 있었음",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본"
+   }
+  },
+  {
+   "id": "demo-034",
+   "alias": "내 강좌",
+   "formId": "course_outline",
+   "title": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+   "sessionNo": null,
+   "savedAt": "2026-08-24T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "lectures": [
+     {
+      "no": 1,
+      "title": "1강 다항식의 연산",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 2,
+      "title": "2강 항등식과 나머지정리",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 3,
+      "title": "3강 인수분해",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 4,
+      "title": "4강 복소수",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 5,
+      "title": "5강 이차방정식",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 6,
+      "title": "6강 이차함수",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 7,
+      "title": "7강 여러 가지 방정식",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 8,
+      "title": "8강 부등식",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 9,
+      "title": "9강 평면좌표와 직선",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 10,
+      "title": "10강 원의 방정식",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 11,
+      "title": "11강 도형의 이동",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 12,
+      "title": "12강 집합",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 13,
+      "title": "13강 명제",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 14,
+      "title": "14강 함수",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 15,
+      "title": "15강 경우의 수",
+      "unit": null,
+      "minutes": null
+     },
+     {
+      "no": 16,
+      "title": "16강 기출 문제 풀이",
+      "unit": null,
+      "minutes": null
+     }
+    ]
+   }
+  },
+  {
+   "id": "demo-035",
+   "alias": "수학 D (결석이 있는 회기)",
+   "formId": "plan_initial",
+   "title": "종합계획서①",
+   "sessionNo": null,
+   "savedAt": "2026-08-27T12:00:00.000Z",
+   "inputs": {
+    "duration": "60",
+    "weekday": "토",
+    "start_datetime": "2026-08-29 10:00"
+   },
+   "extra": {
+    "weekly_plan": [
+     {
+      "no": 1,
+      "date": "2026-08-29",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 1,
+        "title": "1강 다항식의 연산"
+       }
+      ],
+      "vacation": false,
+      "online": "1강 다항식의 연산",
+      "mentoring": "다항식의 연산 개념 정리",
+      "counsel": "학습 계획 점검",
+      "line": "(온라인 강의) 1강 다항식의 연산 / (멘토링 내용) 다항식의 연산 개념 정리 / (상담) 학습 계획 점검"
+     },
+     {
+      "no": 2,
+      "date": "2026-09-05",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 2,
+        "title": "2강 항등식과 나머지정리"
+       }
+      ],
+      "vacation": false,
+      "online": "2강 항등식과 나머지정리",
+      "mentoring": "항등식과 나머지정리 이해",
+      "counsel": "진도별 어려운 점 상담",
+      "line": "(온라인 강의) 2강 항등식과 나머지정리 / (멘토링 내용) 항등식과 나머지정리 이해 / (상담) 진도별 어려운 점 상담"
+     },
+     {
+      "no": 3,
+      "date": "2026-09-12",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 3,
+        "title": "3강 인수분해"
+       }
+      ],
+      "vacation": false,
+      "online": "3강 인수분해",
+      "mentoring": "인수분해 방법 익히기",
+      "counsel": "복습 방법 조언",
+      "line": "(온라인 강의) 3강 인수분해 / (멘토링 내용) 인수분해 방법 익히기 / (상담) 복습 방법 조언"
+     },
+     {
+      "no": 4,
+      "date": "2026-09-19",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 4,
+        "title": "4강 복소수"
+       }
+      ],
+      "vacation": false,
+      "online": "4강 복소수",
+      "mentoring": "복소수 기본 개념 학습",
+      "counsel": "진학 목표 상담",
+      "line": "(온라인 강의) 4강 복소수 / (멘토링 내용) 복소수 기본 개념 학습 / (상담) 진학 목표 상담"
+     },
+     {
+      "no": 5,
+      "date": "2026-09-26",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 5,
+        "title": "5강 이차방정식"
+       }
+      ],
+      "vacation": false,
+      "online": "5강 이차방정식",
+      "mentoring": "이차방정식 풀이 연습",
+      "counsel": "시험 대비 전략",
+      "line": "(온라인 강의) 5강 이차방정식 / (멘토링 내용) 이차방정식 풀이 연습 / (상담) 시험 대비 전략"
+     },
+     {
+      "no": 6,
+      "date": "2026-10-03",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 6,
+        "title": "6강 이차함수"
+       }
+      ],
+      "vacation": false,
+      "online": "6강 이차함수",
+      "mentoring": "이차함수 그래프 이해",
+      "counsel": "학습 습관 점검",
+      "line": "(온라인 강의) 6강 이차함수 / (멘토링 내용) 이차함수 그래프 이해 / (상담) 학습 습관 점검"
+     },
+     {
+      "no": 7,
+      "date": "2026-10-10",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 7,
+        "title": "7강 여러 가지 방정식"
+       }
+      ],
+      "vacation": false,
+      "online": "7강 여러 가지 방정식",
+      "mentoring": "여러 가지 방정식 문제풀이",
+      "counsel": "진도 조절 상담",
+      "line": "(온라인 강의) 7강 여러 가지 방정식 / (멘토링 내용) 여러 가지 방정식 문제풀이 / (상담) 진도 조절 상담"
+     },
+     {
+      "no": 8,
+      "date": "2026-10-17",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 8,
+        "title": "8강 부등식"
+       },
+       {
+        "no": 9,
+        "title": "9강 평면좌표와 직선"
+       }
+      ],
+      "vacation": false,
+      "online": "8강 부등식, 9강 평면좌표와 직선",
+      "mentoring": "부등식과 평면좌표 정리",
+      "counsel": "시간 관리 방법",
+      "line": "(온라인 강의) 8강 부등식, 9강 평면좌표와 직선 / (멘토링 내용) 부등식과 평면좌표 정리 / (상담) 시간 관리 방법"
+     },
+     {
+      "no": 9,
+      "date": "2026-10-24",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 10,
+        "title": "10강 원의 방정식"
+       }
+      ],
+      "vacation": false,
+      "online": "10강 원의 방정식",
+      "mentoring": "원의 방정식 개념 정리",
+      "counsel": "학습 동기 부여",
+      "line": "(온라인 강의) 10강 원의 방정식 / (멘토링 내용) 원의 방정식 개념 정리 / (상담) 학습 동기 부여"
+     },
+     {
+      "no": 10,
+      "date": "2026-10-31",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 11,
+        "title": "11강 도형의 이동"
+       }
+      ],
+      "vacation": false,
+      "online": "11강 도형의 이동",
+      "mentoring": "도형의 이동 원리 학습",
+      "counsel": "진학 상담",
+      "line": "(온라인 강의) 11강 도형의 이동 / (멘토링 내용) 도형의 이동 원리 학습 / (상담) 진학 상담"
+     },
+     {
+      "no": 11,
+      "date": "2026-11-07",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 12,
+        "title": "12강 집합"
+       }
+      ],
+      "vacation": false,
+      "online": "12강 집합",
+      "mentoring": "집합 개념과 문제풀이",
+      "counsel": "목표 점검",
+      "line": "(온라인 강의) 12강 집합 / (멘토링 내용) 집합 개념과 문제풀이 / (상담) 목표 점검"
+     },
+     {
+      "no": 12,
+      "date": "2026-11-14",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 13,
+        "title": "13강 명제"
+       }
+      ],
+      "vacation": false,
+      "online": "13강 명제",
+      "mentoring": "명제 이해와 적용",
+      "counsel": "학습 계획 조정",
+      "line": "(온라인 강의) 13강 명제 / (멘토링 내용) 명제 이해와 적용 / (상담) 학습 계획 조정"
+     },
+     {
+      "no": 13,
+      "date": "2026-11-21",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 14,
+        "title": "14강 함수"
+       }
+      ],
+      "vacation": false,
+      "online": "14강 함수",
+      "mentoring": "함수 개념과 문제풀이",
+      "counsel": "진학 준비 상담",
+      "line": "(온라인 강의) 14강 함수 / (멘토링 내용) 함수 개념과 문제풀이 / (상담) 진학 준비 상담"
+     },
+     {
+      "no": 14,
+      "date": "2026-11-28",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 15,
+        "title": "15강 경우의 수"
+       }
+      ],
+      "vacation": false,
+      "online": "15강 경우의 수",
+      "mentoring": "경우의 수 문제 해결",
+      "counsel": "시험 대비 상담",
+      "line": "(온라인 강의) 15강 경우의 수 / (멘토링 내용) 경우의 수 문제 해결 / (상담) 시험 대비 상담"
+     },
+     {
+      "no": 15,
+      "date": "2026-12-05",
+      "kind": "진도",
+      "lectures": [
+       {
+        "no": 16,
+        "title": "16강 기출 문제 풀이"
+       }
+      ],
+      "vacation": false,
+      "online": "16강 기출 문제 풀이",
+      "mentoring": "기출 문제 풀이 집중",
+      "counsel": "시험 전략 점검",
+      "line": "(온라인 강의) 16강 기출 문제 풀이 / (멘토링 내용) 기출 문제 풀이 집중 / (상담) 시험 전략 점검"
+     },
+     {
+      "no": 16,
+      "date": "2026-12-12",
+      "kind": "정리",
+      "lectures": [],
+      "vacation": false,
+      "online": "수강 강의 총정리",
+      "mentoring": "전체 내용 총정리",
+      "counsel": "다음 회기 연장 상담",
+      "line": "(온라인 강의) 수강 강의 총정리 / (멘토링 내용) 전체 내용 총정리 / (상담) 다음 회기 연장 상담"
+     }
+    ]
+   },
+   "draft": {
+    "duration": "60",
+    "weekday": "토",
+    "start_datetime": "2026-08-29 10:00",
+    "structure": "10분 온라인 강의 수강 확인 및 질의응답 / 30분 개념 학습과 문제 풀이 / 10분 오답 정리 / 10분 상담 및 다음 회차 안내",
+    "rules": "멘토링 시간 준수하기, 일정 변경은 미리 논의하기, 인강은 계획대로 수강하고 과제 해 오기",
+    "curriculum": [
+     "1회차 (온라인 강의) 1강 다항식의 연산 / (멘토링 내용) 다항식의 연산 개념 정리 / (상담) 학습 계획 점검",
+     "2회차 (온라인 강의) 2강 항등식과 나머지정리 / (멘토링 내용) 항등식과 나머지정리 이해 / (상담) 진도별 어려운 점 상담",
+     "3회차 (온라인 강의) 3강 인수분해 / (멘토링 내용) 인수분해 방법 익히기 / (상담) 복습 방법 조언",
+     "4회차 (온라인 강의) 4강 복소수 / (멘토링 내용) 복소수 기본 개념 학습 / (상담) 진학 목표 상담",
+     "5회차 (온라인 강의) 5강 이차방정식 / (멘토링 내용) 이차방정식 풀이 연습 / (상담) 시험 대비 전략",
+     "6회차 (온라인 강의) 6강 이차함수 / (멘토링 내용) 이차함수 그래프 이해 / (상담) 학습 습관 점검",
+     "7회차 (온라인 강의) 7강 여러 가지 방정식 / (멘토링 내용) 여러 가지 방정식 문제풀이 / (상담) 진도 조절 상담",
+     "8회차 (온라인 강의) 8강 부등식, 9강 평면좌표와 직선 / (멘토링 내용) 부등식과 평면좌표 정리 / (상담) 시간 관리 방법",
+     "9회차 (온라인 강의) 10강 원의 방정식 / (멘토링 내용) 원의 방정식 개념 정리 / (상담) 학습 동기 부여",
+     "10회차 (온라인 강의) 11강 도형의 이동 / (멘토링 내용) 도형의 이동 원리 학습 / (상담) 진학 상담",
+     "11회차 (온라인 강의) 12강 집합 / (멘토링 내용) 집합 개념과 문제풀이 / (상담) 목표 점검",
+     "12회차 (온라인 강의) 13강 명제 / (멘토링 내용) 명제 이해와 적용 / (상담) 학습 계획 조정",
+     "13회차 (온라인 강의) 14강 함수 / (멘토링 내용) 함수 개념과 문제풀이 / (상담) 진학 준비 상담",
+     "14회차 (온라인 강의) 15강 경우의 수 / (멘토링 내용) 경우의 수 문제 해결 / (상담) 시험 대비 상담",
+     "15회차 (온라인 강의) 16강 기출 문제 풀이 / (멘토링 내용) 기출 문제 풀이 집중 / (상담) 시험 전략 점검",
+     "16회차 (온라인 강의) 수강 강의 총정리 / (멘토링 내용) 전체 내용 총정리 / (상담) 다음 회기 연장 상담"
+    ],
+    "learning_goal": "에듀윌(검정고시) 고졸 검정고시 수학 기본 강좌를 수강하며 다음 검정고시 합격을 목표로 함.",
+    "diagnosis": "아르바이트로 인해 지각과 결석이 있었음. 1회차에 자세한 상담 예정."
+   }
+  },
+  {
+   "id": "demo-036",
+   "alias": "수학 D (결석이 있는 회기)",
+   "formId": "activity_report",
+   "title": "활동보고서 1회차",
+   "sessionNo": 1,
+   "savedAt": "2026-08-31T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-08-29",
+    "session_no": "1",
+    "subject": "수학",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "status": "출석",
+    "actual_time": "10:00~11:02",
+    "scope": "1강 다항식의 연산",
+    "goal": "다항식 덧셈·곱셈",
+    "attendance": "정시",
+    "lecture_progress": "1강 수강",
+    "homework": "없음",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "목표는 내년 4월 검정고시 합격. 주말 알바 있어서 토요일 오전만 가능"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-08-29",
+    "session_no": "1",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "actual_time": "10:00~11:02",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "1강 다항식의 연산",
+    "goal": "다항식 덧셈·곱셈",
+    "attendance": "정시",
+    "lecture_progress": "1강 수강",
+    "homework": "없음",
+    "session_content": "목표는 내년 4월 검정고시 합격. 주말 알바 있어서 토요일 오전만 가능"
+   }
+  },
+  {
+   "id": "demo-037",
+   "alias": "수학 D (결석이 있는 회기)",
+   "formId": "activity_report",
+   "title": "활동보고서 2회차",
+   "sessionNo": 2,
+   "savedAt": "2026-09-07T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-09-05",
+    "session_no": "2",
+    "subject": "수학",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "status": "지각",
+    "actual_time": "10:00~11:00",
+    "scope": "2강 항등식과 나머지정리",
+    "goal": "나머지정리로 나머지 구하기",
+    "attendance": "15분 지각 (알바 늦게 끝남)",
+    "lecture_progress": "2강 수강",
+    "homework": "교재 절반",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "늦게 와서 개념 위주로만 함"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-09-05",
+    "session_no": "2",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "actual_time": "10:00~11:00",
+    "progress_scale": "보통",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "2강 항등식과 나머지정리",
+    "goal": "나머지정리로 나머지 구하기",
+    "attendance": "15분 지각 (알바 늦게 끝남)",
+    "lecture_progress": "2강 수강",
+    "homework": "교재 절반",
+    "session_content": "늦게 와서 개념 위주로만 함"
+   }
+  },
+  {
+   "id": "demo-038",
+   "alias": "수학 D (결석이 있는 회기)",
+   "formId": "activity_report",
+   "title": "활동보고서 3회차",
+   "sessionNo": 3,
+   "savedAt": "2026-09-14T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-09-12",
+    "session_no": "3",
+    "subject": "수학",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "status": "무단결석",
+    "actual_time": "10:00~10:30 (멘토 단독 대기)",
+    "scope": "",
+    "goal": "",
+    "attendance": "전날 출석 확인 답장 받았는데 연락 없이 안 옴. 30분 대기 후 퇴실, 나중에 늦잠 잤다고 연락",
+    "lecture_progress": "",
+    "homework": "",
+    "progress_scale": "",
+    "understanding_scale": "",
+    "etc": "",
+    "requests": "",
+    "session_content": ""
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-09-12",
+    "session_no": "3",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "actual_time": "10:00~10:30 (멘토 단독 대기)",
+    "scope": "",
+    "goal": "",
+    "progress_scale": "",
+    "lecture_progress": "",
+    "homework": "",
+    "understanding_scale": "",
+    "session_content": "멘티 무단결석으로 멘토링을 진행하지 못함.",
+    "etc": "",
+    "requests": "",
+    "attendance": "전날 출석 확인 답장을 받았으나 연락 없이 결석함. 30분간 대기 후 퇴실하였으며, 나중에 늦잠을 잤다고 연락함."
+   }
+  },
+  {
+   "id": "demo-039",
+   "alias": "수학 D (결석이 있는 회기)",
+   "formId": "activity_report",
+   "title": "활동보고서 4회차",
+   "sessionNo": 4,
+   "savedAt": "2026-09-21T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-09-19",
+    "session_no": "4",
+    "subject": "수학",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "status": "인정결석",
+    "actual_time": "",
+    "scope": "",
+    "goal": "",
+    "attendance": "전날 밤 장염으로 병원, 진료확인서 받기로 함",
+    "lecture_progress": "",
+    "homework": "",
+    "progress_scale": "",
+    "understanding_scale": "",
+    "etc": "",
+    "requests": "",
+    "session_content": "보강은 회기 안에서 따로 잡기로"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-09-19",
+    "session_no": "4",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "actual_time": "",
+    "scope": "",
+    "goal": "",
+    "progress_scale": "",
+    "lecture_progress": "",
+    "homework": "",
+    "understanding_scale": "",
+    "session_content": "멘티의 질병으로 인한 결석(인정결석)으로 멘토링을 진행하지 못함.",
+    "etc": "",
+    "requests": "",
+    "attendance": "질병으로 인한 결석이며 진료확인서를 받기로 함."
+   }
+  },
+  {
+   "id": "demo-040",
+   "alias": "수학 D (결석이 있는 회기)",
+   "formId": "activity_report",
+   "title": "활동보고서 5회차",
+   "sessionNo": 5,
+   "savedAt": "2026-09-28T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-09-26",
+    "session_no": "5",
+    "subject": "수학",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "status": "출석",
+    "actual_time": "10:00~11:01",
+    "scope": "3강 인수분해",
+    "goal": "공식을 이용한 인수분해",
+    "attendance": "정시",
+    "lecture_progress": "3강 수강",
+    "homework": "2강 교재 마저 풂",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "session_content": "곱셈공식 역으로 쓰는 거 연습"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-09-26",
+    "session_no": "5",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "actual_time": "10:00~11:01",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "etc": "",
+    "requests": "",
+    "scope": "3강 인수분해",
+    "goal": "공식을 이용한 인수분해",
+    "attendance": "정시에 출석함",
+    "lecture_progress": "3강 수강함",
+    "homework": "2강 교재를 마저 풂",
+    "session_content": "곱셈공식을 역으로 쓰는 연습을 진행함"
+   }
+  },
+  {
+   "id": "demo-041",
+   "alias": "수학 D (결석이 있는 회기)",
+   "formId": "activity_report",
+   "title": "활동보고서 6회차",
+   "sessionNo": 6,
+   "savedAt": "2026-10-05T12:00:00.000Z",
+   "inputs": {
+    "session_date": "2026-10-03",
+    "session_no": "6",
+    "subject": "수학",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "status": "출석",
+    "actual_time": "10:00~11:00",
+    "scope": "4강 복소수",
+    "goal": "복소수 사칙연산",
+    "attendance": "정시",
+    "lecture_progress": "4강 수강",
+    "homework": "3강 교재 완료",
+    "progress_scale": "잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "requests": "다음 회차부터 멘토링 장소 변경 희망 (멘티 이동 거리)",
+    "session_content": "알바 장소가 바뀌어서 다음부터 다른 동네 센터가 가까움"
+   },
+   "extra": {},
+   "draft": {
+    "session_date": "2026-10-03",
+    "session_no": "6",
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject": "수학",
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "actual_time": "10:00~11:00",
+    "progress_scale": "잘함",
+    "understanding_scale": "잘함",
+    "etc": "",
+    "scope": "4강 복소수",
+    "goal": "복소수 사칙연산",
+    "attendance": "정시 출석",
+    "lecture_progress": "4강 수강",
+    "homework": "3강 교재 완료",
+    "session_content": "알바 장소가 바뀌어서 다음부터 다른 동네 센터가 가까움",
+    "requests": "다음 회차부터 멘토링 장소 변경 희망 (멘티 이동 거리)"
+   }
+  }
+ ]
+}

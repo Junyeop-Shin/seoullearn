@@ -63,7 +63,7 @@ log('질문(이음단):', await ask('오프라인 멘토링 일정을 바꾸려�
 // 내 멘티: 추가와 기본 정보
 const A = '국어 고1 C'
 await page.goto(base + '/mentees')
-await page.locator('[data-test=new-alias]').fill(A); await page.getByRole('button', { name: '추가하고 시작하기' }).click()
+await page.locator('[data-test=new-alias]').fill(A); await page.getByRole('button', { name: '멘티 추가' }).click()
 await page.waitForURL(mentee(A))
 log('멘티 추가 직후 안내:', await page.locator('[data-test=next-step]').innerText())
 for (const [k, v] of Object.entries({ subject: '국어', course: '(가상) 고1 국어 문학 개념', goal: '문학 감 잡기, 인강 끝까지 듣기', level: '모의고사 국어 3~4등급, 문학이 약함' })) await page.locator(`[data-profile=${k}]`).fill(v)
@@ -116,7 +116,7 @@ log('다시 열기: 고친 글 유지 =', (await page.locator('[data-draft=sessi
 
 // 두 번째 멘티: 붙여 넣은 보고서로 완료보고서와 인계 요약
 const B = '영어 중2 B'
-await page.goto(base + '/mentees'); await page.locator('[data-test=new-alias]').fill(B); await page.getByRole('button', { name: '추가하고 시작하기' }).click()
+await page.goto(base + '/mentees'); await page.locator('[data-test=new-alias]').fill(B); await page.getByRole('button', { name: '멘티 추가' }).click()
 await page.waitForURL(mentee(B))
 await page.goto(mentee(B, '/handover')); await page.waitForSelector('[data-test=status]')
 await page.locator('summary').click(); await page.locator('details textarea').fill(pasted('M2', '영어'))
