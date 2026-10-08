@@ -86,9 +86,9 @@ class LoginAttemptLimitTests {
     }
 
     @Test
-    void locksAfterFiveFailuresEvenWithRightPasswordThenUnlocks() throws Exception {
+    void locksAfterTenFailuresEvenWithRightPasswordThenUnlocks() throws Exception {
         signup("limit_a1");
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 10; i++) {
             login("limit_a1", "wrong-pass-" + i, "10.0.0.1").andExpect(status().isUnauthorized());
         }
         login("limit_a1", "mentor-pass-1", "10.0.0.1").andExpect(status().isTooManyRequests())
@@ -102,11 +102,11 @@ class LoginAttemptLimitTests {
     @Test
     void successResetsCountAndOldFailuresExpire() throws Exception {
         signup("limit_b1");
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 9; i++) {
             login("limit_b1", "wrong-pass-" + i, "10.0.1.1").andExpect(status().isUnauthorized());
         }
         login("limit_b1", "mentor-pass-1", "10.0.1.1").andExpect(status().isOk());
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 9; i++) {
             login("limit_b1", "wrong-pass-" + i, "10.0.1.1").andExpect(status().isUnauthorized());
         }
         clock.now = clock.now.plus(Duration.ofMinutes(11)); // 10분이 지나면 앞의 실패는 세지 않는다
@@ -116,7 +116,7 @@ class LoginAttemptLimitTests {
 
     @Test
     void unknownUsernamesAreCountedTheSameWay() throws Exception {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 10; i++) {
             login("nobody_zz", "wrong-pass-" + i, "10.0.2.1").andExpect(status().isUnauthorized());
         }
         login("nobody_zz", "wrong-pass-9", "10.0.2.1").andExpect(status().isTooManyRequests());
@@ -136,7 +136,7 @@ class LoginAttemptLimitTests {
     void limiterKeepsNothingAfterLockExpires() {
         MovableClock c = new MovableClock();
         LoginAttemptLimiter limiter = new LoginAttemptLimiter(c);
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 10; i++) {
             limiter.recordFailure("someone", "10.9.9.9");
         }
         assertThat(limiter.lockedFor("someone", "10.9.9.9")).isEqualTo(Duration.ofMinutes(10));

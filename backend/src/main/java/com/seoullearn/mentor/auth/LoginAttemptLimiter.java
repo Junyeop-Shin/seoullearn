@@ -9,14 +9,14 @@ import org.springframework.stereotype.Component;
 
 /**
  * 로그인 실패 횟수 제한. 비밀번호를 계속 넣어 보는 시도를 막는다.
- * - 같은 아이디 + 같은 접속 주소: 10분 안에 5번 틀리면 10분 동안 잠근다.
+ * - 같은 아이디 + 같은 접속 주소: 10분 안에 10번 틀리면 10분 동안 잠근다.
  * - 같은 접속 주소 전체: 10분 안에 20번 틀리면 10분 동안 잠근다 (아이디를 바꿔 가며 시도하는 경우).
  * 기록은 서버 메모리에만 두고 DB와 로그에는 남기지 않는다. 서버를 다시 띄우면 지워진다.
  */
 @Component
 public class LoginAttemptLimiter {
 
-    static final int MAX_PER_ACCOUNT = 5;
+    static final int MAX_PER_ACCOUNT = 10;
     static final int MAX_PER_ADDRESS = 20;
     static final Duration WINDOW = Duration.ofMinutes(10);
     static final Duration LOCK = Duration.ofMinutes(10);
