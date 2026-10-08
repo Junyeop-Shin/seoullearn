@@ -64,7 +64,8 @@
       "guidance": "실제로 한 일을 적은 메모를 문장으로 다듬기만 한다",
       "rules": {
         "no_fabrication": true
-      }
+      },
+      "help": "실제로 한 일을 메모하듯 적어 주세요. 문장만 다듬어 드립니다."
     },
     {
       "key": "reflection",

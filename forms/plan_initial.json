@@ -2,31 +2,114 @@
   "form_id": "plan_initial",
   "title": "종합계획서① (사전 종합계획서)",
   "version": "2026",
-  "sources": ["manual-2026-2-3:20", "manual-2026-2-5:28", "manual-2026-2-5:29", "manual-2026-2-5:26"],
+  "sources": [
+    "manual-2026-2-3:20",
+    "manual-2026-2-5:28",
+    "manual-2026-2-5:29",
+    "manual-2026-2-5:26"
+  ],
   "when": "매칭 후 7일 이내. 온라인은 일정 협의 후, 오프라인은 이음단 장소 예약 완료 후. 플랫폼에 직접 입력, 등록 후 수정 불가",
   "inputs_available": "사전 연락(전화·문자)으로 얻은 정보뿐. 멘티를 아직 만나지 않은 상태",
   "fields": [
-    {"key": "duration", "label": "멘토링 시간", "type": "enum", "required": true, "source": "user", "options": ["60", "120"],
-     "guidance": "120분은 시간확대 승인 그룹만"},
-    {"key": "weekday", "label": "학습 요일", "type": "enum", "required": true, "source": "user",
-     "options": ["월", "화", "수", "목", "금", "토", "일"]},
-    {"key": "start_datetime", "label": "멘토링 시작일시", "type": "datetime", "required": true, "source": "user",
-     "guidance": "회차별 일시는 플랫폼이 자동 설정"},
-    {"key": "learning_goal", "label": "학습목표", "type": "text", "required": true, "source": "llm_draft",
-     "checklist": ["1-2"], "guidance": "학습사이트 강좌 진도 목표 + 과목 목표. 사전 연락 정보 범위 안에서만",
-     "example": "멘티의 학습사이트 강좌 진도 관리(약 20~25강), 영어 문법 기본개념 학습"},
-    {"key": "diagnosis", "label": "학생진단", "type": "text", "required": true, "source": "llm_draft",
-     "checklist": ["1-3"], "guidance": "확인되지 않은 내용은 추측하지 않고 '1회차에 자세한 상담 예정'으로 표시. 인계 요약이 있으면 출석·과제·태도·진도를 반영",
-     "example": "통화로는 구체적인 파악이 힘드나 문법 학습을 희망함. 1회차에 자세한 상담 예정"},
-    {"key": "structure", "label": "멘토링 구성", "type": "text", "required": true, "source": "llm_draft",
-     "checklist": ["1-5"], "guidance": "시간 단위 1회차 구성. 활동가이드 p.24 예시(진도체크·질의응답·코칭 20분 / 퀴즈·피드백 30분 / 감성케어·진로 10분) 참고",
-     "example": "시작 10분 온라인 강의 수강 확인 및 퀴즈 / 10분 문제 풀이 및 복습 / 30분 개념 학습 / 10분 오답풀이 및 다음 회차 안내"},
-    {"key": "rules", "label": "활동규칙", "type": "text", "required": true, "source": "llm_draft",
-     "checklist": ["1-6"], "example": "멘토링 시간 준수하기"},
-    {"key": "curriculum", "label": "회차별 커리큘럼", "type": "list", "required": true, "source": "llm_draft", "length": 16,
-     "item_format": "(온라인 강의) … / (멘토링 내용) … / (상담) …",
-     "checklist": ["1-4"], "guidance": "주차별 계획 추천 결과를 사용. 강의 목차가 없으면 진도 확인 위주로 두고 1회차 이후 종합계획서②에서 구체화",
-     "example": "(온라인 강의) 1회차 수업 진도 확인 / (멘토링 내용) 영어문장 구조의 이해, 명사 / (진학상담) 영어영문학과 전공과목 알아보기"}
+    {
+      "key": "duration",
+      "label": "멘토링 시간",
+      "type": "enum",
+      "required": true,
+      "source": "user",
+      "options": [
+        "60",
+        "120"
+      ],
+      "guidance": "120분은 시간확대 승인 그룹만",
+      "help": "120분은 시간확대 승인을 받은 그룹만 고를 수 있습니다."
+    },
+    {
+      "key": "weekday",
+      "label": "학습 요일",
+      "type": "enum",
+      "required": true,
+      "source": "user",
+      "options": [
+        "월",
+        "화",
+        "수",
+        "목",
+        "금",
+        "토",
+        "일"
+      ]
+    },
+    {
+      "key": "start_datetime",
+      "label": "멘토링 시작일시",
+      "type": "datetime",
+      "required": true,
+      "source": "user",
+      "guidance": "회차별 일시는 플랫폼이 자동 설정",
+      "help": "1회차 일시입니다. 이후 회차는 플랫폼이 자동으로 정합니다."
+    },
+    {
+      "key": "learning_goal",
+      "label": "학습목표",
+      "type": "text",
+      "required": true,
+      "source": "llm_draft",
+      "checklist": [
+        "1-2"
+      ],
+      "guidance": "학습사이트 강좌 진도 목표 + 과목 목표. 사전 연락 정보 범위 안에서만",
+      "example": "멘티의 학습사이트 강좌 진도 관리(약 20~25강), 영어 문법 기본개념 학습"
+    },
+    {
+      "key": "diagnosis",
+      "label": "학생진단",
+      "type": "text",
+      "required": true,
+      "source": "llm_draft",
+      "checklist": [
+        "1-3"
+      ],
+      "guidance": "확인되지 않은 내용은 추측하지 않고 '1회차에 자세한 상담 예정'으로 표시. 인계 요약이 있으면 출석·과제·태도·진도를 반영",
+      "example": "통화로는 구체적인 파악이 힘드나 문법 학습을 희망함. 1회차에 자세한 상담 예정"
+    },
+    {
+      "key": "structure",
+      "label": "멘토링 구성",
+      "type": "text",
+      "required": true,
+      "source": "llm_draft",
+      "checklist": [
+        "1-5"
+      ],
+      "guidance": "시간 단위 1회차 구성. 활동가이드 p.24 예시(진도체크·질의응답·코칭 20분 / 퀴즈·피드백 30분 / 감성케어·진로 10분) 참고",
+      "example": "시작 10분 온라인 강의 수강 확인 및 퀴즈 / 10분 문제 풀이 및 복습 / 30분 개념 학습 / 10분 오답풀이 및 다음 회차 안내"
+    },
+    {
+      "key": "rules",
+      "label": "활동규칙",
+      "type": "text",
+      "required": true,
+      "source": "llm_draft",
+      "checklist": [
+        "1-6"
+      ],
+      "example": "멘토링 시간 준수하기"
+    },
+    {
+      "key": "curriculum",
+      "label": "회차별 커리큘럼",
+      "type": "list",
+      "required": true,
+      "source": "llm_draft",
+      "length": 16,
+      "item_format": "(온라인 강의) … / (멘토링 내용) … / (상담) …",
+      "checklist": [
+        "1-4"
+      ],
+      "guidance": "주차별 계획 추천 결과를 사용. 강의 목차가 없으면 진도 확인 위주로 두고 1회차 이후 종합계획서②에서 구체화",
+      "example": "(온라인 강의) 1회차 수업 진도 확인 / (멘토링 내용) 영어문장 구조의 이해, 명사 / (진학상담) 영어영문학과 전공과목 알아보기"
+    }
   ],
   "output_rules": {
     "strip_special_characters": true,
@@ -35,5 +118,8 @@
     "max_length_note": "내용이 많으면 등록 오류(p.29). 칸별 글자 수 제한 미확인. 확인 전까지 칸당 300자 경고",
     "warn_before_submit": "등록 후 수정 불가, 1회차 일정만 변경 가능. 여러 회차 변경은 이음단 문의"
   },
-  "open_questions": ["플랫폼 입력 칸별 글자 수 제한", "등록 오류를 일으키는 특수문자 범위"]
+  "open_questions": [
+    "플랫폼 입력 칸별 글자 수 제한",
+    "등록 오류를 일으키는 특수문자 범위"
+  ]
 }

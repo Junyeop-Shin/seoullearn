@@ -34,7 +34,6 @@ async function copy(key) {
     confirmed = true
   }
   copied.value = (await copyText(text[key])) ? key : ''
-  if (!copied.value) window.alert('복사하지 못했습니다. 글을 직접 선택해 복사해 주세요.')
 }
 </script>
 

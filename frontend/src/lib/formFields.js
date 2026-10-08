@@ -17,7 +17,7 @@ function toField(f, extra) {
   const control = CONTROL[f.type] || (f.source === 'user_text' ? 'textarea' : 'text')
   return {
     key: f.key, label: f.label, required: !!f.required, control, options: f.options || [],
-    guidance: f.guidance || '', example: typeof f.example === 'string' ? f.example : '',
+    help: f.help || '', group: f.group || '', example: typeof f.example === 'string' ? f.example : '',
     min: f.rules?.min, max: f.rules?.max, default: f.default ?? '', extra,
   }
 }
