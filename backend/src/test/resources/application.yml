@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  sql:
+    init:
+      mode: always
+server:
+  servlet:
+    session:
+      timeout: 2h
+app:
+  forms-dir: ../forms
+  ai-server:
+    url: http://localhost:1
+    connect-timeout: 2s
+    read-timeout: 5s
+  admin:
+    username: admin_test
+    password: admin-password-1

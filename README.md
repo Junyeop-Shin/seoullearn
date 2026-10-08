@@ -26,6 +26,7 @@ ai-server/            Python AI 서버 (FastAPI)
     metrics.py        지표 계산
     report.py         설정별 비교표
   tests/              오프라인 테스트 (API 키 불필요)
+backend/              Spring Boot 업무 백엔드: 로그인·역할, 양식 스키마 API, AI 서버 중계 (backend/README.md)
 data/                 RAG 원본 문서 (data/README.md)
 eval/                 평가셋, 평가 결과, 리포트
 forms/                보고서 양식 스키마
@@ -114,6 +115,8 @@ docker compose run --rm ai-server python -m evaluation.report eval/runs/*.summar
 | 채점 | correctness_avg, fully_correct | LLM 채점 점수 (0~2) |
 
 ## API 실행
+
+화면이 쓰는 입구는 backend(`localhost:8080/api`)다. 로그인한 사용자의 `/api/qa`, `/api/chat` 요청을 ai-server로 넘긴다. 로그인 방법과 curl 예시는 `backend/README.md` 참고. 아래는 ai-server를 직접 부르는 방법이다.
 
 ```bash
 docker compose up

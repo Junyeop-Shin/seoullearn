@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: mentor-backend
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/seoullearn}
+    username: ${DATABASE_USERNAME:seoullearn}
+    password: ${DATABASE_PASSWORD:seoullearn_dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # 테이블은 schema.sql로만 만든다
+  sql:
+    init:
+      mode: always
+
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 2h
+      cookie:
+        http-only: true
+        same-site: strict
+        secure: ${SESSION_COOKIE_SECURE:false}   # HTTPS로 배포할 때 true
+  error:
+    include-message: never
+    include-stacktrace: never
+
+app:
+  forms-dir: ${FORMS_DIR:../forms}
+  ai-server:
+    url: ${AI_SERVER_URL:http://localhost:8000}
+    connect-timeout: 3s
+    read-timeout: 90s
+  admin:
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}
+
+logging:
+  level:
+    # 요청·응답 본문이나 SQL 값을 찍는 로그는 켜지 않는다
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN

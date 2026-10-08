@@ -22,7 +22,30 @@ services:
       # 임베딩 모델 다운로드 캐시 (한 번만 받음)
       - hf-cache:/hf-cache
 
-  # 벡터 색인 저장소. 매뉴얼·공지 청크만 들어간다. 포트는 밖으로 열지 않는다.
+  # 업무 백엔드: 로그인·역할, 양식 스키마, AI 서버 중계. 화면은 이 서비스(/api)로만 요청한다.
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: jdbc:postgresql://db:5432/seoullearn
+      DATABASE_USERNAME: seoullearn
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-seoullearn_dev}
+      AI_SERVER_URL: http://ai-server:8000
+      FORMS_DIR: /forms
+      # 둘 다 있으면 시작할 때 관리자 계정을 만든다 (.env에 넣는다)
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./forms:/forms:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      ai-server:
+        condition: service_started
+
+  # 회원 테이블(app_user)과 벡터 색인(rag_chunks) 저장소. 멘티 관련 데이터는 넣지 않는다. 포트는 밖으로 열지 않는다.
   db:
     image: pgvector/pgvector:pg16
     environment:
