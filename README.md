@@ -179,11 +179,19 @@ docker compose run --rm ai-server python /project/scripts/compare_vector_backend
 - 개인정보 칸에 입력이 오면 버리고 경고한다. 5점 척도, 시간, 회차, 날짜 계산은 LLM에 맡기지 않는다.
 - LLM이 쓴 문장에 입력에 없는 숫자가 있으면 그 문장을 빼고 경고한다.
 - 응답: `draft`(필드별 값), `missing_questions`(되물을 항목), `warnings`, `reminders`(제출·증빙 안내), `pii_masked`.
-- 새 양식은 `forms/`에 JSON 파일을 추가하면 `/drafts/<form_id>`로 바로 쓸 수 있다. 양식별 특수 처리는 `hooks_*.py`의 훅으로 분리한다.
+- 새 양식은 `forms/`에 JSON 파일을 추가하면 `/drafts/<form_id>`로 바로 쓸 수 있고, 화면의 '기타 서식'에도 바로 나온다. 양식별 특수 처리는 `hooks_*.py`의 훅으로 분리한다. 시간확대 신청 전 확인, 친화·성장활동 계획서·결과보고서는 JSON 파일만으로 추가했다.
 
 ```bash
 docker compose run --rm ai-server python -m evaluation.report_eval [--judge]   # 초안 평가 (eval/report_eval/cases.json)
 ```
+
+### 활동비 계산기
+
+활동가이드 4-1·4-2(p.41~47)의 기준을 규칙 함수로 옮겼다 (`app/allowance.py`). RAG와 LLM을 쓰지 않는다.
+
+- `POST /tools/allowance`: 유형, 회차 수(정상·무단결석·임박취소), 가산금 구간, 고학년지도·취약계층지원 가산금으로 추정 금액과 내역을 돌려준다. 달마다의 유효 진행 횟수를 넣으면 구간이 언제 오르는지 보여 준다.
+- `/chat`에서 "시간당 얼마" 같은 금액 질문이 오면 검색 대신 이 함수로 답한다 (`intent`가 `calc`).
+- 금액은 추정값이다. 실제 지급액은 승인 결과와 운영사무국 정산에 따른다.
 
 ### 답 못 한 질문 모음
 

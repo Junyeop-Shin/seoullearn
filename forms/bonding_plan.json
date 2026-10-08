@@ -1,0 +1,122 @@
+{
+  "form_id": "bonding_plan",
+  "title": "친화·성장활동 계획서 (신청서)",
+  "version": "2026",
+  "sources": [
+    "manual-2026-5-2:57",
+    "manual-2026-5-2:58"
+  ],
+  "when": "활동 5일 전까지, 서울런 홈페이지 공지에 안내된 신청 구글폼으로 멘토가 제출 (신청서 = 활동계획서)",
+  "fields": [
+    {
+      "key": "mentee_name",
+      "label": "멘티 성명",
+      "type": "text",
+      "required": true,
+      "source": "placeholder",
+      "pii": true
+    },
+    {
+      "key": "mentor",
+      "label": "멘토 성명",
+      "type": "text",
+      "required": true,
+      "source": "placeholder",
+      "pii": true
+    },
+    {
+      "key": "activity_type",
+      "label": "활동 유형",
+      "type": "enum",
+      "required": true,
+      "source": "user",
+      "options": [
+        "친화활동",
+        "성장활동"
+      ],
+      "guidance": "친화활동: 유대감 형성(영화·전시 관람, 서점 방문 등). 성장활동: 진로·적성 탐색(캠퍼스·진로박람회 방문, 전공 탐색 등). 교과 보충, 내신 대비는 해당하지 않는다"
+    },
+    {
+      "key": "sessions_done",
+      "label": "지금까지 완료한 학습 멘토링 회차 수",
+      "type": "integer",
+      "required": true,
+      "source": "user",
+      "rules": {
+        "min": 4,
+        "max": 16
+      },
+      "guidance": "신청일 기준 4회차 이상 진행한 그룹만 신청할 수 있다"
+    },
+    {
+      "key": "activity_date",
+      "label": "활동 예정일",
+      "type": "date",
+      "required": true,
+      "source": "user",
+      "guidance": "학습 멘토링과 같은 날에는 할 수 없다. 계획서는 활동 5일 전까지 제출"
+    },
+    {
+      "key": "activity_time",
+      "label": "활동 예정 시간",
+      "type": "time_range",
+      "required": true,
+      "source": "user",
+      "guidance": "인정 시간 2시간에 맞게"
+    },
+    {
+      "key": "place",
+      "label": "활동 장소",
+      "type": "text",
+      "required": true,
+      "source": "user",
+      "example": "○○대학교 캠퍼스"
+    },
+    {
+      "key": "purpose",
+      "label": "활동 목적",
+      "type": "text",
+      "required": true,
+      "source": "user_text",
+      "guidance": "멘토가 적은 내용을 문장으로 다듬기만 한다"
+    },
+    {
+      "key": "plan",
+      "label": "활동 계획 (2시간)",
+      "type": "list",
+      "required": true,
+      "source": "user_text",
+      "guidance": "시간 순서대로 한 줄씩. 멘토가 적은 계획을 다듬기만 한다"
+    }
+  ],
+  "submission_checks": [
+    {
+      "id": "bp-1",
+      "rule": "계획서는 활동 5일 전까지 공지의 신청 구글폼으로 제출합니다.",
+      "type": "reminder"
+    },
+    {
+      "id": "bp-2",
+      "rule": "반드시 승인을 받은 뒤 진행합니다. 승인 없이 한 활동은 인정되지 않습니다.",
+      "type": "reminder"
+    },
+    {
+      "id": "bp-3",
+      "rule": "회기별로 활동 유형당 1회만 할 수 있고, 학습 멘토링과 같은 날에는 할 수 없습니다.",
+      "type": "reminder"
+    },
+    {
+      "id": "bp-4",
+      "rule": "오프라인 멘토링 2시간으로 인정해 활동비 6만 원이 지급됩니다. 봉사시간과 가산금은 지급되지 않습니다.",
+      "type": "reminder"
+    },
+    {
+      "id": "bp-5",
+      "rule": "멘토링 중단 예정인 그룹은 진행할 수 없습니다.",
+      "type": "reminder"
+    }
+  ],
+  "open_questions": [
+    "실제 신청 구글폼의 문항을 확인하지 못했다. 활동가이드 p.57~58에 적힌 조건으로 만든 항목이라 문항 이름과 순서가 다를 수 있다"
+  ]
+}

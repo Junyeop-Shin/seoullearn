@@ -67,7 +67,7 @@ class BackendApiTests {
             aiRequests.add(exchange.getRequestMethod() + " " + exchange.getRequestURI() + " " + body);
             aiCookies.add(String.valueOf(exchange.getRequestHeaders().getFirst("Cookie")));
             String path = exchange.getRequestURI().getPath();
-            int code = path.equals("/qa") || path.equals("/chat") || path.startsWith("/drafts/") ? 200 : 404;
+            int code = path.equals("/qa") || path.equals("/chat") || path.startsWith("/drafts/") || path.startsWith("/tools/") ? 200 : 404;
             if (body.contains("한도")) {
                 code = 503;
             }
@@ -188,7 +188,7 @@ class BackendApiTests {
         MockHttpSession session = mentor("mentor_g1");
         mvc.perform(get("/api/forms").session(session)).andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.form_id == 'activity_report')].title").value("활동보고서"))
-                .andExpect(jsonPath("$.length()").value(6));
+                .andExpect(jsonPath("$.length()").value(9));
         mvc.perform(get("/api/forms/activity_report").session(session)).andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.form_id").value("activity_report"))
@@ -208,10 +208,13 @@ class BackendApiTests {
                 .content("{\"message\": \"" + QUESTION + "\"}")).andExpect(status().isOk());
         mvc.perform(post("/api/drafts/activity_report").with(csrf()).session(session)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"session_no\": 3}")).andExpect(status().isOk());
+        mvc.perform(post("/api/tools/allowance").with(csrf()).session(session)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"mode\": \"온라인\"}")).andExpect(status().isOk());
         assertThat(aiRequests).containsExactly(
                 "POST /qa " + body,
                 "POST /chat {\"message\": \"" + QUESTION + "\"}",
-                "POST /drafts/activity_report {\"session_no\": 3}");
+                "POST /drafts/activity_report {\"session_no\": 3}",
+                "POST /tools/allowance {\"mode\": \"온라인\"}");
         assertThat(aiCookies).containsOnly("null"); // 세션 쿠키는 AI 서버로 넘기지 않는다
     }
 

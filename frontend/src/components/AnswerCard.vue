@@ -5,7 +5,7 @@ import { copyText } from '../lib/copy'
 // 답변 한 건: 본문, 근거 카드, 문의처 카드, 문의 초안, 가린 개인정보.
 const props = defineProps({ res: { type: Object, required: true } })
 const copied = ref(false)
-const SCREEN = { report: '/report', plan: '/plan' }
+const SCREEN = { report: '/report', plan: '/plan', calc: '/allowance' }
 
 async function copyDraft() {
   copied.value = await copyText(props.res.inquiry_draft)

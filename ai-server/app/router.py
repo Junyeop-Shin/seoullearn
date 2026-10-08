@@ -3,6 +3,7 @@
 흐름: 가드 → (아동 안전이면 즉시 안내) → 의도 분류 → qa / report / plan
 - 분류는 먼저 규칙(키워드)으로 하고, 규칙으로 못 가를 때만 LLM을 부른다.
 - report·plan은 아직 초안 기능이 없어 화면 안내와 필요한 입력 목록만 돌려준다.
+- '시간당 얼마'처럼 금액을 묻는 질문은 활동비 계산기(규칙 함수)로 답한다. 검색도 LLM도 쓰지 않는다.
 - LLM에는 가드로 가린 문장만 보낸다.
 """
 from __future__ import annotations
@@ -14,7 +15,7 @@ from typing import Callable, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from . import guard, inquiry, qa
+from . import allowance, guard, inquiry, qa
 from .config import settings
 from .llm import ChatLLM, LLMUnavailableError
 
@@ -109,6 +110,8 @@ def build_graph(llm_factory: Callable[[], ChatLLM], retriever_factory: Callable[
         return out
 
     def classify_node(state: ChatState) -> ChatState:
+        if allowance.is_rate_question(state["masked"]):
+            return {"intent": "calc", "method": "rule", "classify_error": None}   # 금액 질문은 계산기로 (LLM 없음)
         intent = classify_by_rule(state["masked"])
         if intent:
             return {"intent": intent, "method": "rule", "classify_error": None}
@@ -130,6 +133,11 @@ def build_graph(llm_factory: Callable[[], ChatLLM], retriever_factory: Callable[
                            "inquiry_draft": draft.text if draft else None,
                            "inquiry_contact": draft.contact if draft else None, "error": bool(res.error)}}
 
+    def calc_node(state: ChatState) -> ChatState:
+        r = allowance.answer_rate_question(state["masked"])
+        return {"result": {"answer": r["answer"], "answerable": "yes", "route": None, "route_info": None, "route_link": None,
+                           "citations": r["citations"], "safety": False, "screen": "활동비 계산기"}}
+
     def screen_node(state: ChatState) -> ChatState:
         s = SCREENS[state["intent"]]
         return {"result": {"answer": s["message"], "screen": s["screen"], "form_id": s["form_id"],
@@ -141,10 +149,12 @@ def build_graph(llm_factory: Callable[[], ChatLLM], retriever_factory: Callable[
     g.add_node("safety", safety_node)
     g.add_node("qa", qa_node)
     g.add_node("screen", screen_node)
+    g.add_node("calc", calc_node)
     g.add_edge(START, "guard")
     g.add_conditional_edges("guard", lambda s: "safety" if s.get("intent") == "safety" else "classify",
                             {"safety": "safety", "classify": "classify"})
-    g.add_conditional_edges("classify", lambda s: "qa" if s["intent"] == "qa" else "screen", {"qa": "qa", "screen": "screen"})
-    for node in ("safety", "qa", "screen"):
+    g.add_conditional_edges("classify", lambda s: s["intent"] if s["intent"] in ("qa", "calc") else "screen",
+                            {"qa": "qa", "calc": "calc", "screen": "screen"})
+    for node in ("safety", "qa", "screen", "calc"):
         g.add_edge(node, END)
     return g.compile()

@@ -11,7 +11,7 @@ Spring Boot 업무 백엔드. 화면(Vue)은 이 서비스의 `/api`로만 요�
 | --- | --- | --- |
 | 로그인·역할 | `/api/auth/*`, `/api/admin/*` | 멘토(MENTOR), 관리자(ADMIN). 아이디·비밀번호 해시·역할만 저장한다 |
 | 양식 스키마 | `GET /api/forms`, `GET /api/forms/{formId}` | 저장소의 `forms/*.json`을 그대로 제공한다. 파일을 추가하면 목록에 바로 나온다 |
-| AI 서버 중계 | `POST /api/qa`, `POST /api/chat`, `/api/drafts/**` | 로그인한 사용자의 요청을 ai-server로 넘기고 응답을 그대로 돌려준다 |
+| AI 서버 중계 | `POST /api/qa`, `POST /api/chat`, `/api/drafts/**`, `/api/tools/**` | 로그인한 사용자의 요청을 ai-server로 넘기고 응답을 그대로 돌려준다 |
 | 답 못 한 질문 모음 | `GET /api/admin/unanswered`, `GET /api/admin/unanswered/export.csv`, `DELETE /api/admin/unanswered/{id}` | 관리자만. ai-server가 모은 가린 질문 문장을 보고, CSV로 내보내고, 지운다 |
 
 ## 저장하지 않는 것

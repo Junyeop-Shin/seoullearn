@@ -1,0 +1,129 @@
+{
+  "form_id": "time_extension_check",
+  "title": "시간확대 신청 전 확인",
+  "version": "2026",
+  "sources": [
+    "notice-2026-n06",
+    "manual-2026-5-1:55-56"
+  ],
+  "when": "새 회기 시작 전. 2026.8.10. 신청 건부터 멘티가 구글폼으로 직접 신청하므로, 멘토는 신청서를 쓰지 않고 요건 확인과 멘티 안내를 맡는다",
+  "purpose": "멘토가 멘티와 협의하기 전에 신청 요건을 스스로 점검하는 확인표. 제출하는 서식이 아니다",
+  "fields": [
+    {
+      "key": "high_school_course",
+      "label": "고등과정 학습사이트 수강 중 (검정고시 과정 포함)",
+      "type": "enum",
+      "required": true,
+      "source": "user",
+      "options": [
+        "예",
+        "아니오"
+      ]
+    },
+    {
+      "key": "one_term_done",
+      "label": "서울런 멘토링 1회기 이상 완료",
+      "type": "enum",
+      "required": true,
+      "source": "user",
+      "options": [
+        "예",
+        "아니오"
+      ]
+    },
+    {
+      "key": "no_violation",
+      "label": "무단결석 등 멘토링 규칙 미준수 이력 없음",
+      "type": "enum",
+      "required": true,
+      "source": "user",
+      "options": [
+        "예",
+        "아니오"
+      ]
+    },
+    {
+      "key": "progress_60",
+      "label": "종합활동계획서상 목표한 인강 수강(진도)률 60% 이상",
+      "type": "enum",
+      "required": true,
+      "source": "user",
+      "options": [
+        "예",
+        "아니오"
+      ],
+      "guidance": "현재 회기에 선택한 인강 전체 시수 기준. 최초 신청 시점까지의 학습 데이터만 본다"
+    },
+    {
+      "key": "pc_login",
+      "label": "멘티가 월 1회 이상 PC로 로그인함 (수강 기록 연동)",
+      "type": "enum",
+      "required": true,
+      "source": "user",
+      "options": [
+        "예",
+        "아니오"
+      ]
+    },
+    {
+      "key": "ieumdan_shared",
+      "label": "자치구 이음단에 신청 여부를 미리 공유함",
+      "type": "enum",
+      "required": true,
+      "source": "user",
+      "options": [
+        "예",
+        "아니오"
+      ]
+    },
+    {
+      "key": "before_term",
+      "label": "새 회기 시작 전에 신청함",
+      "type": "enum",
+      "required": true,
+      "source": "user",
+      "options": [
+        "예",
+        "아니오"
+      ],
+      "guidance": "검토 기간을 고려해 새 회기 시작 2주 전부터 신청 권장. 오프라인은 장소 예약 때문에 더 미리"
+    },
+    {
+      "key": "memo",
+      "label": "멘티와 협의한 내용 (선택)",
+      "type": "text",
+      "required": false,
+      "source": "user_text"
+    }
+  ],
+  "submission_checks": [
+    {
+      "id": "te-1",
+      "rule": "시간확대는 멘티가 공지의 구글폼으로 직접 신청합니다 (2026.8.10. 신청 건부터). 멘토는 멘티에게 바뀐 방식을 미리 안내해 주세요.",
+      "type": "reminder"
+    },
+    {
+      "id": "te-2",
+      "rule": "위 요건 중 '아니오'가 있으면 신청 요건에 맞지 않을 수 있습니다. 요건은 세 가지를 모두 충족해야 합니다 (고등과정 수강, 1회기 이상 완료와 규칙 미준수 이력 없음, 진도율 60% 이상).",
+      "type": "reminder"
+    },
+    {
+      "id": "te-3",
+      "rule": "60%는 최소 신청 요건이며 승인 기준이 아닙니다. 출결, 학습빈도, 수강시간을 종합해 결정합니다.",
+      "type": "reminder"
+    },
+    {
+      "id": "te-4",
+      "rule": "승인 전에 임의로 진행한 2시간 멘토링은 인정되지 않습니다. 주 1회 2시간 형태로만 가능하고, 회기 중에는 시간과 과목을 바꿀 수 없습니다.",
+      "type": "reminder"
+    },
+    {
+      "id": "te-5",
+      "rule": "시간확대는 회기마다 다시 신청해야 합니다. 다음 회기로 자동 연장되지 않습니다.",
+      "type": "reminder"
+    }
+  ],
+  "open_questions": [
+    "요건을 못 채웠을 때 화면에서 바로 경고하려면 엔진에 '값이 예가 아니면 경고' 규칙이 필요하다. 지금은 엔진을 고치지 않고 안내 문구로만 알린다"
+  ]
+}

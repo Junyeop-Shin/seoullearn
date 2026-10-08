@@ -69,6 +69,7 @@ export const api = {
     request('POST', '/api/drafts/pre_contact', { mode, call_time: callTime || null, answers: answers || null }),
   courseOutline: (text) => request('POST', '/api/drafts/course_outline', { text }),
   weeklyPlan: (payload) => request('POST', '/api/drafts/weekly_plan', payload),
+  allowance: (payload) => request('POST', '/api/tools/allowance', payload),
   splitReports: (text) => request('POST', '/api/drafts/split_reports', { text }),
   handover: (reports) => request('POST', '/api/drafts/handover_summary', { reports }),
   ieumdanRequest: (payload) => request('POST', '/api/drafts/ieumdan_request', payload),

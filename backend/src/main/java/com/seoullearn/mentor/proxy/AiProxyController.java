@@ -42,8 +42,8 @@ public class AiProxyController {
         return forward(request, body);
     }
 
-    /** 보고서 초안 API. ai-server에 /drafts/** 가 생기면 그대로 쓰인다. */
-    @RequestMapping("/api/drafts/**")
+    /** 보고서 초안 API(/drafts/**)와 계산기 같은 도구 API(/tools/**). ai-server에 경로가 생기면 그대로 쓰인다. */
+    @RequestMapping({"/api/drafts/**", "/api/tools/**"})
     public ResponseEntity<byte[]> drafts(HttpServletRequest request, @RequestBody(required = false) byte[] body)
             throws InterruptedException {
         return forward(request, body);

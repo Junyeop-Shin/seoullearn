@@ -1,0 +1,113 @@
+{
+  "form_id": "bonding_report",
+  "title": "친화·성장활동 결과보고서",
+  "version": "2026",
+  "sources": [
+    "manual-2026-5-2:58"
+  ],
+  "when": "활동 종료 후 7일 이내, 서울런 홈페이지 공지에 안내된 결과보고서 구글폼으로 제출",
+  "fields": [
+    {
+      "key": "mentee_name",
+      "label": "멘티 성명",
+      "type": "text",
+      "required": true,
+      "source": "placeholder",
+      "pii": true
+    },
+    {
+      "key": "mentor",
+      "label": "멘토 성명",
+      "type": "text",
+      "required": true,
+      "source": "placeholder",
+      "pii": true
+    },
+    {
+      "key": "activity_type",
+      "label": "활동 유형",
+      "type": "enum",
+      "required": true,
+      "source": "user",
+      "options": [
+        "친화활동",
+        "성장활동"
+      ]
+    },
+    {
+      "key": "activity_date",
+      "label": "활동일",
+      "type": "date",
+      "required": true,
+      "source": "user"
+    },
+    {
+      "key": "activity_time",
+      "label": "활동 시간 (실제 시작~종료)",
+      "type": "time_range",
+      "required": true,
+      "source": "user"
+    },
+    {
+      "key": "place",
+      "label": "활동 장소",
+      "type": "text",
+      "required": true,
+      "source": "user"
+    },
+    {
+      "key": "content",
+      "label": "활동 내용",
+      "type": "text",
+      "required": true,
+      "source": "user_text",
+      "guidance": "실제로 한 일을 적은 메모를 문장으로 다듬기만 한다",
+      "rules": {
+        "no_fabrication": true
+      }
+    },
+    {
+      "key": "reflection",
+      "label": "멘티 반응과 멘토 소감 (선택)",
+      "type": "text",
+      "required": false,
+      "source": "user_text",
+      "guidance": "멘토가 적은 내용만 다듬는다. 가정·정서 이야기는 적지 않는다"
+    }
+  ],
+  "attachments": [
+    {
+      "key": "start_photo",
+      "label": "활동 시작 인증 사진",
+      "required": true,
+      "guidance": "장소·날짜·시각과 멘토·멘티 얼굴을 식별할 수 있게"
+    },
+    {
+      "key": "content_photo",
+      "label": "활동 내용 확인 사진",
+      "required": true,
+      "guidance": "활동 장면 또는 결과물 (예매표, 함께 쓴 학습계획서, 캠퍼스 탐방 사진 등)"
+    },
+    {
+      "key": "end_photo",
+      "label": "활동 종료 인증 사진",
+      "required": true,
+      "guidance": "장소·날짜·시각과 멘토·멘티 얼굴을 식별할 수 있게"
+    }
+  ],
+  "submission_checks": [
+    {
+      "id": "br-1",
+      "rule": "결과보고서는 활동 종료 후 7일 이내에 공지의 결과보고서 구글폼으로 제출합니다.",
+      "type": "reminder"
+    },
+    {
+      "id": "br-2",
+      "rule": "필수 첨부 사진 3종: 활동 시작 인증, 활동 내용 확인, 활동 종료 인증. 시작·종료 사진은 장소·날짜·시각과 멘토·멘티 얼굴이 보여야 합니다.",
+      "type": "reminder"
+    }
+  ],
+  "open_questions": [
+    "실제 결과보고서 구글폼의 문항을 확인하지 못했다. 활동가이드 p.58에 적힌 조건으로 만든 항목이다"
+  ]
+}

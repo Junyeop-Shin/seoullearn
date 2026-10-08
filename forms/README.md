@@ -10,6 +10,9 @@
 | plan_file.json | 종합계획서② (종합계획서 파일) | MVP |
 | completion_report.json | 완료보고서 | 2차 |
 | handover_summary.json | 인계 요약 (허용 항목 목록) | 2차 |
+| time_extension_check.json | 시간확대 신청 전 확인 (멘티가 직접 신청하므로 멘토용 확인표) | 3단계 |
+| bonding_plan.json | 친화·성장활동 계획서 (신청서) | 3단계 |
+| bonding_report.json | 친화·성장활동 결과보고서 | 3단계 |
 
 ## 필드 속성
 

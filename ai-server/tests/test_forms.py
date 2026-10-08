@@ -519,6 +519,46 @@ class PlanDraftTest(unittest.TestCase):
             self.assertEqual(r.json()["sessions"][8]["kind"], "시험기간")
             self.assertEqual(c.post("/drafts/weekly_plan", json={"lectures": lectures, "done": 30}).status_code, 422)
 
+class Stage3FormsTest(unittest.TestCase):
+    """3-1: JSON 파일만 추가한 양식이 엔진 수정 없이 돈다."""
+
+    def test_no_hooks_registered_for_new_forms(self):
+        for fid in ("time_extension_check", "bonding_plan", "bonding_report"):
+            self.assertNotIn(fid, engine._HOOKS)
+
+    def test_time_extension_check_needs_no_llm(self):
+        llm = EchoLLM()
+        answers = {k: "예" for k in ("high_school_course", "one_term_done", "no_violation", "progress_60", "pc_login", "ieumdan_shared")}
+        r = forms.draft("time_extension_check", answers, llm)
+        self.assertEqual(llm.calls, [])                                     # 고른 값만 있으므로 LLM을 부르지 않는다
+        self.assertEqual([q["key"] for q in r.missing_questions], ["before_term"])
+        self.assertTrue(any("멘티가 공지의 구글폼으로 직접 신청" in x for x in r.reminders))
+        r = forms.draft("time_extension_check", {**answers, "before_term": "글쎄요"}, llm)
+        self.assertTrue(any("새 회기 시작 전에 신청함" in w for w in r.warnings))
+
+    def test_bonding_plan(self):
+        llm = EchoLLM()
+        r = forms.draft("bonding_plan", {"activity_type": "성장활동", "sessions_done": 3, "activity_date": "2026-11-14", "activity_time": "14:00~16:00",
+                                         "place": "가람대학교 캠퍼스", "purpose": "전공 탐색", "plan": ["14:00 학과 사무실 방문", "15:00 도서관 견학"],
+                                         "mentee_name": "김민지"}, llm)
+        self.assertEqual(r.draft["mentee_name"], "[멘티명]")
+        self.assertTrue(any("완료한 학습 멘토링 회차 수" in w for w in r.warnings))   # 4회차 미만
+        self.assertTrue(any("멘티 성명" in w for w in r.warnings))
+        self.assertEqual(r.draft["plan"], ["14:00 학과 사무실 방문", "15:00 도서관 견학"])
+        self.assertNotIn("김민지", llm.calls[0])
+        self.assertNotIn("가람대학교", llm.calls[0])
+        self.assertTrue(any("5일 전" in x for x in r.reminders))
+
+    def test_bonding_report(self):
+        llm = EchoLLM(overrides={"content": "캠퍼스를 둘러보고 학과 설명을 들음. 입학 경쟁률은 12.5대 1이라고 안내받음."})
+        r = forms.draft("bonding_report", {"activity_type": "성장활동", "activity_date": "2026-11-14", "activity_time": "14:00~16:05",
+                                           "place": "대학 캠퍼스", "content": "캠퍼스 둘러보고 학과 설명 들음"}, llm)
+        self.assertEqual(r.draft["content"], "캠퍼스를 둘러보고 학과 설명을 들음.")      # 입력에 없는 숫자 문장은 뺀다
+        self.assertEqual(r.draft["reflection"], "")
+        self.assertEqual(r.missing_questions, [])
+        self.assertTrue(any("사진 3종" in x for x in r.reminders))
+
+
 class ReportEvalTest(unittest.TestCase):
     def test_report_eval_runs_with_fake_llm(self):
         from evaluation import report_eval

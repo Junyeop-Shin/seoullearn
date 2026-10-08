@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from datetime import date, datetime
 from typing import Any
 
-from . import forms, guard, inquiry, qa, router, unanswered
+from . import allowance, forms, guard, inquiry, qa, router, unanswered
 from .config import settings
 from .llm import LLMUnavailableError, get_chat_model
 from .pipelines import build_retriever
@@ -62,7 +62,7 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    intent: str  # qa | report | plan | safety
+    intent: str  # qa | report | plan | safety | calc(활동비 계산)
     method: str  # guard(안전 가드) | rule(규칙) | llm(LLM 분류)
     answer: str
     pii_masked: list[str]
@@ -204,6 +204,28 @@ def weekly_plan(req: WeeklyPlanRequest):
         res["warnings"].append("지금은 AI를 쓸 수 없어 기본 문장으로 채웠습니다.")
     log.info("draft form=weekly_plan lectures=%d sessions=%d covered=%d left=%d error=%s", len(req.lectures), req.sessions,
              res["covered"], res["left"], bool(res.get("error")))
+    return res
+
+
+class AllowanceRequest(BaseModel):
+    mode: str = Field(..., pattern="^(온라인|오프라인)$")
+    normal: int = Field(0, ge=0, le=60)        # 정상 진행해 승인된 회차 수
+    no_show: int = Field(0, ge=0, le=60)       # 멘티 무단결석 (증빙 승인 시 기본수당만)
+    late_cancel: int = Field(0, ge=0, le=60)   # 임박취소 (온라인, 준비수당만)
+    stage: int = Field(1, ge=1, le=6)          # 장기활동 가산금 구간 (온라인)
+    senior: bool = False                       # 고학년지도 가산금
+    vulnerable: bool = False                   # 취약계층지원 가산금
+    hours: int = Field(1, ge=1, le=2)          # 회차당 시간 (시간확대면 2)
+    monthly_valid: list[int] = Field(default_factory=list, max_length=36)   # 달마다의 유효 진행 횟수 (구간 변화를 보고 싶을 때)
+
+
+@app.post("/tools/allowance")
+def allowance_calc(req: AllowanceRequest):
+    """활동비 계산기. 규칙 함수만 쓴다 (LLM 없음). 입력에는 개인정보가 없다."""
+    res = allowance.estimate(req.mode, req.normal, req.no_show, req.late_cancel, req.stage, req.senior, req.vulnerable, req.hours)
+    if req.monthly_valid and req.mode == "온라인":
+        res["months"] = allowance.stages_by_month(req.monthly_valid, req.stage)
+    log.info("tool=allowance mode=%s total=%d", req.mode, res["total"])
     return res
 
 
