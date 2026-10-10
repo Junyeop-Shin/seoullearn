@@ -31,6 +31,13 @@ class GuardTest(unittest.TestCase):
             r = guard.check(q)
             self.assertEqual((r.pii, r.text), ([], q), q)
 
+    def test_report_words_are_not_masked(self):
+        # 보고서에 흔한 말: '과제 양'의 '과제'(이름), '복습중'(학교명), '성실한 학생'(이름)은 가리지 않는다. 가리면 저장할 때 글이 사라진다
+        for q in ["과제 양이 많다고 함", "문제 양은 적당함", "개념 복습중 졸았음", "인강 수강중 질문함", "서술형 대비중", "다음달초 시험 예정",
+                  "성실한 학생임", "매칭된 학생이 연락을 받지 않음"]:
+            r = guard.check(q)
+            self.assertEqual((r.pii, r.text), ([], q), q)
+
     def test_short_school_names_still_masked(self):
         for q in ["한빛고 2학년 멘티예요", "누리초 다녀요", "가람중 시험 범위예요", "명지고 다니는 멘티예요", "서울공고 2학년이에요", "대원외고 멘티예요"]:
             self.assertIn("[학교명]", guard.check(q).text, q)
@@ -50,6 +57,11 @@ class GuardTest(unittest.TestCase):
                   "집에서 매를 맞는다고 해요", "친구에게 얻어맞았다고 함", "멘티가 가출했다고 합니다"]:
             self.assertTrue(guard.check(s).safety, s)
         # '옳다·어울리다'의 '맞다'는 신호가 아니다 (보고서와 질문에 흔한 표현)
+        # 낱말 중간에서 맞는 것은 신호가 아니다. 진짜 신호는 그대로 잡는다
+        for s in ["문제를 혼자해결함", "글자해석 연습", "평가출제 경향 설명", "이투스 개념때려잡기 수강", "개념 때려잡기 3강"]:
+            self.assertFalse(guard.check(s).safety, s)
+        for s in ["자해 흔적이 있음", "아버지가 때려요", "때려잡았다고 함"]:
+            self.assertTrue(guard.check(s).safety, s)
         for s in ["활동보고서는 7일 이내 제출이 맞아요?", "이음단에게 문의하는 게 맞아요?", "멘티에게 맞는 강좌 추천",
                   "서울런에서 수준에 맞는 강의를 골랐음", "10문제 중 8개 맞았다고 함", "이 강좌가 멘티에게 잘 맞았습니다",
                   "집에서 푼 문제는 다 맞았음", "시간이 맞아서 일정을 옮김"]:
@@ -187,17 +199,9 @@ class ParseTest(unittest.TestCase):
 
 class RouteAndEmbeddingTest(unittest.TestCase):
     def test_route_contact(self):
-        url = "https://open.kakao.com/o/abcDEF12"
-        self.assertEqual(qa.route_contact("이음단", url)[1], url)
-        self.assertIsNone(qa.route_contact("운영사무국", url)[1])  # 이음단 외에는 링크를 붙이지 않는다
-        self.assertEqual(qa.route_contact(None, url), (None, None))
-
-    def test_openchat_pattern(self):
-        import re
-
-        self.assertTrue(re.match(qa.KAKAO_OPENCHAT_PATTERN, "https://open.kakao.com/o/abcDEF12"))
-        self.assertFalse(re.match(qa.KAKAO_OPENCHAT_PATTERN, "https://evil.example.com/o/abc"))
-        self.assertFalse(re.match(qa.KAKAO_OPENCHAT_PATTERN, "http://open.kakao.com/o/abc"))
+        self.assertIn("카카오톡 채널", qa.route_contact("이음단"))   # 자치구별 채널 바로가기는 화면이 만든다
+        self.assertIn("02-3274-9212", qa.route_contact("운영사무국"))
+        self.assertIsNone(qa.route_contact(None))
 
     def test_routing_rule_in_prompt(self):
         self.assertIn("온라인·오프라인 모두", qa.SYSTEM)
@@ -305,6 +309,17 @@ class LLMCacheTest(unittest.TestCase):
         self.assertNotIn("get_eval_model", inspect.getsource(main))
         self.assertNotIn("get_eval_model", inspect.getsource(__import__("app.router", fromlist=["x"])))
 
+    def test_provider_errors_are_not_swallowed_as_format_errors(self):
+        # 키 오류 같은 제공사 오류를 형식 오류로 삼키면 '운영사무국에 문의'로 답하게 된다: 재시도 대상이 아니어도 LLMUnavailableError로 올린다
+        from app.llm import LangChainLLM, LLMUnavailableError
+
+        with tempfile.TemporaryDirectory() as tmp, unittest.mock.patch("app.llm.settings") as st, \
+                unittest.mock.patch("langchain.chat_models.init_chat_model") as init:
+            st.cache_dir, st.llm_rpm, st.llm_max_retries = Path(tmp), 0, 0
+            init.return_value.invoke.side_effect = RuntimeError("401 invalid api key")
+            with self.assertRaises(LLMUnavailableError):
+                LangChainLLM("fake", "fake").complete("s", "질문")
+
     def test_no_cache_means_no_file(self):
         from app.llm import LangChainLLM
 
@@ -409,12 +424,12 @@ class InquiryDraftTest(unittest.TestCase):
         self.assertNotIn("가람중", llm.calls[0])  # LLM에는 가린 질문만 간다
         self.assertIn("p.62", llm.calls[0])
 
-    def test_ieumdan_uses_openchat_link(self):
+    def test_ieumdan_contact_is_channel_text(self):
         from app import inquiry
 
-        d = inquiry.build(self._res(route="이음단", answerable="partial"), self.Fake('{"draft": "문의드립니다."}'),
-                          "https://open.kakao.com/o/abc123")
-        self.assertEqual(d.contact, "https://open.kakao.com/o/abc123")
+        d = inquiry.build(self._res(route="이음단", answerable="partial"), self.Fake('{"draft": "문의드립니다."}'))
+        self.assertIn("이음단", d.contact)
+        self.assertNotIn("http", d.contact)   # 주소는 화면이 자치구별 목록에서 붙인다
 
     def test_no_draft_when_answered_or_safety(self):
         from app import inquiry

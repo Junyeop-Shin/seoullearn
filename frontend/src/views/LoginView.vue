@@ -18,7 +18,7 @@ async function submit() {
     if (mode.value === 'signup') await api.signup(username.value, password.value)
     await login(username.value, password.value)
     // 가입 직후에는 멘토 설정(이름, 연락처, 멘토링 유형)부터 적게 한다
-    router.replace(mode.value === 'signup' ? '/settings' : '/')
+    router.replace(mode.value === 'signup' ? '/settings' : '/mentees')
   } catch (e) {
     error.value = e.message
   } finally {
@@ -40,20 +40,20 @@ async function submit() {
     </section>
     <section class="panel">
       <form @submit.prevent="submit">
-        <h2 style="margin-top: 0; font-size: 1.3rem">{{ mode === 'signup' ? '멘토 계정 만들기' : '로그인' }}</h2>
+        <h2>{{ mode === 'signup' ? '멘토 계정 만들기' : '로그인' }}</h2>
         <label class="field"><span class="name">아이디</span>
           <input v-model="username" autocomplete="username" required />
-          <span v-if="mode === 'signup'" class="notice">영문 소문자, 숫자, 밑줄로 4~20자. 실명이나 학교명은 쓰지 마세요.</span>
+          <span v-if="mode === 'signup'" class="notice">영문 소문자·숫자·밑줄 4~20자로 적어 주세요. 실명이나 학교명은 쓰지 마세요.</span>
         </label>
         <label class="field"><span class="name">비밀번호</span>
           <input v-model="password" type="password" :autocomplete="mode === 'signup' ? 'new-password' : 'current-password'" required />
           <span v-if="mode === 'signup'" class="notice">8자 이상</span>
         </label>
         <div v-if="error" class="box error">{{ error }}</div>
-        <button class="primary" style="width: 100%; padding: 12px" :disabled="busy">{{ mode === 'signup' ? '가입하고 시작하기' : '로그인' }}</button>
-        <p class="muted" style="text-align: center; margin-top: 16px">
+        <button class="primary wide" :disabled="busy">{{ mode === 'signup' ? '가입하고 시작하기' : '로그인' }}</button>
+        <p class="muted switch">
           {{ mode === 'signup' ? '이미 계정이 있나요?' : '처음이신가요?' }}
-          <button type="button" class="small" style="margin-left: 6px" @click="mode = mode === 'signup' ? 'login' : 'signup'">
+          <button type="button" class="small" @click="mode = mode === 'signup' ? 'login' : 'signup'; error = ''">
             {{ mode === 'signup' ? '로그인하기' : '멘토 계정 만들기' }}
           </button>
         </p>

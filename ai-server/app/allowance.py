@@ -42,7 +42,7 @@ def hourly(mode: str, stage: int = 1, senior: bool = False, vulnerable: bool = F
     elif stage > 1:
         notes.append("준비활동·장기활동 가산금은 온라인 멘토링에만 있습니다.")
     if senior or vulnerable:
-        name = "고학년지도 가산금 (20%)" if senior else "취약계층지원 가산금 (20%)"
+        name = "고학년지도 가산금 (20%)" if senior else "취약계층지원 가산금 (20%, 회기 종료 후 정산)"
         items.append({"name": name, "amount": up10(base * EXTRA_RATE)})
         if senior and vulnerable:
             notes.append("고학년지도 가산금과 취약계층지원 가산금은 중복 지급되지 않아 하나만 넣었습니다.")
@@ -69,11 +69,18 @@ def stages_by_month(valid_counts: list[int], start_stage: int = 1) -> list[dict]
     return out
 
 
+def _stage_note(valid: int) -> str:
+    return (f"이 달 온라인 멘토링의 유효 진행 횟수는 {valid}회입니다. {MONTHLY_MIN}회 이상인 달이 {MONTHS_PER_STAGE}번 모이면 다음 달부터 가산금 구간이 1단계 오릅니다."
+            if valid >= MONTHLY_MIN else
+            f"온라인 멘토링의 유효 진행 횟수가 {valid}회라 {MONTHLY_MIN}회 기준에 못 미칩니다. 이 달은 구간 상승 기준에 들어가지 않습니다.")
+
+
 def estimate(mode: str, normal: int = 0, no_show: int = 0, late_cancel: int = 0, stage: int = 1, senior: bool = False,
-             vulnerable: bool = False, hours: int = 1) -> dict:
+             vulnerable: bool = False, hours: int = 1, stage_note: bool = True) -> dict:
     """한 달(또는 한 기간)의 활동비 추정.
     normal: 정상 진행해 승인된 회차 수. no_show: 멘티 무단결석(증빙 승인 시 기본수당만).
-    late_cancel: 임박취소(온라인만, 준비수당만). hours: 회차당 시간(시간확대면 2)."""
+    late_cancel: 임박취소(온라인만, 준비수당만). hours: 회차당 시간(시간확대면 2). 진행하지 못한 회차는 시간확대여도 1시간분으로 본다.
+    stage_note: 유효 진행 횟수 안내를 붙일지 (여러 멘티를 합쳐 계산할 때는 합계로 한 번만 붙인다)."""
     if min(normal, no_show, late_cancel) < 0 or hours not in (1, 2):
         raise ValueError("회차 수는 0 이상, 회차당 시간은 1 또는 2여야 합니다.")
     rate = hourly(mode, stage, senior, vulnerable)
@@ -84,35 +91,53 @@ def estimate(mode: str, normal: int = 0, no_show: int = 0, late_cancel: int = 0,
     lines = [{"name": f"정상 진행 {normal}회 × {hours}시간 × {per_hour_now:,}원", "amount": normal * hours * per_hour_now}]
     notes = list(rate["notes"])
     if no_show:
-        lines.append({"name": f"멘티 무단결석 {no_show}회 × {hours}시간 × 기본수당 {base:,}원", "amount": no_show * hours * base})
+        lines.append({"name": f"멘티 무단결석 {no_show}회 × 1시간 × 기본수당 {base:,}원", "amount": no_show * base})
         notes.append("무단결석 회차는 증빙이 승인돼야 기본수당이 지급됩니다 (준비활동·장기활동 가산금 제외).")
     if late_cancel:
         if mode == "온라인":
-            lines.append({"name": f"임박취소 {late_cancel}회 × {hours}시간 × 준비활동 가산금 {prep:,}원", "amount": late_cancel * hours * prep})
+            lines.append({"name": f"임박취소 {late_cancel}회 × 1시간 × 준비활동 가산금 {prep:,}원", "amount": late_cancel * prep})
             notes.append("임박취소 회차는 사유와 증빙이 승인돼야 준비수당만 지급됩니다.")
         else:
             notes.append("임박취소 규정은 온라인 멘토링에만 있어 오프라인 계산에는 넣지 않았습니다.")
+    if hours == 2 and len(lines) > 1:
+        # 활동가이드에 시간확대 회차의 무단결석·임박취소 금액은 없다. p.36 출석 기준의 '멘토 단독 접속은 120분 그룹도 60분만 인정'을 따라 적게 잡는다
+        notes.append("시간확대(120분) 그룹의 무단결석·임박취소 회차는 1시간분으로 계산했습니다 (활동가이드 p.36: 멘토 단독 접속은 120분 그룹도 60분만 인정). 정확한 금액은 운영사무국에 확인해 주세요.")
     total = sum(x["amount"] for x in lines)
     out = {"mode": mode, "hourly": rate, "lines": lines, "total": total, "later": None, "notes": notes,
            "valid_count": normal, "counts_for_stage": normal >= MONTHLY_MIN if mode == "온라인" else None,
            "sources": SOURCES, "disclaimer": DISCLAIMER}
     if extra:
         out["later"] = {"name": f"취약계층지원 가산금 {normal}회 × {hours}시간 × {extra:,}원 (회기 종료 후 정산)", "amount": normal * hours * extra}
-    if mode == "온라인":
-        notes.append(f"이 달의 유효 진행 횟수는 {normal}회입니다. {MONTHLY_MIN}회 이상인 달이 {MONTHS_PER_STAGE}번 모이면 다음 달부터 가산금 구간이 1단계 오릅니다."
-                     if normal >= MONTHLY_MIN else
-                     f"유효 진행 횟수가 {normal}회라 {MONTHLY_MIN}회 기준에 못 미칩니다. 이 달은 구간 상승 기준에 들어가지 않습니다.")
+    if mode == "온라인" and stage_note:
+        notes.append(_stage_note(normal))
     return out
+
+
+def estimate_month(groups: list[dict], stage: int = 1, vulnerable: bool = False) -> dict:
+    """여러 멘티의 한 달 활동비 추정. groups: 멘티 한 명이 한 줄 [{mode, hours, normal, no_show, late_cancel, senior}] (이름은 받지 않는다).
+    장기활동 가산금 구간(stage)과 취약계층지원 가산금(vulnerable)은 멘토에게 붙는 조건이라 모든 줄에 같이 적용한다.
+    유효 진행 횟수는 멘티 구분 없이 온라인 멘토링의 정상 진행 회차를 모두 더해 센다 (활동가이드 p.45 Q&A)."""
+    rows = [estimate(g["mode"], int(g.get("normal") or 0), int(g.get("no_show") or 0), int(g.get("late_cancel") or 0), stage,
+                     bool(g.get("senior")), vulnerable, int(g.get("hours") or 1), stage_note=False) for g in groups]
+    online = [r for r in rows if r["mode"] == "온라인"]
+    valid = sum(r["valid_count"] for r in online)
+    notes = list(dict.fromkeys(n for r in rows for n in r["notes"]))
+    if online:
+        notes.append(_stage_note(valid))
+    return {"groups": rows, "total": sum(r["total"] for r in rows), "later_total": sum(r["later"]["amount"] for r in rows if r["later"]),
+            "valid_count": valid if online else None, "counts_for_stage": valid >= MONTHLY_MIN if online else None,
+            "notes": notes, "sources": SOURCES, "disclaimer": DISCLAIMER}
 
 
 # ------------------------------------------------------------------ 질문에서 조건 읽기 (라우터용)
 _AMOUNT = re.compile(r"얼마")
 _ABOUT_PAY = re.compile(r"시간당|한\s*시간|시급|활동비|수당|가산금|받")
-_NOT_CALC = re.compile(r"언제|며칠|기한|어디|세금|공제|장학금|입금")
+# 결석·취소 회차, 친화·성장활동, 봉사형처럼 조건이 붙은 금액은 일반 시간당 금액으로 답하면 틀린다: 매뉴얼 검색으로 보낸다
+_NOT_CALC = re.compile(r"언제|며칠|기한|어디|세금|공제|장학금|입금|결석|취소|지각|조퇴|이탈|친화|성장\s*활동|봉사")
 
 
 def is_rate_question(text: str) -> bool:
-    """'시간당 얼마'처럼 금액을 묻는 질문인지. 지급일·세금 같은 질문은 매뉴얼 검색으로 보낸다."""
+    """'시간당 얼마'처럼 금액을 묻는 질문인지. 지급일·세금, 결석·취소 회차의 금액 같은 질문은 매뉴얼 검색으로 보낸다."""
     return bool(_AMOUNT.search(text) and _ABOUT_PAY.search(text) and not _NOT_CALC.search(text))
 
 

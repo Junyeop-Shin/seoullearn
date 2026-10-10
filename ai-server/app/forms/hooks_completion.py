@@ -12,9 +12,9 @@ from .engine import Context, DraftResult, Hooks, register
 
 WEEKDAYS = "월화수목금토일"
 # LLM에 넘기는 회차별 사실. 학습이해도 척도와 개인정보 칸은 넘기지 않는다
-_FACT_KEYS = {"attendance": "출결", "lecture_progress": "인강 수강", "homework": "과제", "progress_scale": "학습진도(성실성)",
+_FACT_KEYS = {"attendance": "출결", "lecture_progress": "인강 수강", "homework": "과제", "progress_note": "학습 진도", "progress_scale": "학습진도(성실성)",
               "scope": "학습 범위", "session_content": "멘토링 내용", "etc": "기타", "requests": "건의사항"}
-ABSENT = ("무단결석", "인정결석")
+ABSENT = ("무단결석", "인정결석", "임박취소")
 
 
 def session_line(r: dict) -> str | None:
@@ -44,6 +44,7 @@ def stats(reports: list[dict]) -> dict:
 class CompletionReportHooks(Hooks):
 
     def prepare(self, ctx: Context) -> None:
+        ctx.extra["_total"] = total = 8 if str(ctx.extra.pop("duration", "")) == "120" else 16   # 시간확대(120분)는 한 회기가 8회차다
         reports = sorted((r for r in ctx.extra.pop("reports", []) or [] if isinstance(r, dict) and str(r.get("session_no", "")).strip()),
                          key=lambda r: int(re.sub(r"\D", "", str(r["session_no"])) or 0))
         for r in reports:
@@ -73,8 +74,8 @@ class CompletionReportHooks(Hooks):
             ctx.extra["학습목표"] = ctx.extra["_goals"]
         if not reports:
             ctx.warn("활동보고서가 없습니다. 보관함에서 불러오거나 플랫폼의 보고서를 붙여 넣어 주세요.")
-        elif len(reports) < 16:
-            ctx.warn(f"활동보고서가 {len(reports)}건입니다. 완료보고서는 16회차를 마친 뒤 작성합니다.")
+        elif len(reports) < total:
+            ctx.warn(f"활동보고서가 {len(reports)}건입니다. 완료보고서는 {total}회차를 마친 뒤 작성합니다.")
 
     def derive(self, f: dict, ctx: Context):
         reports = ctx.extra["_reports"]
@@ -101,6 +102,6 @@ class CompletionReportHooks(Hooks):
                 q["question"] = "종합계획서에 적은 학습목표를 알려 주세요. (종합계획서②를 보관함에 저장해 두면 자동으로 불러옵니다.)"
         if not str(result.draft.get("emotional_care") or "").strip():
             ctx.remind("감성케어 상담 칸은 비워 두었습니다. 적을 내용이 있으면 직접 작성해 주세요 (권장 기재 항목).")
-        ctx.remind("완료보고서는 16회차 활동보고서가 승인된 직후 작성합니다. 작성하지 않으면 마지막 회차 활동비가 지급되지 않고 연장 회기도 시작되지 않습니다.")
+        ctx.remind(f"완료보고서는 {ctx.extra['_total']}회차 활동보고서가 승인된 직후 작성합니다. 작성하지 않으면 마지막 회차 활동비가 지급되지 않고 연장 회기도 시작되지 않습니다.")
         for k in [k for k in ctx.extra if k.startswith("_")]:
             ctx.extra.pop(k)

@@ -2,6 +2,7 @@
 import { useRoute } from 'vue-router'
 import MenteeHeader from '../components/MenteeHeader.vue'
 import { reactive, ref } from 'vue'
+import { toast } from '../lib/toast'
 import { api } from '../api/client'
 import ReportSource from '../components/ReportSource.vue'
 import { copyText } from '../lib/copy'
@@ -15,10 +16,10 @@ const res = ref(null)
 const summary = reactive({})
 const busy = ref(false)
 const error = ref('')
-const status = ref('')
+let savedId   // 한 번 저장한 뒤에는 같은 항목을 덮어쓴다
 
 async function build() {
-  error.value = status.value = ''
+  error.value = ''
   busy.value = true
   try {
     res.value = await api.handover(reports.value)
@@ -35,16 +36,14 @@ function asText() {
   return handoverText(summary)   // 허용된 네 항목만, 다음 멘토가 붙여 넣으면 칸별로 나뉘는 형식
 }
 
-async function copyAll() {
-  status.value = (await copyText(asText())) ? '복사했습니다.' : '복사하지 못했습니다.'
-}
+const copyAll = () => copyText(asText(), '인계 요약')
 
 async function save() {
   try {
-    await saveItem({ alias: alias.value, formId: 'handover_summary', title: '인계 요약', draft: { ...summary } })
-    status.value = '보관함에 저장했습니다.'
+    savedId = (await saveItem({ id: savedId, alias: alias.value, formId: 'handover_summary', title: '인계 요약', draft: { ...summary } })).id
+    toast('인계 요약을 저장했습니다.')
   } catch (e) {
-    status.value = e.message
+    error.value = e.message
   }
 }
 </script>
@@ -66,8 +65,7 @@ async function save() {
       </label>
       <div class="row">
         <button type="button" class="primary" data-test="copy-handover" @click="copyAll">다음 멘토에게 보낼 글 복사</button>
-        <button type="button" @click="save">보관함에 저장</button>
-        <span>{{ status }}</span>
+        <button type="button" @click="save">저장</button>
       </div>
       <p class="notice">복사한 글을 이음단이나 운영사무국을 통해 다음 멘토에게 전달해 주세요. 다음 멘토가 사전 연락 화면에 붙여 넣어 두고 종합계획서를 쓸 때 참고합니다.</p>
       <div class="card"><ul><li v-for="r in res.reminders" :key="r">{{ r }}</li></ul></div>

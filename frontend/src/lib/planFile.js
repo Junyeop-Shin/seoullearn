@@ -161,8 +161,7 @@ export function mentorCode(name, phone) {
   return name && digits.length >= 4 ? `${String(name).trim()}${digits.slice(-4)}` : ''
 }
 
-/** 서식의 파일 이름 규칙: [멘토코드]N회기_종합활동계획서_멘티이름.확장자 */
-export function planFileName(original, { code, term, mentee }) {
-  const ext = /\.hwpx$/i.test(original) ? 'hwpx' : 'docx'
+/** 서식의 파일 이름 규칙: [멘토코드]N회기_종합활동계획서_멘티이름.확장자 (ext: 'hwpx' | 'docx') */
+export function planFileName(ext, { code, term, mentee }) {
   return `[${code || '멘토코드'}]${term || 1}회기_종합활동계획서_${mentee || '멘티이름'}.${ext}`
 }

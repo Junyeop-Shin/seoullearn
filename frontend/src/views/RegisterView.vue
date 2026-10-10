@@ -2,8 +2,7 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { DISTRICTS, PROFILE_FORM, SUBJECTS, emptyProfile, menteePath } from '../lib/mentee'
-import { COURSE_ALIAS } from '../lib/reports'
-import { flow } from '../lib/stage'
+import { flow, totalRounds } from '../lib/stage'
 import { listAliases, saveItem } from '../stores/vault'
 
 // 멘티 등록. 이미 진행 중인 멘티는 회기·회차(또는 단계)를 받아 그 지점부터 시작한다.
@@ -18,15 +17,17 @@ async function submit() {
     const taken = await listAliases()
     let alias = f.name.trim()
     if (!alias) {
-      let n = taken.filter((a) => a !== COURSE_ALIAS).length + 1
+      let n = taken.length + 1
       while (taken.includes(`멘티 ${n}`)) n += 1
       alias = `멘티 ${n}`
     }
+    if (alias === 'new') throw new Error('이 이름은 쓸 수 없습니다. 다른 이름을 적어 주세요.')
     if (taken.includes(alias)) throw new Error('같은 이름의 멘티가 이미 있습니다. 이니셜 뒤에 숫자를 붙이는 식으로 구분해 주세요.')
     const p = { ...emptyProfile(), name: alias, grade: f.grade.trim(), subject: f.subject, subjectEtc: f.subjectEtc.trim(), district: f.district, mode: f.mode,
       duration: f.duration, stage: 'PRE_CONTACT' }
     if (f.ongoing) {
       Object.assign(p, { term: Number(f.term) || 1, currentRound: Number(f.currentRound) || 1, stage: f.stage, course: f.course.trim() })
+      if (f.stage === 'COMPLETION') p.currentRound = totalRounds(p)   // 완료보고서 단계는 마지막 회차까지 마친 것이다
       if (f.lastLecture.trim() || f.lastTask.trim()) p.lastHomework = { lecture: f.lastLecture.trim(), task: f.lastTask.trim() }
     }
     await saveItem({ alias, formId: PROFILE_FORM, title: '멘티 정보', draft: p })
@@ -40,7 +41,7 @@ async function submit() {
 <template>
   <div class="shell">
     <h1>멘티 등록</h1>
-    <p class="muted">등록하면 왼쪽 메뉴에 멘티가 생기고, 사전 연락부터 완료보고서까지 단계 순서대로 진행합니다.</p>
+    <p class="muted">등록하면 메뉴에 멘티가 생기고, 사전 연락부터 완료보고서까지 단계 순서대로 진행합니다.</p>
     <form class="card" @submit.prevent="submit">
       <div class="form-grid">
         <label class="field"><span class="name">멘티 이름</span>
@@ -58,7 +59,7 @@ async function submit() {
         </label>
         <label class="field"><span class="name">멘토링 방식<span class="req">*</span></span>
           <select v-model="f.mode" data-reg="mode"><option>온라인</option><option>오프라인</option></select>
-          <span class="notice">오프라인이면 왼쪽 메뉴의 '오프라인 일정·장소'에서 장소와 일정을 이음단에 요청합니다.</span>
+          <span class="notice">오프라인이면 메뉴의 '오프라인 일정·장소'에서 장소와 일정을 이음단에 요청합니다.</span>
         </label>
         <label class="field"><span class="name">회당 학습시간</span>
           <select v-model="f.duration" data-reg="duration"><option value="60">60분 (16주)</option><option value="120">120분, 시간확대 (8주)</option></select>
@@ -77,7 +78,7 @@ async function submit() {
         <p class="notice wide">이전 활동보고서가 없으므로, 다음 보고서의 '지난 회차 과제 확인'에 쓸 내용을 여기서 받습니다.</p>
       </div>
       <div v-if="error" class="box error">{{ error }}</div>
-      <button class="primary" data-test="register">멘티 등록</button>
+      <div class="row"><button class="primary" data-test="register">멘티 등록</button></div>
     </form>
   </div>
 </template>

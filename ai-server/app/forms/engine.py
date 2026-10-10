@@ -208,7 +208,7 @@ def _join_heads(kept: tuple, out, label: str, ctx: Context, sources: str):
             lines.append((head, body))
             continue
         new = out.get(str(n))
-        new = body if new is None else str(new).strip()   # 돌려주지 않은 줄은 적은 그대로
+        new = body if new is None else " ".join(str(new).split())   # 돌려주지 않은 줄은 적은 그대로. 한 줄은 한 줄로 둔다 (줄 머리 표시가 없는 줄이 생기지 않게)
         bad = checks.unsupported_numbers(new, sources)
         if bad:
             invented += bad

@@ -10,7 +10,9 @@ import re
 
 _EMOTION = re.compile(
     r"다퉈|다퉜|다툼|싸워|싸웠|혼났|혼나|울었|울먹|우울|불안해|속상|자존감|외롭|따돌|왕따|"
-    r"부모님이랑|부모님과|엄마랑|아빠랑|가정사|집안\s*사정|이혼|별거|형편|용돈|고민\s*상담|얘기\s*들어|이야기\s*들어|하소연")
+    # 가족 이야기는 다툼·갈등이 이어질 때만 본다 ('부모님과 상의해 일정을 변경'은 건의사항에 흔한 말이다)
+    r"(?:부모님|엄마|아빠|어머니|아버지)(?:이랑|랑|과|와)[^.,\n]{0,15}(?:다투|다퉜|싸우|싸웠|갈등|문제|사이|힘들|안\s*좋|혼나|혼났)|갈등|불화|"
+    r"가정사|집안\s*사정|이혼|별거\s*(?:중|하)|형편|용돈|고민\s*상담|얘기\s*들어|이야기\s*들어|하소연")
 _HEALTH = re.compile(
     r"독감|감기|장염|코로나|확진|골절|수술|입원|응급실|병원\s*진료|진료\s*받|통원|복통|두통|발열|고열|몸살|알레르기|천식|"
     r"빈혈|우울증|불면|치과|정형외과|내과|이비인후과|피부과|안과|한의원|약\s*복용|처방")
@@ -21,7 +23,7 @@ def split_sentences(text: str) -> list[str]:
     parts = [p.strip() for p in _SPLIT.split(text or "") if p and p.strip()]
     out: list[str] = []
     for p in parts:  # 마침표 없이 쉼표로 이어 쓴 메모도 나눈다
-        out.extend(x.strip() for x in re.split(r",\s*", p) if x.strip()) if _EMOTION.search(p) or _HEALTH.search(p) else out.append(p)
+        out.extend(x.strip() for x in re.split(r"(?<!\d),\s*|,(?!\s*\d)", p) if x.strip()) if _EMOTION.search(p) or _HEALTH.search(p) else out.append(p)
     return out
 
 

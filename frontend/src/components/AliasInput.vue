@@ -1,7 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { getCurrentAlias, setCurrentAlias } from '../lib/mentee'
-import { COURSE_ALIAS } from '../lib/reports'
 import { listAliases } from '../stores/vault'
 
 // 멘티 고르기. 별칭은 보관함에서 자료를 묶는 이름이며 이 브라우저에만 저장된다.
@@ -17,7 +16,7 @@ function update(value) {
 
 onMounted(async () => {
   try {
-    aliases.value = (await listAliases()).filter((a) => a !== COURSE_ALIAS)
+    aliases.value = await listAliases()
   } catch {
     aliases.value = []
   }

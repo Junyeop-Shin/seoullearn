@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { PROFILE_FIELDS, displayName, fillValues, getCurrentAlias, nextSessionNo, preContactFromProfile, profileFromVault, setCurrentAlias, subjectTimeText, suggestDate } from '../src/lib/mentee'
+import { PROFILE_FIELDS, displayName, fillValues, getCurrentAlias, profileFromVault, setCurrentAlias, suggestDate } from '../src/lib/mentee'
 
 const item = (over) => ({ id: Math.random().toString(36), alias: '수학 고2 A', savedAt: '2026-10-01T00:00:00.000Z', inputs: {}, draft: {}, ...over })
 
@@ -29,26 +29,11 @@ describe('멘티 정보', () => {
     expect(p).toMatchObject({ subject: '수학', weekday: '월', course: '', _id: 'p2', stage: 'PRE_CONTACT', currentRound: 1 })   // 회차 번호 없는 보고서는 세지 않는다
   })
 
-  it('다음 회차는 저장된 회차 중 가장 큰 값 + 1', () => {
-    expect(nextSessionNo([])).toBe(1)
-    expect(nextSessionNo([item({ formId: 'activity_report', sessionNo: 1 }), item({ formId: 'activity_report', sessionNo: 3 }),
-      item({ formId: 'plan_initial' })])).toBe(4)
-  })
-
   it('1회차 일시로 회차별 예상 날짜를 계산한다', () => {
     expect(suggestDate('2026-10-12T20:00', 1)).toBe('2026-10-12')
     expect(suggestDate('2026-10-12T20:00', 4)).toBe('2026-11-02')
     expect(suggestDate('2026-12-28T20:00', 2)).toBe('2027-01-04') // 해가 넘어가도
     expect(suggestDate('', 3)).toBe('')
-  })
-
-  it('과목 및 시간 글과 사전 정보를 만든다', () => {
-    const p = { subject: '수학', course: '시발점 수1', weekday: '월', start_datetime: '2026-10-12T17:00', duration: '60', mode: '온라인', goal: '수1 완강', level: '' }
-    expect(subjectTimeText(p)).toBe('수학 / 시발점 수1 / 매주(월) 17:00~18:00')
-    expect(subjectTimeText({ ...p, duration: '120' })).toBe('수학 / 시발점 수1 / 매주(월) 17:00~19:00')
-    expect(subjectTimeText({ subject: '수학' })).toBe('수학')
-    expect(preContactFromProfile(p)).toEqual({ subject_confirm: '수학, 온라인', site_course: '시발점 수1', goal: '수1 완강' })
-    expect(preContactFromProfile({})).toEqual({})
   })
 
   it('고른 멘티를 화면을 옮겨도 기억한다', () => {
@@ -59,20 +44,21 @@ describe('멘티 정보', () => {
 })
 
 import 'fake-indexeddb/auto'
-import { KEEP_AFTER_TERM, docStatus, menteePath, sessionRows } from '../src/lib/mentee'
-import { clearAll, exportAlias, importAll, listItems, removeAlias, saveItem } from '../src/stores/vault'
+import { KEEP_AFTER_TERM, docStatus, menteePath, menteesFromVault, sessionRows } from '../src/lib/mentee'
+import { clearAll, exportAll, importAll, listItems, removeAlias, saveItem } from '../src/stores/vault'
 
 describe('멘티 작업 공간', () => {
   const report = (no, over = {}) => item({ formId: 'activity_report', sessionNo: no, inputs: { session_no: String(no), session_date: `2026-10-${String(5 + 7 * no).padStart(2, '0')}`, status: '출석' }, ...over })
   const profile = { subject: '수학', start_datetime: '2026-10-12T17:00' }
 
-  it('회차 목록은 16회차까지, 저장한 회차에는 날짜와 상태가 붙는다', () => {
+  it('회차 목록은 그 회기의 회차 수까지, 저장한 회차에는 날짜와 상태가 붙는다', () => {
     const rows = sessionRows([report(1), report(2, { inputs: { session_no: '2', session_date: '2026-10-19', status: '무단결석' } })], profile)
     expect(rows).toHaveLength(16)
     expect(rows[0]).toMatchObject({ no: 1, saved: true, date: '2026-10-12', expected: '2026-10-12' })
     expect(rows[1]).toMatchObject({ saved: true, status: '무단결석' })
     expect(rows[2]).toMatchObject({ no: 3, saved: false, expected: '2026-10-26' })
     expect(sessionRows([report(18)], null)).toHaveLength(18)
+    expect(sessionRows([], { duration: '120' })).toHaveLength(8)   // 시간확대(120분)는 한 회기가 8회차다
   })
 
   it('문서 저장 여부와 멘티 주소', () => {
@@ -87,7 +73,7 @@ describe('멘티 작업 공간', () => {
     for (const formId of ['mentee_profile', 'plan_initial', 'plan_file', 'completion_report', 'handover_summary']) await saveItem({ alias: A, formId, title: formId })
     await saveItem({ alias: A, formId: 'activity_report', title: '1회차', sessionNo: 1 })
     await saveItem({ alias: '영어 중2 B', formId: 'activity_report', title: '1회차', sessionNo: 1 })
-    const file = JSON.parse(JSON.stringify(await exportAlias(A)))
+    const file = JSON.parse(JSON.stringify(await exportAll(A)))
     expect(file.items).toHaveLength(6)
     expect(await removeAlias(A, KEEP_AFTER_TERM)).toBe(3)
     expect((await listItems(A)).map((x) => x.formId).sort()).toEqual(['completion_report', 'handover_summary', 'mentee_profile'])
@@ -96,5 +82,16 @@ describe('멘티 작업 공간', () => {
     expect(await listItems(A)).toHaveLength(0)
     expect(await importAll(file)).toBe(6)                     // 내보낸 파일로 되살릴 수 있다
     expect(await listItems(A)).toHaveLength(6)
+    expect(await importAll({ ...file, items: [{ id: 'x', alias: A, formId: 'activity_report' }] })).toBe(0)   // savedAt 없는 항목은 받지 않는다 (화면이 깨진다)
+  })
+
+  it('멘티 목록은 멘티 정보가 있는 별칭만, 종료한 멘티는 뒤로', async () => {
+    await clearAll()
+    await saveItem({ alias: '나', formId: 'mentee_profile', title: '멘티 정보', draft: { name: '나' } })
+    await saveItem({ alias: '가', formId: 'mentee_profile', title: '멘티 정보', draft: { name: '가', archived: true } })
+    await saveItem({ alias: '나', formId: 'activity_report', title: '1회차', sessionNo: 1 })
+    await saveItem({ alias: '내 강좌', formId: 'course_outline', title: '강좌' })   // 멘티 정보가 없는 별칭은 멘티가 아니다
+    const list = await menteesFromVault()
+    expect(list.map((m) => [m.alias, m.items.length, m.profile.name])).toEqual([['나', 2, '나'], ['가', 1, '가']])
   })
 })

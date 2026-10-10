@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { reactive, watch } from 'vue'
 import { copyText } from '../lib/copy'
 import { draftFields, toText } from '../lib/formFields'
 
@@ -11,15 +11,11 @@ const props = defineProps({
   confirmBeforeCopy: { type: String, default: '' },
   // 개인정보 칸에 이 브라우저에서 채울 값 (필드 key별). 서버 초안에는 자리표시만 온다
   fill: { type: Object, default: () => ({}) },
-  // 켜면 AI가 쓴 칸마다 [다시 생성] 버튼을 둔다
-  regen: { type: Boolean, default: false },
-  busyKey: { type: String, default: '' },
 })
-const emit = defineEmits(['change', 'regen'])
+const emit = defineEmits(['change'])
 
 const fields = draftFields(props.form)
 const text = reactive({})
-const copied = ref('')
 let confirmed = false
 
 watch(() => props.result, (r) => {
@@ -29,7 +25,7 @@ watch(() => props.result, (r) => {
 
 function edited() {
   const draft = {}
-  for (const f of fields) draft[f.key] = f.list ? text[f.key].split('\n').filter((x) => x.trim()) : text[f.key]
+  for (const f of fields) draft[f.key] = f.pii ? props.result.draft?.[f.key] : f.list ? text[f.key].split('\n').filter((x) => x.trim()) : text[f.key]
   emit('change', draft)
 }
 
@@ -38,7 +34,7 @@ async function copy(key) {
     if (!window.confirm(props.confirmBeforeCopy)) return
     confirmed = true
   }
-  copied.value = (await copyText(text[key])) ? key : ''
+  await copyText(text[key], fields.find((f) => f.key === key)?.label)
 }
 </script>
 
@@ -59,16 +55,11 @@ async function copy(key) {
 
     <div v-for="f in fields" :key="f.key" class="card">
       <div class="row">
-        <strong>{{ f.label }}</strong>
-        <span v-if="f.pii" class="tag">{{ fill[f.key] ? '이 브라우저에서 채움' : '직접 입력' }}</span>
-        <span class="spacer" style="flex: 1"></span>
-        <span v-if="copied === f.key" class="ok">복사했습니다</span>
-        <button v-if="regen && !f.pii && ['user_text', 'llm_draft'].includes(f.source)" type="button" class="small" :data-regen="f.key"
-          :disabled="!!busyKey" @click="$emit('regen', f.key)">{{ busyKey === f.key ? '만드는 중…' : '다시 생성' }}</button>
+        <strong class="grow">{{ f.label }}<span v-if="f.pii" class="tag">{{ fill[f.key] ? '이 브라우저에서 채움' : '직접 입력' }}</span></strong>
         <button v-if="!f.pii || fill[f.key]" type="button" class="small" :data-copy="f.key" @click="copy(f.key)">복사</button>
       </div>
       <p v-if="f.pii" class="muted">{{ text[f.key] }}</p>
-      <textarea v-else v-model="text[f.key]" :data-draft="f.key" :rows="f.list ? Math.min(16, Math.max(3, text[f.key].split('\n').length)) : 3"
+      <textarea v-else v-model="text[f.key]" :aria-label="f.label" :data-draft="f.key" :rows="f.list ? Math.min(16, Math.max(3, text[f.key].split('\n').length)) : 3"
         @input="edited"></textarea>
     </div>
 

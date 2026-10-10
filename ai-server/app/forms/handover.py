@@ -19,7 +19,7 @@ SYSTEM = prompts.load("handover_summary")
 
 # 2차 검사: 요약에 남아 있으면 안 되는 표현 (학업 수준, 정서·개인 사정)
 _ACADEMIC = re.compile(r"성적|등급|점수|\d+\s*점|중간고사|기말고사|모의고사|시험\s*(?:결과|점수|성적)|이해도|이해력|이해가\s*(?:빠|느|부족|낮|높)|"
-                       r"잘함|잘\s*하는\s*편|못\s*하는\s*편|어려워|어려움|약하|약함|취약|우수|뛰어나|상위권|하위권|중위권|학업\s*수준|학습\s*수준")
+                       r"잘함|잘\s*하는\s*편|못\s*하는\s*편|어려워|어려움|(?<![가-힣])약(?:하|함)|취약|우수|뛰어나|상위권|하위권|중위권|학업\s*수준|학습\s*수준")
 _PERSONAL = re.compile(r"군입대|입대|유학|퇴사|개인\s*사정|서운|아쉬워")
 # '학습진도(성실성)' 척도의 값은 태도 항목에서 써도 된다 (학업 수준이 아니라 성실성 평가다)
 _SCALE_WORDS = ("매우 잘함", "잘함", "보통", "노력필요", "매우 노력필요")
@@ -38,18 +38,26 @@ def _allow_items() -> list[dict]:
     return items
 
 
+_NOT_WATCHED = re.compile(r"미수강|수강하지\s*않|안\s*들|못\s*들|듣지\s*(?:않|못)")
+
+
+def _session_no(r: dict) -> int:
+    return int(re.sub(r"\D", "", str(r.get("session_no", 0))) or 0)
+
+
 def last_lecture(reports: list[dict]) -> dict:
-    """마지막으로 수강이 확인된 강 번호와 다음 시작 강. 숫자는 규칙으로 구한다 (LLM이 '다음은 9강'을 계산하지 않게)."""
+    """마지막으로 수강이 확인된 강 번호와 다음 시작 강. 숫자는 규칙으로 구한다 (LLM이 '다음은 9강'을 계산하지 않게).
+    안 들었다고 적은 조각('6강 수강하지 않음')은 세지 않는다. 회기 중에 강좌를 바꿨으면 가장 늦은 회차의 강좌만 센다."""
+    rows = sorted(reports, key=_session_no)
+    course = next((c for c in (str(r.get("course") or "").strip() for r in reversed(rows)) if c), "")
     last = 0
-    for r in reports:
-        text = str(r.get("lecture_progress") or "")
-        if "미수강" in text and "수강" not in text.replace("미수강", ""):
+    for r in rows:
+        if course and str(r.get("course") or "").strip() not in ("", course):
             continue
-        for part in re.split(r"[,/]|그리고", text):
-            if "미수강" in part:
-                continue
-            last = max([last] + [int(n) for n in re.findall(r"(\d{1,3})\s*강", part)] +
-                       [int(n) for n in re.findall(r"(\d{1,3})\s*,\s*\d{1,3}\s*강", text)])
+        for part in re.split(r"/|그리고|(?<!\d),", str(r.get("lecture_progress") or "")):   # '4, 5강'은 한 조각으로 둔다
+            if not _NOT_WATCHED.search(part):
+                last = max([last] + [int(n) for n in re.findall(r"(\d{1,3})\s*(?:,\s*\d{1,3}\s*)*강", part)] +
+                           [int(n) for n in re.findall(r"(\d{1,3})\s*강", part)])
     return {"마지막으로 수강한 강": f"{last}강", "다음 시작": f"{last + 1}강"} if last else {}
 
 
@@ -57,7 +65,7 @@ def _records(item: dict, reports: list[dict]) -> list[dict]:
     """이 항목의 출처 칸만 뽑는다."""
     keys = [src.split(".", 1)[1] for src in item["from"] if src.startswith("activity_report.")]
     out = []
-    for r in sorted(reports, key=lambda x: int(re.sub(r"\D", "", str(x.get("session_no", 0))) or 0)):
+    for r in sorted(reports, key=_session_no):
         row = {"회차": r.get("session_no")}
         for k in keys:
             v = str(r.get(k) or "").strip()

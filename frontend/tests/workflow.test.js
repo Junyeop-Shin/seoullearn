@@ -3,17 +3,21 @@ import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 import DraftResult from '../src/components/DraftResult.vue'
 import StageBar from '../src/components/StageBar.vue'
-import { regularSchedule, scheduleText } from '../src/lib/mentee'
-import { courseName, curriculumCell, curriculumLines, curriculumRow, handoverForDraft, handoverNote, handoverText, parseHandoverText, plannedRow, previousHomework, termSummary, termSummaryText } from '../src/lib/reports'
+import { DISTRICTS, regularSchedule, scheduleText } from '../src/lib/mentee'
+import { courseName, curriculumCell, curriculumLines, curriculumRow, handoverForDraft, handoverNote, handoverText, parseHandoverText, plannedRow, previousHomework, termSummary, termSummaryText, plannedWeek } from '../src/lib/reports'
 import { dateLine, endTime, fillNames, monthDates, monthlyText, nextMonth, scheduleDue, thisMonth, weeklyDates } from '../src/lib/schedule'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import curriculum from '../public/data/curriculum.json'
 import { fillPlanFile, mentorCode, planFileName } from '../src/lib/planFile'
+import { absentText, applyLines, assignedSentences, boxText, contentAuto, fromLines, halvesOf, joinLabel, progressLines, splitLabel, statusesOf, syncLines, toLines } from '../src/lib/report'
 import { CURRICULUM_SUBJECTS, GRADES, FIRST_WEEK, LAST_WEEK, findUnits, genericHints, gradeKey, hasExams, spreadUnits, weekFrame } from '../src/lib/curriculum'
 import { DIAG_SLOTS, GOAL_SLOTS, composeSlots, lectureRange, onlineText, parseSlots, platformSafe, toCircled, changedLines, freshLines, mergeLines } from '../src/lib/plan'
 import { PROFILE_FIELDS, menteeFacts } from '../src/lib/mentee'
 import { afterReport, flow, nextStage, nextTerm, prevStage, stageBadge, totalRounds, withState } from '../src/lib/stage'
-import { chatUrlFor, loadSettings, saveSettings } from '../src/stores/settings'
+import { loadSettings, saveSettings } from '../src/stores/settings'
+import { isSeniorCourse, monthRows, payInfo, reportMonths } from '../src/lib/allowance'
+import { validChannels } from '../src/lib/channels'
+import channels from '../public/data/eumdan_channels.json'
 import TEMPLATE from '../src/templates/monthly_schedule.md?raw'
 
 
@@ -50,7 +54,7 @@ describe('단계 흐름', () => {
     expect(afterReport({ ...p, currentRound: 16 }, 16)).toEqual({ stage: 'COMPLETION' })
     expect(afterReport({ stage: 'ACTIVITY', currentRound: 8, duration: '120' }, 8)).toEqual({ stage: 'COMPLETION' })
     expect(afterReport({ stage: 'PLAN', currentRound: 1 }, 1)).toEqual({})
-    expect(stageBadge({ stage: 'ACTIVITY', currentRound: 5 })).toBe('보고서 5회차')
+    expect(stageBadge({ stage: 'ACTIVITY', currentRound: 5 })).toBe('활동보고서 5회차')
     expect(stageBadge({ stage: 'PLAN' })).toBe('종합계획서')
   })
 
@@ -64,8 +68,9 @@ describe('단계 흐름', () => {
   })
 
   it('다음 회기는 회차를 1로 되돌리고 종합계획서부터 다시 시작한다', () => {
-    expect(nextTerm({ term: 1, currentRound: 16, stage: 'COMPLETION', duration: '60', name: '김OO' }, '120'))
-      .toMatchObject({ term: 2, currentRound: 1, stage: 'PLAN', duration: '120', name: '김OO' })
+    // 지난 회기의 목표·진단·1회차 일시는 넘기지 않는다 (새 종합계획서①이 지난 글로 채워지지 않게)
+    expect(nextTerm({ term: 1, currentRound: 16, stage: 'COMPLETION', duration: '60', name: '김OO', goal: '(1) 수1 완강', level: '(과목역량) 보통', start_datetime: '2026-03-09T17:00' }, '120'))
+      .toMatchObject({ term: 2, currentRound: 1, stage: 'PLAN', duration: '120', name: '김OO', goal: '', level: '', start_datetime: '' })
   })
 
   it('진행바는 지금 단계를 표시하고 누른 단계를 알린다', async () => {
@@ -152,6 +157,9 @@ describe('계획서와 보고서 연결', () => {
     expect(JSON.stringify(s)).not.toContain('갈등')
     expect(termSummaryText(s)).toContain('마지막 회차 학습 범위: 30강 총정리')
     expect(termSummaryText(null)).toBe('')
+    // 지금 화면으로 저장한 보고서: 내 준 과제는 학습 이해도의 문장으로만 남는다
+    const now = [report(16, { inputs: { session_no: '16', status: '출석' }, extra: { sheet: { understanding: ['개념 설명을 잘 이해함\n3강 예제 풀기를 다음 회차까지 과제로 냄'] } } })]
+    expect(termSummary(now, { term: 1 }).next_homework).toEqual({ lecture: '', task: '3강 예제 풀기를 다음 회차까지 과제로 냄' })
   })
 
   it('이번 회차의 계획과 지난 회차에 낸 과제를 찾는다', () => {
@@ -161,22 +169,22 @@ describe('계획서와 보고서 연결', () => {
     expect(curriculumRow([pre, file], 3).online).toBe('5~6강')        // 종합계획서②가 먼저다
     expect(curriculumRow([pre], 4)).toBeNull()
     const r2 = report(2, { extra: { assignedHomework: { lecture: '5~6강', task: '예제 풀기' } } })
-    expect(previousHomework([r2], 3, {})).toEqual({ lecture: '5~6강', task: '예제 풀기' })
+    expect(previousHomework([r2], 3, {})).toEqual({ lecture: '5~6강', task: '예제 풀기', sentences: [] })
     expect(previousHomework([report(2)], 3, { lastHomework: { lecture: '1강' } })).toBeNull()       // 직전 보고서가 있으면 등록 때 적은 것은 쓰지 않는다
-    expect(previousHomework([], 7, { lastHomework: { lecture: '11강', task: '' } })).toEqual({ lecture: '11강', task: '' })   // 진행 중 등록
+    expect(previousHomework([], 7, { lastHomework: { lecture: '11강', task: '' } })).toEqual({ lecture: '11강', task: '', sentences: [] })   // 진행 중 등록
   })
 
-  it('초안의 개인정보 칸은 이 브라우저의 값으로 채우고, 항목별로 다시 만들 수 있다', async () => {
+  it('초안의 개인정보 칸은 이 브라우저의 값으로 보여 주되, 저장하는 초안에는 자리표시를 그대로 둔다', async () => {
     const form = { fields: [{ key: 'mentee_name', label: '멘티 성명', source: 'placeholder', pii: true }, { key: 'homework', label: '과제', source: 'user_text' },
       { key: 'session_no', label: '회차', source: 'user' }] }
     const result = { draft: { mentee_name: '[멘티명]', homework: '과제를 일부 수행함', session_no: '3' }, missing_questions: [], warnings: [], reminders: [], pii_masked: [] }
-    const w = mount(DraftResult, { props: { form, result, fill: { mentee_name: '김OO' }, regen: true } })
+    const w = mount(DraftResult, { props: { form, result, fill: { mentee_name: '김OO' } } })
     expect(w.text()).toContain('김OO')
     expect(w.findAll('.card')[0].text()).not.toContain('[멘티명]')
     expect(w.find('[data-copy="mentee_name"]').exists()).toBe(true)
-    expect(w.find('[data-regen="session_no"]').exists()).toBe(false)   // AI가 쓰지 않는 칸에는 없다
-    await w.find('[data-regen="homework"]').trigger('click')
-    expect(w.emitted('regen')[0]).toEqual(['homework'])
+    await w.find('[data-draft="homework"]').setValue('과제를 절반만 수행함')
+    // 글을 고쳐도 이름 칸에는 실제 이름이 아니라 자리표시가 저장된다 (내보내기 파일에 이름이 들어가지 않게)
+    expect(w.emitted('change').at(-1)[0]).toEqual({ mentee_name: '[멘티명]', homework: '과제를 절반만 수행함', session_no: '3' })
   })
 })
 
@@ -241,6 +249,9 @@ describe('인계 요약을 글로 주고받기', () => {
     const r = parseHandoverText('안녕하세요, 인계 내용입니다.\n[출석패턴] 정시 출석\n[학업 수준] 수학 4등급\n[학습 태도] 질문을\n많이 함\n[상담 내용] 가정 사정이 있음')
     expect(r.found).toEqual({ attendance_pattern: '정시 출석', attitude: '질문을 많이 함' })
     expect(r.dropped).toBe(3)
+    // 서버가 개인정보를 가리며 넣은 표시에서는 글이 잘리지 않는다. 한 줄에 이어 쓴 허용되지 않은 항목은 그래도 버린다
+    expect(parseHandoverText('[출석 패턴] 대체로 정시 출석함. [학교명] 시험 기간에 지각 2회.').found.attendance_pattern).toBe('대체로 정시 출석함. [학교명] 시험 기간에 지각 2회.')
+    expect(parseHandoverText('[출석 패턴] 정시 출석 [학업 수준] 수학 4등급 [상담 내용] 가정 사정이 있음')).toEqual({ found: { attendance_pattern: '정시 출석' }, dropped: 2 })
     expect(parseHandoverText('항목 이름 없이 쓴 글')).toEqual({ found: {}, dropped: 1 })
     expect(parseHandoverText('')).toEqual({ found: {}, dropped: 0 })
   })
@@ -325,12 +336,104 @@ describe('종합계획서②를 서식 파일에 채운다 (브라우저 안에�
     expect(() => fillPlanFile(strToU8('hwp 같은 다른 형식'), data(1))).toThrow('hwp 파일은 채울 수 없습니다')
     expect(() => fillPlanFile(zipSync({ 'a.txt': strToU8('x') }), data(1))).toThrow('docx 또는 hwpx')
     expect(() => fillPlanFile(zipSync({ 'word/document.xml': strToU8('<w:document xmlns:w="w"><w:tbl><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl></w:document>') }), data(1))).toThrow('종합활동계획서 서식이 아닌')
-    expect(planFileName('서식.hwpx', { code: 'M12', term: 2, mentee: '김가상' })).toBe('[M12]2회기_종합활동계획서_김가상.hwpx')
-    expect(planFileName('서식.docx', {})).toBe('[멘토코드]1회기_종합활동계획서_멘티이름.docx')
+    expect(planFileName('hwpx', { code: 'M12', term: 2, mentee: '김가상' })).toBe('[M12]2회기_종합활동계획서_김가상.hwpx')
+    expect(planFileName('docx', {})).toBe('[멘토코드]1회기_종합활동계획서_멘티이름.docx')
     // 멘토코드는 이름 + 전화번호 뒤 네 자리
     expect(mentorCode('이멘토', '010-1234-5678')).toBe('이멘토5678')
     expect(mentorCode('이멘토', '')).toBe('')
     expect(mentorCode('', '010-1234-5678')).toBe('')
+  })
+})
+
+describe('활동보고서: 플랫폼 입력 칸과 규칙', () => {
+  it('학습 진도는 출결·인강·과제 줄로 만든다 (활동가이드의 필수 기재 사항, AI 미사용)', () => {
+    const what = { lecture: '지수 (5~6강)', task: '5강 예제 풀기' }
+    expect(progressLines({ status: '출석', time: '17:02~18:04', lecture: '함', task: '안 함', what })).toEqual(
+      ['출결: 정시 출석 (17:02~18:04)', '인강: 지수 (5~6강) 수강함', '과제: 5강 예제 풀기 수행하지 않음'])
+    expect(progressLines({ status: '지각', time: '', lecture: '', task: '' })).toEqual(['출결: 지각', '', ''])
+    expect(progressLines({ status: '출석', time: '', lecture: '안 함', task: '함' })).toEqual(['출결: 정시 출석', '인강: 수강하지 않음', '과제: 수행함'])
+  })
+  it('고른 것을 바꾸면 규칙으로 넣은 줄만 바뀌고, 멘토가 고치거나 덧붙인 줄은 그대로다', () => {
+    const a = ['출결: 정시 출석', '', '']
+    const b = ['출결: 정시 출석', '인강: 수강함', '']
+    const c = ['출결: 정시 출석', '인강: 수강함', '과제: 수행하지 않음']
+    expect(syncLines('', ['', '', ''], a)).toBe('출결: 정시 출석')
+    expect(syncLines('출결: 정시 출석\n개선 방향: 복습 시간 늘리기', a, b)).toBe('출결: 정시 출석\n인강: 수강함\n개선 방향: 복습 시간 늘리기')
+    // 멘토가 인강 줄을 고쳤다: 그 줄은 두고 과제 줄만 더한다
+    expect(syncLines('출결: 정시 출석\n인강: 5강만 들음', b, c)).toBe('출결: 정시 출석\n인강: 5강만 들음\n과제: 수행하지 않음')
+    // 고르지 않은 상태로 되돌리면 그 줄을 뺀다
+    expect(syncLines('출결: 정시 출석\n인강: 수강함', b, a)).toBe('출결: 정시 출석')
+  })
+  it("'이번 주차 학습 내용'은 종합계획서의 그 주차 계획을 학습범위·학습목표 두 줄로 가져온다", () => {
+    const pre = { formId: 'plan_initial', savedAt: '1', extra: { rows: [{ week: 2, content: '지수법칙' }] } }
+    const file = { formId: 'plan_file', savedAt: '2', extra: { courses: [{ lecture: '가 강좌', instructor: '나' }], rows: [{ week: 2, online: '지수 (3~4강)', mentoring: '지수법칙 개념' }] } }
+    expect(plannedWeek([pre], 2)).toEqual({ row: { week: 2, content: '지수법칙' }, course: '' })
+    expect(contentAuto(plannedWeek([pre], 2).row)).toBe('학습범위: 지수법칙')
+    const w = plannedWeek([pre, file], 2)
+    expect(contentAuto(w.row, w.course)).toBe('학습범위: 가 강좌(나), 지수 (3~4강)\n학습목표: 지수법칙 개념')
+    expect(plannedWeek([pre, file], 5)).toBeNull()
+    expect(contentAuto(null)).toBe('')
+  })
+  it('내 준 과제는 학습 이해도에 적고, 다음 회차에 그 문장을 다시 보여 준다', () => {
+    const text = '1. 예습이 되어 개념 설명을 잘 이해함. 못 들은 강의는 다음 멘토링 시간까지 듣도록 과제로 냄.\n계산 실수가 잦음\n3강 예제 풀기를 숙제로 냄'
+    expect(assignedSentences(text)).toEqual(['못 들은 강의는 다음 멘토링 시간까지 듣도록 과제로 냄.', '3강 예제 풀기를 숙제로 냄'])
+    expect(assignedSentences('개념을 잘 이해함')).toEqual([])
+    const prev = { formId: 'activity_report', sessionNo: 2, savedAt: '1', extra: { sheet: { understanding: [text] } } }
+    expect(previousHomework([prev], 3, {})).toEqual({ lecture: '', task: '', sentences: ['못 들은 강의는 다음 멘토링 시간까지 듣도록 과제로 냄.', '3강 예제 풀기를 숙제로 냄'] })
+  })
+  it('서버와는 줄마다 칸 이름표를 붙여 주고받고, 돌아온 줄을 칸에 다시 넣는다', () => {
+    const text = toLines([['u0', '예제는 혼자 품\n\n풀이 과정 건너뜀'], ['u1', ''], ['e', '화면 끊김']])
+    expect(text).toBe('(u0) 예제는 혼자 품\n(u0) 풀이 과정 건너뜀\n(e) 화면 끊김')
+    expect(fromLines('(u0) 예제를 혼자 풂\n(u0) 풀이 과정을 건너뜀\n이름표 없는 줄\n(e) ')).toEqual({ u0: ['예제를 혼자 풂', '풀이 과정을 건너뜀'] })
+    // 줄 수가 같으면 빈 줄을 지키고, 통째로 빠진 줄이 있으면 돌아온 줄만 남긴다
+    expect(applyLines('예제는 혼자 품\n\n풀이 과정 건너뜀', ['예제를 혼자 풂', '풀이 과정을 건너뜀'])).toBe('예제를 혼자 풂\n\n풀이 과정을 건너뜀')
+    expect(applyLines('예제는 혼자 품\n부모님과 다퉈 속상해함', ['예제를 혼자 풂'])).toBe('예제를 혼자 풂')
+    expect(applyLines('속상해함', undefined)).toBe('')
+  })
+  it("다듬을 때 '출결:' 같은 머리말은 떼고 보냈다가 다시 붙인다", () => {
+    expect(splitLabel('(p0) 과제: 절반만 함')).toEqual(['(p0) 절반만 함', '과제: '])
+    expect(splitLabel('(u0) 예제는 혼자 품')).toEqual(['(u0) 예제는 혼자 품', ''])
+    expect(splitLabel('(p0) 개선 방향:')).toEqual(['', '개선 방향:'])           // 머리말뿐인 줄은 보내지 않는다
+    expect(joinLabel('(p0) 절반만 수행함', '과제: ')).toBe('(p0) 과제: 절반만 수행함')
+    expect(joinLabel('(u0) 예제를 혼자 풂', '')).toBe('(u0) 예제를 혼자 풂')
+  })
+  it('시간확대는 전반·후반으로 나누고, 예전 화면의 세 칸 값은 한 칸의 글로 읽는다', () => {
+    expect(halvesOf('120')).toEqual(['전반 1시간 ', '후반 1시간 '])
+    expect(halvesOf('60')).toEqual([''])
+    expect(boxText({ good: '예제를 혼자 풂', lacking: '', improve: '풀이 과정\n끝까지 쓰기' })).toBe('잘한 점: 예제를 혼자 풂\n개선 방향: 풀이 과정 끝까지 쓰기')
+    expect(boxText('그대로')).toBe('그대로')
+    expect(boxText(undefined)).toBe('')
+    expect(absentText('무단결석')).toContain('무단결석으로 멘토링을 진행하지 못함')
+    expect(absentText('임박취소')).toContain('임박취소로 멘토링을 진행하지 못함')
+    expect(absentText('출석')).toBe('')
+    // 임박취소는 온라인 멘토링에만 있다
+    expect(statusesOf('온라인')).toContain('임박취소')
+    expect(statusesOf('오프라인')).not.toContain('임박취소')
+  })
+})
+
+describe('활동비 계산: 저장한 활동보고서로 한 달치 입력을 만든다', () => {
+  const mentees = [
+    { alias: 'a', profile: { name: '김가상', mode: '온라인', duration: '120', course: '메가스터디 시발점 수1' },
+      reports: [{ session_date: '2026-10-05', status: '출석' }, { session_date: '2026-10-12', status: '지각' }, { session_date: '2026-10-19', status: '무단결석' }, { session_date: '2026-10-26', status: '임박취소' }, { session_date: '2026-11-02' }] },
+    { alias: 'b', profile: { name: '', mode: '오프라인', duration: '60', course: '밀크T 중3 영어' }, reports: [{ session_date: '2026-10-07', status: '인정결석' }, { session_date: '2026-10-14', status: '출석' }] },
+    { alias: 'c', profile: { name: '박가상', mode: '온라인', duration: '60', course: '' }, reports: [{ session_date: '2026-09-30', status: '출석' }] },
+  ]
+  it('달마다 멘티별 회차 수를 상태로 나눠 센다', () => {
+    expect(reportMonths(mentees)).toEqual(['2026-11', '2026-10', '2026-09'])
+    expect(monthRows(mentees, '2026-10')).toEqual([
+      { alias: 'a', name: '김가상', mode: '온라인', hours: 2, normal: 2, no_show: 1, late_cancel: 1, excused: 0, senior: true, sessions: 4 },
+      { alias: 'b', name: 'b', mode: '오프라인', hours: 1, normal: 1, no_show: 0, late_cancel: 0, excused: 1, senior: false, sessions: 2 },
+    ])
+    expect(monthRows(mentees, '2026-12')).toEqual([])
+  })
+  it('고학년지도 가산금은 학습사이트로 짐작한다 (검정고시 과정과 중등 사이트는 아니다)', () => {
+    for (const c of ['메가스터디 시발점', '이투스 수학', '대성마이맥 국어', '밀크T 고등 영어']) expect(isSeniorCourse(c), c).toBe(true)
+    for (const c of ['밀크T 중3 영어', '에듀윌 검정고시 고등', '메가스터디 검정고시', '', undefined]) expect(isSeniorCourse(c), String(c)).toBe(false)
+  })
+  it('활동비는 다음 달 20일에 지급된다', () => {
+    expect(payInfo('2026-10')).toEqual({ month: 10, payMonth: 11 })
+    expect(payInfo('2026-12')).toEqual({ month: 12, payMonth: 1 })
   })
 })
 
@@ -421,6 +524,7 @@ describe('교과과정으로 채우기 (자료와 규칙만 사용)', () => {
     expect(rows[5]).toBe('소유 묻기(Whose ~)')                     // 물음표는 뺀다
     expect(platformSafe('① 수학Ⅱ & 퀴즈! (일제강점기~6·25)\n만나서 반가워요!')).toBe('(1) 수학2 퀴즈 (일제강점기~6.25)\n만나서 반가워요')
     expect(platformSafe('17:00~17:10 온라인 강의 수강(필수) 확인 및 퀴즈')).toBe('17:00~17:10 온라인 강의 수강(필수) 확인 및 퀴즈')   // 이미 안전한 글은 그대로
+    expect(platformSafe('• 시간 지키기\n• 과제 하기')).toBe('시간 지키기\n과제 하기')   // 줄 머리의 글머리 기호는 떼고 줄은 지킨다
   })
 
   it('학년 글을 알아듣고, 자료가 없을 때의 예시는 주차 자리에 맞춘다', () => {
@@ -446,14 +550,18 @@ describe('인계받은 글', () => {
 describe('멘토 설정 (이 브라우저에만 저장)', () => {
   beforeEach(() => localStorage.clear())
 
-  it('바꾼 값만 저장하고 자치구별 이음단 주소를 찾는다', () => {
-    expect(saveSettings({ name: ' 이멘토 ', phone: '010-0000-0000', mentoringType: '시급형' })).toBe(true)
-    expect(saveSettings({ ieumdanChatUrl: 'https://open.kakao.com/o/base' })).toBe(true)
-    expect(loadSettings()).toMatchObject({ name: '이멘토', phone: '010-0000-0000', mentoringType: '시급형', ieumdanChatUrl: 'https://open.kakao.com/o/base' })
-    expect(saveSettings({ ieumdanChats: { 성동구: 'https://example.com/x' } })).toBe(false)
-    expect(saveSettings({ ieumdanChats: { 성동구: 'https://open.kakao.com/o/sd', 마포구: '' } })).toBe(true)
-    expect(chatUrlFor('성동구')).toBe('https://open.kakao.com/o/sd')
-    expect(chatUrlFor('강서구', loadSettings(), { 강서구: 'https://open.kakao.com/o/gs' })).toBe('https://open.kakao.com/o/gs')
-    expect(chatUrlFor('마포구')).toBe('https://open.kakao.com/o/base')
+  it('바꾼 값만 저장한다', () => {
+    saveSettings({ name: ' 이멘토 ', phone: '010-0000-0000', mentoringType: '시급형' })
+    saveSettings({ university: '가상대학교' })
+    expect(loadSettings()).toEqual({ name: '이멘토', phone: '010-0000-0000', mentoringType: '시급형', university: '가상대학교', major: '' })
+  })
+
+  it('자치구별 이음단 카카오톡 채널: 자료의 자치구 이름이 맞고, 카카오톡 채널 주소만 바로가기가 된다', () => {
+    const listed = validChannels(channels)
+    expect(Object.keys(listed)).toEqual(Object.keys(channels))            // 자료에 다른 주소가 섞여 있지 않다
+    for (const d of Object.keys(listed)) expect(DISTRICTS, d).toContain(d)
+    expect(Object.keys(listed).length).toBe(25)                           // 서울 25개 자치구 모두
+    expect(new Set(Object.values(listed)).size).toBe(Object.keys(listed).length)   // 자치구마다 다른 채널
+    expect(validChannels({ 마포구: 'https://pf.kakao.com/_hjmxgn', 가짜구: 'https://example.com/x', 성동구: 'http://pf.kakao.com/_Jihan', 중구: 5 })).toEqual({ 마포구: 'https://pf.kakao.com/_hjmxgn' })
   })
 })

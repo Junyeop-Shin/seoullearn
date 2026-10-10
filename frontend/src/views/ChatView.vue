@@ -2,7 +2,6 @@
 import { nextTick, ref } from 'vue'
 import { api } from '../api/client'
 import AnswerCard from '../components/AnswerCard.vue'
-import { loadSettings } from '../stores/settings'
 
 const messages = ref([])
 const text = ref('')
@@ -24,10 +23,12 @@ async function send() {
   text.value = ''
   busy.value = true
   try {
-    const res = await api.chat(q, loadSettings().ieumdanChatUrl)
+    const res = await api.chat(q)
     messages.value.push({ me: false, res })
   } catch (e) {
     error.value = e.message
+    messages.value.pop()   // 보내지 못한 질문은 입력창으로 되돌린다
+    text.value = q
   } finally {
     busy.value = false
     await nextTick()
@@ -45,7 +46,7 @@ async function send() {
       <div class="chips">
         <button v-for="q in EXAMPLES" :key="q" type="button" class="chip" @click="ask(q)">{{ q }}</button>
       </div>
-      <p class="notice">보고서나 계획서가 필요하면 "3회차 활동보고서 초안 써 줘"처럼 말해도 해당 화면으로 안내합니다.</p>
+      <p class="notice">"활동보고서 쓰고 싶어"처럼 적으면 쓰는 화면으로 안내해 드립니다. Enter로 보내고, Shift+Enter로 줄을 바꿉니다.</p>
     </div>
     <div class="chat">
       <template v-for="(m, i) in messages" :key="i">
@@ -59,9 +60,9 @@ async function send() {
     <div class="composer">
       <form class="card" @submit.prevent="send">
         <textarea v-model="text" placeholder="예: 멘티가 20분 늦게 왔는데 어떻게 처리하나요?" maxlength="1000" aria-label="질문 입력"
-          @keydown.enter.exact.prevent="send"></textarea>
-        <div class="row" style="margin-top: 8px">
-          <span class="notice" style="flex: 1; margin: 0">멘티 이름·연락처·학교는 쓰지 마세요. 적혀 있으면 AI에 보내기 전에 가립니다.</span>
+          @keydown.enter.exact="(e) => e.isComposing || (e.preventDefault(), send())"></textarea>
+        <div class="row gap-top">
+          <span class="notice grow">멘티 이름·연락처·학교는 쓰지 마세요. 적혀 있으면 AI에 보내기 전에 가립니다.</span>
           <button class="primary" :disabled="busy || text.trim().length < 2">질문하기</button>
         </div>
       </form>

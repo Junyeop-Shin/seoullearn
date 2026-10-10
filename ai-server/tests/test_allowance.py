@@ -81,6 +81,13 @@ class EstimateTest(unittest.TestCase):
         self.assertEqual(r["valid_count"], 3)                              # 진행 횟수는 회차당 1회
         self.assertFalse(r["counts_for_stage"])
 
+    def test_unheld_two_hour_sessions_are_paid_for_one_hour(self):
+        # 활동가이드 p.36: 멘토 단독 접속은 120분 그룹도 60분만 인정. 진행하지 못한 회차는 시간확대여도 1시간분으로 잡고 확인하라고 알린다
+        r = allowance.estimate("온라인", normal=1, no_show=1, late_cancel=1, hours=2)
+        self.assertEqual([l["amount"] for l in r["lines"]], [2 * 16_630, 12_790, 3_840])
+        self.assertTrue(any("1시간분" in n for n in r["notes"]))
+        self.assertFalse(any("1시간분" in n for n in allowance.estimate("온라인", normal=1, hours=2)["notes"]))
+
     def test_vulnerable_is_shown_as_later_payment(self):
         r = allowance.estimate("오프라인", normal=4, vulnerable=True)
         self.assertEqual(r["total"], 4 * 30_000)
@@ -91,6 +98,46 @@ class EstimateTest(unittest.TestCase):
         r = allowance.estimate("오프라인", normal=2, late_cancel=1)
         self.assertEqual(r["total"], 60_000)
         self.assertTrue(any("온라인 멘토링에만" in n for n in r["notes"]))
+
+
+class MonthTest(unittest.TestCase):
+    def test_valid_count_is_summed_across_online_mentees(self):
+        # 활동가이드 p.45: 멘티 구분 없이 한 달의 유효 진행 횟수를 더한다 (A멘티 3회 + B멘티 2회 = 5회)
+        r = allowance.estimate_month([{"mode": "온라인", "normal": 3}, {"mode": "온라인", "normal": 2}, {"mode": "오프라인", "normal": 4}])
+        self.assertEqual((r["valid_count"], r["counts_for_stage"]), (5, True))        # 오프라인 회차는 세지 않는다
+        self.assertEqual([g["total"] for g in r["groups"]], [3 * 16_630, 2 * 16_630, 4 * 30_000])
+        self.assertEqual(r["total"], 5 * 16_630 + 120_000)
+        self.assertEqual(sum("유효 진행 횟수" in n for n in r["notes"]), 1)            # 합계로 한 번만 안내한다
+        low = allowance.estimate_month([{"mode": "온라인", "normal": 2}, {"mode": "온라인", "normal": 1, "no_show": 1}])
+        self.assertEqual((low["valid_count"], low["counts_for_stage"]), (3, False))   # 무단결석은 유효 진행 횟수가 아니다
+
+    def test_mentor_conditions_apply_to_every_row_and_extras_are_per_mentee(self):
+        r = allowance.estimate_month([{"mode": "온라인", "normal": 4, "senior": True, "hours": 2}, {"mode": "온라인", "normal": 4, "late_cancel": 1}],
+                                     stage=2, vulnerable=True)
+        senior = 12_790 + 3_840 + 1_280 + 2_560
+        plain = 12_790 + 3_840 + 1_280
+        self.assertEqual(r["groups"][0]["total"], 4 * 2 * senior)                     # 고학년지도와 취약계층지원은 겹치지 않는다
+        self.assertIsNone(r["groups"][0]["later"])
+        self.assertEqual(r["groups"][1]["total"], 4 * plain + 3_840)                  # 임박취소는 준비수당만
+        self.assertEqual(r["later_total"], 4 * 2_560)                                  # 취약계층지원 가산금은 나중에 정산
+        self.assertEqual(r["total"], 8 * senior + 4 * plain + 3_840)
+
+    def test_offline_only_month_has_no_stage_note(self):
+        r = allowance.estimate_month([{"mode": "오프라인", "normal": 4, "senior": True}])
+        self.assertEqual((r["total"], r["valid_count"], r["counts_for_stage"]), (4 * 36_000, None, None))
+        self.assertFalse(any("유효 진행 횟수" in n for n in r["notes"]))
+
+    def test_endpoint(self):
+        from fastapi.testclient import TestClient
+
+        from app import main
+
+        c = TestClient(main.app)
+        r = c.post("/tools/allowance_month", json={"groups": [{"mode": "온라인", "normal": 4}, {"mode": "오프라인", "normal": 2, "senior": True}], "stage": 3})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["total"], 4 * (12_790 + 3_840 + 2_560) + 2 * 36_000)
+        self.assertEqual(c.post("/tools/allowance_month", json={"groups": []}).status_code, 422)
+        self.assertEqual(c.post("/tools/allowance_month", json={"groups": [{"mode": "화상"}]}).status_code, 422)
 
 
 class RouterCalcTest(unittest.TestCase):
@@ -123,7 +170,8 @@ class RouterCalcTest(unittest.TestCase):
 
     def test_other_pay_questions_are_not_calc(self):
         for q in ("활동비 언제 들어와요?", "활동비에서 세금 얼마 떼요?", "두 달 연속으로 한 달에 4번씩 했으면 시급 올라가요?",
-                  "장학금은 얼마예요?"):
+                  "장학금은 얼마예요?", "멘티가 무단결석하면 활동비 얼마 받아요?", "임박취소되면 얼마 받나요?",
+                  "친화활동 하면 활동비 얼마예요?", "봉사형 멘토는 활동비 얼마 받아요?"):   # 조건이 붙은 금액은 일반 시간당 금액으로 답하지 않는다
             self.assertFalse(allowance.is_rate_question(q), q)
 
     def test_endpoint(self):
@@ -139,6 +187,7 @@ class RouterCalcTest(unittest.TestCase):
         self.assertEqual([m["stage"] for m in body["months"]], [1, 1, 2, 2, 3, 3])
         self.assertIn("추정 금액", body["disclaimer"])
         self.assertEqual(c.post("/tools/allowance", json={"mode": "화상"}).status_code, 422)
+        self.assertEqual(c.post("/tools/allowance", json={"mode": "온라인", "monthly_valid": [4, -1]}).status_code, 422)
         json.dumps(body)
 
 

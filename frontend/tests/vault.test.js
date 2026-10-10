@@ -42,6 +42,6 @@ describe('브라우저 보관함', () => {
   it('다른 파일은 받지 않는다', async () => {
     await expect(importAll({ items: [] })).rejects.toThrow('보관함 파일이 아닙니다')
     await expect(importAll({ format: FORMAT, version: 99, items: [] })).rejects.toThrow('더 새로운 버전')
-    expect(await importAll({ format: FORMAT, version: 1, items: [{ id: 'x' }, null, { id: 'ok', alias: 'A', formId: 'f' }] })).toBe(1)
+    expect(await importAll({ format: FORMAT, version: 1, items: [{ id: 'x' }, null, { id: 'old', alias: 'A', formId: 'f' }, { id: 'ok', alias: 'A', formId: 'f', savedAt: '2026-10-01T00:00:00.000Z' }] })).toBe(1)
   })
 })

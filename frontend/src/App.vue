@@ -2,13 +2,12 @@
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NavIcon from './components/NavIcon.vue'
-import { displayName, menteeFacts, menteePath, profileFromVault } from './lib/mentee'
-import { COURSE_ALIAS } from './lib/reports'
+import { displayName, menteeFacts, menteePath, menteesFromVault } from './lib/mentee'
 import { scheduleDue, todayText } from './lib/schedule'
 import { stageBadge } from './lib/stage'
 import { toasts } from './lib/toast'
 import { auth, logout } from './stores/auth'
-import { listItems, vaultChanges } from './stores/vault'
+import { vaultChanges } from './stores/vault'
 
 const router = useRouter()
 const route = useRoute()
@@ -17,7 +16,7 @@ watch(() => route.path, () => (open.value = false))
 
 // 멘티 한 명이 메뉴 하나다. 멘티 아래에는 단계와 무관한 도구만 둔다
 const GROUPS = [
-  { title: '도구', items: [{ to: '/', label: '매뉴얼 질문', icon: 'chat' }, { to: '/ieumdan', label: '이음단 요청', icon: 'send' },
+  { title: '도구', items: [{ to: '/', label: '매뉴얼 질문', icon: 'chat' }, { to: '/ieumdan', label: '이음단 연락처', icon: 'phone' },
     { to: '/places', label: '협약 장소', icon: 'pin' }, { to: '/allowance', label: '활동비 계산', icon: 'calc' }, { to: '/forms', label: '기타 서식', icon: 'folder' }] },
   { title: '설정', items: [{ to: '/settings', label: '멘토 설정', icon: 'settings' }, { to: '/vault', label: '백업·복원', icon: 'archive' }] },
 ]
@@ -26,10 +25,7 @@ const GROUPS = [
 const mentees = ref([])
 watch([() => auth.user, vaultChanges], async () => {
   try {
-    const by = {}
-    if (auth.user) for (const x of await listItems()) if (x.alias !== COURSE_ALIAS) (by[x.alias] ||= []).push(x)
-    mentees.value = Object.entries(by).map(([alias, items]) => ({ alias, profile: profileFromVault(items) })).filter((m) => m.profile)
-      .sort((a, b) => Number(a.profile.archived) - Number(b.profile.archived) || a.alias.localeCompare(b.alias, 'ko'))
+    mentees.value = auth.user ? await menteesFromVault() : []
   } catch {
     mentees.value = []
   }
@@ -38,6 +34,8 @@ watch([() => auth.user, vaultChanges], async () => {
 const due = () => scheduleDue(todayText()) && mentees.value.some((m) => m.profile.mode === '오프라인' && !m.profile.archived)
 
 async function signOut() {
+  // 멘티 자료는 계정이 아니라 이 브라우저에 있다: 여럿이 쓰는 컴퓨터에 남기지 않게 알린다
+  if (mentees.value.length && !window.confirm('멘티 자료는 로그아웃해도 이 브라우저에 남습니다. 여럿이 쓰는 컴퓨터라면 취소한 뒤 백업·복원에서 파일로 내보내고 보관함을 지워 주세요. 로그아웃할까요?')) return
   await logout()
   router.replace('/login')
 }
@@ -46,11 +44,11 @@ async function signOut() {
 <template>
   <div v-if="auth.user" class="app">
     <header class="topbar">
-      <button type="button" aria-label="메뉴 열기" @click="open = true">메뉴</button>
+      <button type="button" :aria-expanded="open" aria-controls="side-menu" @click="open = !open">메뉴</button>
       <span>서울런 멘토 도우미</span>
     </header>
     <div v-if="open" class="scrim" @click="open = false"></div>
-    <aside class="side" :class="{ open }">
+    <aside id="side-menu" class="side" :class="{ open }" @keydown.esc="open = false">
       <div class="brand"><span class="logo">런</span>서울런 멘토 도우미</div>
       <nav aria-label="주 메뉴">
         <router-link to="/mentees/new" class="nav add" data-test="nav-register"><NavIcon name="plus" />멘티 등록</router-link>
@@ -74,7 +72,7 @@ async function signOut() {
         <button type="button" class="small" @click="signOut">로그아웃</button>
       </div>
     </aside>
-    <main class="main"><router-view /></main>
+    <main class="main"><router-view :key="route.params.alias" /></main>
   </div>
   <router-view v-else />
   <div class="toasts" aria-live="polite"><div v-for="t in toasts" :key="t.id" class="toast">{{ t.message }}</div></div>

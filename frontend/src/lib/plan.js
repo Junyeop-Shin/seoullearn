@@ -80,10 +80,11 @@ const CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳'
 const ROMAN = 'ⅠⅡⅢⅣⅤ'
 export function platformSafe(text) {
   return String(text ?? '')
+    .replace(/^[ \t]*[·•ㆍ][ \t]*/gm, '')                               // 줄 머리의 글머리 기호는 뗀다
     .replace(/(\d)[·ㆍ](\d)/g, '$1.$2')                                  // 6·25 → 6.25
     .replace(/[①-⑳]/g, (c) => `(${CIRCLED.indexOf(c) + 1})`)
     .replace(/[Ⅰ-Ⅴ]/g, (c) => String(ROMAN.indexOf(c) + 1))
-    .replace(/\s*[·•ㆍ]\s*/g, ', ')
+    .replace(/[ \t]*[·•ㆍ][ \t]*/g, ', ')                               // 줄바꿈은 먹지 않는다
     .replace(/[^0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ\s.,()/~:\-]/g, ' ')
     .replace(/[ \t]+/g, ' ').replace(/ ,/g, ',').replace(/ +\)/g, ')').replace(/\( +/g, '(')
     .split('\n').map((x) => x.trim()).join('\n').trim()

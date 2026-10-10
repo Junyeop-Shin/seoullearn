@@ -1,4 +1,4 @@
-"""2단계 기능 테스트: 보고서 분리, 완료보고서, 인계 요약, 이음단 요청문, 답 못 한 질문 모음. 가짜 LLM만 쓴다."""
+"""2단계 기능 테스트: 완료보고서, 인계 요약, 답 못 한 질문 모음. 가짜 LLM만 쓴다. (붙여 넣은 보고서 나누기는 화면 쪽 규칙이다: frontend/src/lib/reportSplit.js)"""
 import json
 import unittest
 import unittest.mock
@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app import forms, unanswered
-from app.forms import handover, hooks_completion, ieumdan, report_split
+from app.forms import handover, hooks_completion
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -16,19 +16,6 @@ def sessions(mentee: str, subject: str = "수학") -> list[dict]:
     return [{"session_date": s["date"], "session_no": s["session_no"], "subject": subject, "course": "가상 강좌", "status": s["status"],
              **{k: v for k, v in s["mentor_input"].items() if k != "notes"}, "session_content": s["mentor_input"].get("notes", "")}
             for s in data["sessions"]]
-
-
-def as_pasted(reports: list[dict]) -> str:
-    """플랫폼에서 복사해 붙여 넣은 모양: '항목 이름: 값'이 보고서마다 이어진다."""
-    fields = forms.engine.load_form("activity_report")["fields"]
-    blocks = []
-    for r in reports:
-        lines = []
-        for f in fields:
-            value = {"mentee_name": "김민지", "mentee_grade": "고2", "mentor": "홍길동(가람대 수학과)"}.get(f["key"], r.get(f["key"], ""))
-            lines.append(f"{f['label']}: {value}")
-        blocks.append("\n".join(lines))
-    return "\n\n".join(blocks)
 
 
 class EchoLLM:
@@ -47,34 +34,6 @@ class EchoLLM:
         for item in json.loads(user.split("[만들 항목]\n", 1)[1]):
             out[item["key"]] = self.overrides.get(item["key"], item.get("input") or (["초안 항목"] if item["type"] == "list" else "초안"))
         return json.dumps(out, ensure_ascii=False)
-
-
-class SplitTest(unittest.TestCase):
-    def test_sixteen_pasted_reports_are_split(self):
-        reports = sessions("M1")
-        r = report_split.split(as_pasted(reports))
-        self.assertEqual([s["session_no"] for s in r["sessions"]], list(range(1, 17)))
-        self.assertEqual(r["warnings"], [])
-        for got, want in zip(r["sessions"], reports):
-            for key in ("session_date", "actual_time", "scope", "attendance", "homework", "progress_scale"):
-                self.assertEqual(got.get(key, ""), want[key], (want["session_no"], key))
-            for pii in ("mentee_name", "mentee_grade", "mentor"):
-                self.assertNotIn(pii, got)   # 개인정보 칸은 읽고 버린다
-        self.assertNotIn("김민지", json.dumps([{k: v for k, v in s.items() if k != "session_content"} for s in r["sessions"]], ensure_ascii=False))
-
-    def test_out_of_order_missing_and_duplicate(self):
-        reports = sessions("M1")
-        text = as_pasted([reports[2], reports[0], reports[4], reports[4]])
-        r = report_split.split(text)
-        self.assertEqual([s["session_no"] for s in r["sessions"]], [1, 3, 5])
-        self.assertTrue(any("빠진 회차" in w and "2, 4" in w for w in r["warnings"]))
-        self.assertTrue(any("두 번" in w for w in r["warnings"]))
-
-    def test_label_variants_and_garbage(self):
-        text = "멘토링 일자\n2026-03-09\n진행 회차 : 1회차\n진행시간: 17:03~18:05\n학습진도 - 출결: 정시 입장\n"
-        r = report_split.split(text)
-        self.assertEqual(r["sessions"][0], {"session_date": "2026-03-09", "session_no": 1, "actual_time": "17:03~18:05", "attendance": "정시 입장"})
-        self.assertEqual(report_split.split("아무 글이나 붙여 넣음")["sessions"], [])
 
 
 class CompletionReportTest(unittest.TestCase):
@@ -126,7 +85,11 @@ class CompletionReportTest(unittest.TestCase):
         r = forms.draft("completion_report", {}, EchoLLM(), {"reports": sessions("M1")[:3]})
         keys = {q["key"] for q in r.missing_questions}
         self.assertTrue({"learning_goal", "extension_mentor", "extension_mentee"} <= keys)
-        self.assertTrue(any("3건" in w for w in r.warnings))
+        self.assertTrue(any("3건" in w and "16회차" in w for w in r.warnings))
+        # 시간확대(120분)는 한 회기가 8회차다: 8건이면 다 마친 것이고, 안내도 8회차로 나온다
+        long = forms.draft("completion_report", {}, EchoLLM(), {"reports": sessions("M1")[:8], "duration": "120"})
+        self.assertFalse(any("마친 뒤 작성" in w for w in long.warnings))
+        self.assertTrue(any("8회차 활동보고서가 승인된 직후" in x for x in long.reminders))
         llm = EchoLLM()
         r = forms.draft("completion_report", {}, llm, {"reports": []})
         self.assertEqual((r.draft["content"], r.draft["achievement"], r.draft["session_list"]), ([], [], []))
@@ -176,6 +139,18 @@ class HandoverTest(unittest.TestCase):
         self.assertEqual(handover.last_lecture(self.reports), {"마지막으로 수강한 강": "8강", "다음 시작": "9강"})
         self.assertEqual(handover.last_lecture([{"lecture_progress": "7강 미수강 (시험 준비)"}]), {})
         self.assertEqual(handover.last_lecture([{"lecture_progress": "4, 5강 수강"}])["다음 시작"], "6강")
+        # 활동보고서 화면이 만드는 줄: 안 들은 강은 세지 않는다
+        watched = [{"session_no": 1, "lecture_progress": "인강: 5강 수강함"}, {"session_no": 2, "lecture_progress": "인강: 6강 수강하지 않음"}]
+        self.assertEqual(handover.last_lecture(watched)["다음 시작"], "6강")
+        self.assertEqual(handover.last_lecture([{"lecture_progress": "인강: 3~4강 수강하지 않음"}]), {})
+        self.assertEqual(handover.last_lecture([{"lecture_progress": "5강 수강, 6, 7강 미수강"}])["다음 시작"], "6강")
+        # 회기 중에 강좌를 바꿨으면 지금 강좌의 번호를 쓴다
+        changed = [{"session_no": 1, "course": "강좌 가", "lecture_progress": "인강: 12강 수강함"}, {"session_no": 2, "course": "강좌 나", "lecture_progress": "인강: 1강 수강함"}]
+        self.assertEqual(handover.last_lecture(changed)["다음 시작"], "2강")
+        # '약하'는 낱말 머리일 때만 학업 수준으로 본다 (예약하지, 요약하는)
+        for ok in ("스터디카페를 예약하지 못한 주에는 온라인으로 진행함.", "지난 회차 내용을 요약하는 과제를 꾸준히 해 옴."):
+            self.assertEqual(handover.second_check(ok, "attendance_pattern"), (ok, []))
+        self.assertEqual(handover.second_check("독해가 약함.", "attitude")[0], "")
         r = handover.build(self.reports, EchoLLM(overrides={"summary": "8강까지 수강함. 다음 시작은 9강임."}))
         self.assertEqual(r["summary"]["course_progress"], "8강까지 수강함. 다음 시작은 9강임.")   # 규칙이 계산한 숫자는 통과
         self.assertEqual(handover.second_check("단어 과제를 다 외우지 못한 주가 있음.", "homework_pattern")[1], [])
@@ -192,57 +167,6 @@ class HandoverTest(unittest.TestCase):
         forms.draft("plan_initial", {"duration": "60", "weekday": "수", "start_datetime": "2026-10-14 19:00"}, llm,
                     {"pre_contact": {"goal": "문법 기본"}, "handover": r["summary"]})
         self.assertIn("대체로 정시에 출석함.", llm.calls[0][1])
-
-
-class IeumdanRequestTest(unittest.TestCase):
-    NOW = datetime(2026, 10, 12, 10, 0)   # 월요일
-
-    def test_default_now_is_korean_time(self):
-        from zoneinfo import ZoneInfo
-
-        seen = []
-
-        class Clock(datetime):
-            @classmethod
-            def now(cls, tz=None):
-                seen.append(tz)
-                return datetime(2026, 10, 12, 8, 0, tzinfo=tz)
-
-        with unittest.mock.patch.object(ieumdan, "datetime", Clock):
-            ieumdan.build("장소 요청", region="강서구")
-        self.assertEqual(seen, [ZoneInfo("Asia/Seoul")])
-
-    def test_schedule_change_three_day_rule(self):
-        ok = ieumdan.build("일정 변경", current=datetime(2026, 10, 15, 19, 0), desired=datetime(2026, 10, 16, 19, 0), now=self.NOW)
-        self.assertEqual(ok["warnings"], [])
-        self.assertIn("기존: 10월 15일(목) 19:00", ok["message"])
-        self.assertIn("변경 희망: 10월 16일(금) 19:00", ok["message"])
-        late = ieumdan.build("일정 변경", current=datetime(2026, 10, 14, 19, 0), desired=datetime(2026, 10, 16, 19, 0), now=self.NOW)
-        self.assertTrue(any("2일 남았습니다" in w and "3일 전" in w for w in late["warnings"]))
-        past = ieumdan.build("일정 변경", current=datetime(2026, 10, 10, 19, 0), desired=datetime(2026, 10, 16, 19, 0), now=self.NOW)
-        self.assertTrue(any("이미 지났습니다" in w for w in past["warnings"]))
-        night = ieumdan.build("일정 변경", current=datetime(2026, 10, 20, 19, 0), desired=datetime(2026, 10, 21, 21, 30), now=self.NOW)
-        self.assertTrue(any("09:00~22:00" in w for w in night["warnings"]))
-        weekend = ieumdan.build("일정 변경", current=datetime(2026, 10, 20, 19, 0), desired=datetime(2026, 10, 21, 19, 0),
-                                now=datetime(2026, 10, 17, 10, 0))
-        self.assertTrue(any("주말" in w for w in weekend["warnings"]))
-
-    def test_place_request_is_short_and_has_no_names(self):
-        r = ieumdan.build("장소 요청", region="가람중 근처, 김민지 학생 집에서 가까운 곳", schedule="매주 수 19:00~20:00", now=self.NOW)
-        self.assertNotIn("김민지", r["message"])
-        self.assertNotIn("가람중", r["message"])
-        self.assertEqual(r["pii_masked"], ["이름", "학교명"])
-        self.assertLess(r["length"], 200)
-        self.assertIn("희망 일정: 매주 수 19:00~20:00", r["message"])
-        self.assertTrue(ieumdan.build("장소 요청", now=self.NOW)["warnings"])
-        with self.assertRaises(ValueError):
-            ieumdan.build("환불 요청")
-
-    def test_place_change(self):
-        r = ieumdan.build("장소 변경", region="옆 동네 청소년센터", current=datetime(2026, 10, 24, 10, 0), reason="멘티 이동 거리", now=self.NOW)
-        self.assertIn("장소 변경을 요청드립니다", r["message"])
-        self.assertIn("사유: 멘티 이동 거리", r["message"])
-        self.assertTrue(any("3일 전" in x for x in r["reminders"]))
 
 
 class UnansweredTest(unittest.TestCase):
@@ -307,14 +231,8 @@ class UnansweredTest(unittest.TestCase):
 
         with unittest.mock.patch.object(main, "_draft_llm", lambda: EchoLLM()):
             c = TestClient(main.app)
-            r = c.post("/drafts/split_reports", json={"text": as_pasted(sessions("M1")[:2])})
-            self.assertEqual(len(r.json()["sessions"]), 2)
             r = c.post("/drafts/handover_summary", json={"reports": sessions("M2", "영어")})
             self.assertEqual(len(r.json()["summary"]), 4)
-            r = c.post("/drafts/ieumdan_request", json={"kind": "일정 변경", "current": "2030-01-10T19:00", "desired": "2030-01-11T19:00"})
-            self.assertEqual(r.status_code, 200)
-            self.assertIn("일정 변경을 요청드립니다", r.json()["message"])
-            self.assertEqual(c.post("/drafts/ieumdan_request", json={"kind": "기타"}).status_code, 422)
             r = c.post("/drafts/completion_report", json={"inputs": {}, "extra": {"reports": sessions("M1")}})
             self.assertEqual(len(r.json()["draft"]["session_list"]), 16)
 

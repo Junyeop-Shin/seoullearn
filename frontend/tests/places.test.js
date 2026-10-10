@@ -18,6 +18,23 @@ describe('협약 장소', () => {
     }
   })
 
+  it('임시 스터디카페 자료: 25개 자치구마다 5곳 이상이고, 임시 자료라는 안내가 있다', () => {
+    const temp = JSON.parse(readFileSync(resolve(process.cwd(), '..', 'data', 'places', 'study_cafes_temp.json'), 'utf-8'))
+    expect(temp.sample).toBe(true)                       // 화면이 '실제 협약 장소가 아님'을 알린다
+    expect(temp.notice).toContain('실제 협약 장소가 아니')
+    const ds = districts(temp.places)
+    expect(ds).toHaveLength(25)
+    for (const d of ds) expect(filterPlaces(temp.places, { district: d }).length, d).toBeGreaterThanOrEqual(5)
+    expect(new Set(temp.places.map((x) => x.id)).size).toBe(temp.places.length)
+    for (const x of temp.places) {
+      expect(x.address.startsWith(`서울 ${x.district} `), x.id).toBe(true)
+      expect(x.lat).toBeGreaterThan(37.4); expect(x.lat).toBeLessThan(37.72)
+      expect(x.lng).toBeGreaterThan(126.75); expect(x.lng).toBeLessThan(127.2)
+      expect(x.name.trim() && x.type, x.id).toBeTruthy()
+      expect(x.note, x.id).toBe('')   // 임시라는 안내는 위의 notice 한 번이면 된다 (장소마다 되풀이하지 않는다)
+    }
+  })
+
   it('자치구로 거른다', () => {
     const ds = districts(data.places)
     expect(ds).toContain('마포구')

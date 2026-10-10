@@ -90,7 +90,6 @@ def required_inputs(form_id: str) -> tuple[str, ...]:
 # ----------------------------------------------------------------- 그래프
 class ChatState(TypedDict, total=False):
     message: str            # 원문. 로그·저장에 쓰지 않는다
-    ieumdan_chat_url: str | None
     masked: str             # 가드를 거친 문장 (LLM에는 이것만 보낸다)
     pii_masked: list[str]
     intent: str             # qa | report | plan | safety
@@ -119,24 +118,22 @@ def build_graph(llm_factory: Callable[[], ChatLLM], retriever_factory: Callable[
         return {"intent": intent, "method": "llm", "classify_error": err}
 
     def safety_node(state: ChatState) -> ChatState:
-        info, _ = qa.route_contact("운영사무국(즉시)")
         return {"result": {"answer": guard.SAFETY_ANSWER, "answerable": "yes", "route": "운영사무국(즉시)",
-                           "route_info": info, "route_link": None, "citations": [], "safety": True}}
+                           "route_info": qa.route_contact("운영사무국(즉시)"), "citations": [], "safety": True}}
 
     def qa_node(state: ChatState) -> ChatState:
         llm = llm_factory()
         res = qa.answer(state["message"], retriever_factory(), llm, settings.top_k)
-        draft = inquiry.build(res, llm, state.get("ieumdan_chat_url"))
-        info, link = qa.route_contact(res.route, state.get("ieumdan_chat_url"))
-        return {"result": {"answer": res.answer, "answerable": res.answerable, "route": res.route, "route_info": info,
-                           "route_link": link, "citations": res.cite_labels, "safety": res.safety,
+        draft = inquiry.build(res, llm)
+        return {"result": {"answer": res.answer, "answerable": res.answerable, "route": res.route, "route_info": qa.route_contact(res.route),
+                           "citations": res.cite_labels, "safety": res.safety,
                            "inquiry_draft": draft.text if draft else None,
                            "inquiry_contact": draft.contact if draft else None, "error": bool(res.error)}}
 
     def calc_node(state: ChatState) -> ChatState:
         r = allowance.answer_rate_question(state["masked"])
-        return {"result": {"answer": r["answer"], "answerable": "yes", "route": None, "route_info": None, "route_link": None,
-                           "citations": r["citations"], "safety": False, "screen": "활동비 계산기"}}
+        return {"result": {"answer": r["answer"], "answerable": "yes", "route": None, "route_info": None,
+                           "citations": r["citations"], "safety": False, "screen": "활동비 계산"}}
 
     def screen_node(state: ChatState) -> ChatState:
         s = SCREENS[state["intent"]]

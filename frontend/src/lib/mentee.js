@@ -2,7 +2,8 @@
 // 이름과 학년도 받지만 서버와 AI로는 보내지 않는다: 초안의 [멘티명] 같은 자리표시를 이 브라우저에서 채우는 데만 쓴다.
 // 학교, 연락처, 가정 사정은 칸이 없다.
 import { endTime, weekdayOf } from './schedule'
-import { withState } from './stage'
+import { totalRounds, withState } from './stage'
+import { listItems } from '../stores/vault'
 
 export const PROFILE_FORM = 'mentee_profile'
 const CURRENT_KEY = 'seoullearn.currentMentee.v1'
@@ -16,7 +17,7 @@ export const PROFILE_FIELDS = [
   { key: 'subject', label: '신청 과목', control: 'select', options: SUBJECTS },
   { key: 'subjectEtc', label: '신청 과목 기타', control: 'text', example: '검정고시 수학', help: "과목이 '기타'이거나 덧붙일 말이 있을 때만 적습니다." },
   { key: 'district', label: '자치구', control: 'select', options: DISTRICTS, help: '협약 장소와 이음단 채널을 찾는 기준입니다.' },
-  { key: 'mode', label: '멘토링 방식', control: 'select', options: ['온라인', '오프라인'], help: "오프라인이면 왼쪽 메뉴의 '오프라인 일정·장소'에서 장소와 일정을 이음단에 요청합니다." },
+  { key: 'mode', label: '멘토링 방식', control: 'select', options: ['온라인', '오프라인'], help: "오프라인이면 메뉴의 '오프라인 일정·장소'에서 장소와 일정을 이음단에 요청합니다." },
   { key: 'duration', label: '회당 학습시간(분)', control: 'select', options: ['60', '120'], help: '기본은 60분입니다. 120분(시간확대)은 보통 고등 과정 멘티가 1회기를 마친 뒤 신청하고, 승인을 받아야 합니다.' },
   { key: 'course', label: '학습사이트와 수강 강좌', control: 'text', example: '메가스터디 수학의 시작, 시발점 - 수1', wide: true },
   { key: 'start_datetime', label: '1회차 일시', control: 'datetime-local', help: '회차 번호와 날짜를 자동으로 채우는 기준입니다.' },
@@ -29,18 +30,18 @@ export function emptyProfile() {
     archived: false, lastHomework: null }
 }
 
-/** 멘티의 상세 정보 한 줄: 고1 · 수학 · 성동구 · 오프라인. 적지 않은 항목은 뺀다. */
-export function menteeFacts(profile) {
+/** 멘티의 상세 정보 [학년, 과목, 자치구, 방식]. 적지 않은 항목은 뺀다. */
+export function facts(profile) {
   const subject = profile?.subject === '기타' ? profile.subjectEtc || '기타' : profile?.subject
-  return [profile?.grade, subject, profile?.district, profile?.mode].filter((x) => x && String(x).trim()).join(' · ')
+  return [profile?.grade, subject, profile?.district, profile?.mode].filter((x) => x && String(x).trim())
 }
+/** 상세 정보 한 줄: 고1 · 수학 · 성동구 · 오프라인 */
+export const menteeFacts = (profile) => facts(profile).join(' · ')
 
 /** 메뉴에 보이는 이름: 김OO (고1, 수학, 성동구, 오프라인). 적지 않은 항목은 뺀다. */
 export function displayName(profile, alias = '') {
   const name = (profile?.name || alias || '').trim()
-  const subject = profile?.subject === '기타' ? profile.subjectEtc || '기타' : profile?.subject
-  const facts = [profile?.grade, subject, profile?.district, profile?.mode].filter((x) => x && String(x).trim())
-  return facts.length ? `${name} (${facts.join(', ')})` : name
+  return facts(profile).length ? `${name} (${facts(profile).join(', ')})` : name
 }
 
 /** 정규 일정 [{weekday, startTime}]. 따로 적지 않았으면 1회차 일시의 요일과 시각을 쓴다. */
@@ -76,10 +77,12 @@ export function profileFromVault(items) {
   return found ? withState({ ...emptyProfile(), ...found.draft, _id: found.id }, items) : null
 }
 
-/** 다음에 쓸 활동보고서 회차: 저장된 회차 중 가장 큰 값 + 1. */
-export function nextSessionNo(items) {
-  const nos = items.filter((x) => x.formId === 'activity_report').map((x) => Number(x.sessionNo ?? x.inputs?.session_no)).filter(Boolean)
-  return nos.length ? Math.max(...nos) + 1 : 1
+/** 보관함의 멘티 목록 [{alias, items, profile}]: 멘티 정보가 있는 별칭만, 종료한 멘티는 뒤로. 보관함은 한 번만 읽는다. */
+export async function menteesFromVault() {
+  const by = {}
+  for (const x of await listItems()) (by[x.alias] ||= []).push(x)
+  return Object.entries(by).map(([alias, items]) => ({ alias, items, profile: profileFromVault(items) })).filter((m) => m.profile)
+    .sort((a, b) => Number(a.profile.archived) - Number(b.profile.archived) || a.alias.localeCompare(b.alias, 'ko'))
 }
 
 /** 1회차 일시와 회차 번호로 예상 날짜(YYYY-MM-DD). 매주 같은 요일에 한다고 보고 계산한다. */
@@ -88,29 +91,6 @@ export function suggestDate(startDatetime, sessionNo) {
   if (!m || !sessionNo) return ''
   const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 7 * (sessionNo - 1)))
   return d.toISOString().slice(0, 10)
-}
-
-/** '수학 / 강좌명 / 매주(월) 17:00~18:00' (종합계획서②의 과목 및 시간 칸). 정보가 부족하면 있는 것만. */
-export function subjectTimeText(p) {
-  const parts = [p.subject, p.course].filter((x) => x && x.trim())
-  const t = /T(\d{2}):(\d{2})/.exec(p.start_datetime || '')
-  if (p.weekday && t) {
-    const start = Number(t[1]) * 60 + Number(t[2])
-    const end = start + (Number(p.duration) || 60)
-    const hm = (n) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`
-    parts.push(`매주(${p.weekday}) ${hm(start)}~${hm(end)}`)
-  } else if (p.weekday) parts.push(`매주(${p.weekday})`)
-  return parts.join(' / ')
-}
-
-/** 종합계획서① 초안에 넘길 사전 정보 (멘티 정보에서 만든다). */
-export function preContactFromProfile(p) {
-  const out = {}
-  if (p.subject || p.mode) out.subject_confirm = [p.subject, p.mode].filter(Boolean).join(', ')
-  if (p.course) out.site_course = p.course
-  if (p.level) out.level = p.level
-  if (p.goal) out.goal = p.goal
-  return out
 }
 
 // 지금 보고 있는 멘티의 별칭. 화면을 옮겨 다녀도 유지한다 (별칭은 실명이 아니다).
@@ -130,11 +110,10 @@ export function setCurrentAlias(alias) {
   }
 }
 
-export const TOTAL_SESSIONS = 16
 // 회기를 정리할 때 남기는 자료: 멘티 정보, 완료보고서, 인계 요약
 export const KEEP_AFTER_TERM = [PROFILE_FORM, 'completion_report', 'handover_summary', 'term_summary']
 
-/** 회차 목록: 1~16회차(저장한 회차가 더 크면 거기까지). 저장한 회차에는 날짜와 상태를 붙인다. */
+/** 회차 목록: 1회차부터 그 회기의 회차 수까지(저장한 회차가 더 크면 거기까지). 저장한 회차에는 날짜와 상태를 붙인다. */
 export function sessionRows(items, profile) {
   const latest = new Map()
   for (const x of items) {
@@ -144,7 +123,7 @@ export function sessionRows(items, profile) {
     const prev = latest.get(no)
     if (!prev || prev.savedAt < x.savedAt) latest.set(no, x)
   }
-  const last = Math.max(TOTAL_SESSIONS, ...latest.keys())
+  const last = Math.max(totalRounds(profile), ...latest.keys())
   const rows = []
   for (let no = 1; no <= last; no += 1) {
     const x = latest.get(no)

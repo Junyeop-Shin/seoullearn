@@ -26,18 +26,18 @@
 
 | `formId` | 2단계에서 쓰는 곳 | 주로 읽는 것 |
 | --- | --- | --- |
-| `activity_report` | 다음 회차 보고서, 완료보고서(회차별 수행 리스트), 인계 요약 | `sessionNo`, `draft` 전체, `extra.assignedHomework`(`{lecture, task}`: 이번에 낸 과제), `extra.quick`(빠른 입력 원본) |
+| `activity_report` | 다음 회차 보고서, 완료보고서(회차별 수행 리스트), 인계 요약 | `sessionNo`, `draft` 전체, `extra.assignedHomework`(`{lecture, task}`: 이번에 낸 과제), `extra.quick`(고른 것: 상태, 진행일, 진행시간, 인강을 들었는지, 과제를 했는지), `extra.sheet`(플랫폼 칸의 글: `content`, `progress[]`, `understanding[]`, `etc`, `requests`. 칸마다 글 하나이고, 시간확대면 `progress`와 `understanding`이 전반·후반 두 개), `extra.auto`(규칙으로 넣어 둔 학습 진도 줄: 멘토가 고쳤는지 견준다). `draft.progress_note`는 학습 진도 칸 전체(완료보고서 초안의 재료)다. 다음 회차까지 내 준 과제는 `extra.sheet.understanding`의 글에서 문장으로 찾는다. 예전 화면으로 저장한 보고서는 `extra.sheet`가 없거나 칸이 `{good, lacking, improve}` 모양이고 `extra.assignedHomework`(`{lecture, task}`)가 있다: 읽을 때 글로 바꾼다 |
 | `plan_initial` | 종합계획서②, 활동보고서(이번 주차 계획), 완료보고서(학습목표) | `draft`, `extra.memo`(멘토가 적은 메모), `extra.rows`(커리큘럼 표 `[{week, date, time, edited, content, online, mentoring}]`. `online`은 몇 강인지, `mentoring`은 학습 내용, `course`는 그 주차의 강좌 번호. `edited`는 멘토가 그 회차의 일시를 직접 고쳤다는 표시) |
 | `plan_file` | 활동보고서(이번 주차 계획), 완료보고서(학습목표 대비 성취도) | `draft.learning_goal`, `extra.rows`, `extra.courses`(수강 강좌 목록 `[{platform, lecture, instructor, done, lectures}]`. 예전 자료는 `extra.course` 하나), `extra.common`(과목, 진행 일정), `extra.alloc`(배분 방식), `extra.value`(칸마다 적은 글), `extra.base`(가져올 때의 종합계획서① 글: 고치지 않은 칸을 가려낸다), `extra.defaults`(규칙으로 만든 멘토링 구성). 예전 자료의 `extra.changed`는 읽지 않는다 |
 | `handover_summary` | 다음 멘토의 종합계획서① 인계 요약 칸 | `draft` (`attendance_pattern`, `homework_pattern`, `attitude`, `course_progress`) |
 | `completion_report` | 지난 회기 요약의 재료, 보관용 | `draft` 전체 |
 | `term_summary` | 다음 회기 종합계획서①의 참고와 AI 재료 | `draft`: `term`, `rounds`, `course`, `goal`, `last_scope`, `next_homework`, `content`, `achievement`, `next_course`(다음 회기에 들을 강좌, 선택). 다음 회기를 시작할 때 만든다. 감성케어 칸은 넣지 않는다 |
 | `mentee_profile` | 왼쪽 메뉴, 단계 진행, 모든 화면의 자동 입력 | `draft`: `name`, `grade`, `subject`, `subjectEtc`, `district`, `mode`, `duration`, `course`, `start_datetime`, `regularSchedule`(`[{weekday, startTime}]`), `venue`, `goal`, `level`, `term`, `currentRound`, `stage`, `archived`, `lastHomework`. 연락처·학교 칸은 없다. `stage`가 없는 예전 자료는 저장된 문서로 단계를 짐작한다 (`lib/stage.js`의 `withState`) |
-| `course_outline` | (2026-10-11부터 만들지 않음. 예전 자료만 남아 있다) 종합계획서의 강의 목차 (내 강좌) | `title`(강좌 이름), `draft.lectures` (`[{no, title, unit, minutes}]`). `alias`는 항상 `내 강좌` |
+| `course_outline` | (2026-10-11부터 만들지도 읽지도 않음. 예전 자료만 남아 있다) 종합계획서의 강의 목차 (내 강좌) | `title`(강좌 이름), `draft.lectures` (`[{no, title, unit, minutes}]`). `alias`는 항상 `내 강좌` |
 
 읽는 코드는 `frontend/src/lib/reports.js`에 있다 (`reportsFromVault`, `goalsFromVault`, `handoverFromVault`, `curriculumRow`, `previousHomework`).
 
-`draft`의 개인정보 칸에는 서버가 준 자리표시(`[멘티명]`)가 그대로 저장된다. 화면이 보여 줄 때 멘티 정보와 멘토 설정의 값으로 채운다. 멘토 설정(이름, 연락처, 멘토링 유형, 대학교·전공, 이음단 주소)은 보관함이 아니라 localStorage(`seoullearn.settings.v1`)에 있어 내보내기 파일에 들어가지 않는다.
+`draft`의 개인정보 칸에는 서버가 준 자리표시(`[멘티명]`)가 그대로 저장된다. 화면이 보여 줄 때 멘티 정보와 멘토 설정의 값으로 채운다. 멘토 설정(이름, 연락처, 멘토링 유형, 대학교·전공)은 보관함이 아니라 localStorage(`seoullearn.settings.v1`)에 있어 내보내기 파일에 들어가지 않는다.
 
 같은 멘티의 활동보고서는 `alias`가 같고 `formId`가 `activity_report`인 항목을 `sessionNo` 순으로 읽는다. 같은 회차가 여러 번 저장돼 있으면 `savedAt`이 가장 늦은 것을 쓴다.
 
@@ -66,7 +66,7 @@
 }
 ```
 
-- 가져올 때 `format`이 다르거나 `version`이 더 높으면 받지 않는다.
+- 가져올 때 `format`이 다르거나 `version`이 더 높으면 받지 않는다. `id`, `alias`, `formId`, `savedAt`이 글이 아닌 항목은 건너뛴다.
 - 파일에는 초안 내용이 그대로 들어 있다. 멘토가 직접 안전하게 보관해야 한다.
 
 ## 회기 정리
@@ -75,4 +75,4 @@
 
 ## 형식을 바꿀 때
 
-필드를 더하는 것은 `version`을 올리지 않아도 된다. 필드의 뜻을 바꾸거나 없애면 `version`을 올리고, `vault.js`의 `onupgradeneeded`와 `importAll`에 옛 버전 변환을 넣는다.
+필드를 더하는 것은 `version`을 올리지 않아도 된다. 필드의 뜻을 바꾸거나 없애면 `version`을 올리고 `importAll`에 옛 버전 변환을 넣는다. 이 `version`은 파일 형식의 버전이고, 브라우저 DB(IndexedDB)의 버전은 `vault.js`의 `indexedDB.open(DB_NAME, 1)`에 따로 있다(저장소 구조를 바꿀 때만 올리고 `onupgradeneeded`를 함께 고친다).

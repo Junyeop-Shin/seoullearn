@@ -1,24 +1,20 @@
 <script setup>
-import { ref } from 'vue'
 import { copyText } from '../lib/copy'
 
 // 답변 한 건: 본문, 근거 카드, 문의처 카드, 문의 초안, 가린 개인정보.
 const props = defineProps({ res: { type: Object, required: true } })
-const copied = ref(false)
 // 보고서와 계획서는 멘티를 고른 뒤 그 멘티 화면에서 쓴다
 const SCREEN = { report: '/mentees', plan: '/mentees', calc: '/allowance' }
 const LABEL = { report: '내 멘티에서 활동보고서 쓰기', plan: '내 멘티에서 종합계획서 쓰기' }
 
-async function copyDraft() {
-  copied.value = await copyText(props.res.inquiry_draft)
-}
+const copyDraft = () => copyText(props.res.inquiry_draft, '문의 초안')
 </script>
 
 <template>
   <div class="bubble bot">
     <div>{{ res.answer }}</div>
-    <div v-if="res.screen" class="row" style="margin-top: 8px">
-      <router-link :to="SCREEN[res.intent] || '/'"><button type="button" class="primary small">{{ LABEL[res.intent] || `${res.screen} 화면으로 이동` }}</button></router-link>
+    <div v-if="res.screen" class="row gap-top">
+      <router-link :to="SCREEN[res.intent] || '/'" class="linkbutton primary small">{{ LABEL[res.intent] || `${res.screen} 화면으로 이동` }}</router-link>
     </div>
     <ul v-if="res.required_inputs?.length" class="muted"><li v-for="x in res.required_inputs" :key="x">{{ x }}</li></ul>
 
@@ -29,18 +25,16 @@ async function copyDraft() {
       <div class="mini">
         <span class="t">문의처: {{ res.route }}</span>
         <span>{{ res.route_info }}</span>
-        <div v-if="res.route_link" style="margin-top: 6px">
-          <a :href="res.route_link" target="_blank" rel="noopener noreferrer"><button type="button" class="small primary">이음단 오픈채팅 열기</button></a>
+        <div v-if="res.route === '이음단'" class="gap-top">
+          <router-link to="/ieumdan" class="linkbutton small primary" data-test="route-contacts">자치구별 이음단 카카오톡 채널 보기</router-link>
         </div>
-        <div v-else-if="res.route === '이음단'" class="notice">설정에서 소속 이음단 오픈채팅 주소를 저장하면 여기에 바로가기 버튼이 나옵니다.</div>
       </div>
     </div>
-    <div v-if="res.inquiry_draft" class="mini" style="margin-top: 8px" data-test="inquiry">
+    <div v-if="res.inquiry_draft" class="mini gap-top" data-test="inquiry">
       <span class="t">문의 초안</span>
-      <div style="white-space: pre-wrap">{{ res.inquiry_draft }}</div>
-      <div class="row" style="margin-top: 6px">
+      <div class="pre">{{ res.inquiry_draft }}</div>
+      <div class="row gap-top">
         <button type="button" class="small" @click="copyDraft">문의 초안 복사</button>
-        <span v-if="copied" class="ok">복사했습니다</span>
         <span class="muted">{{ res.inquiry_contact }}</span>
       </div>
     </div>

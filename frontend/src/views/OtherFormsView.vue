@@ -67,7 +67,7 @@ async function save() {
     <template v-if="!route.params.formId">
       <h1>기타 서식</h1>
       <p v-if="!list.length" class="muted">추가된 서식이 없습니다.</p>
-      <router-link v-for="f in list" :key="f.form_id" :to="`/forms/${f.form_id}`" class="card" style="display: block; text-decoration: none; color: inherit">
+      <router-link v-for="f in list" :key="f.form_id" :to="`/forms/${f.form_id}`" class="card mentee-card">
         <strong>{{ f.title }}</strong>
       </router-link>
     </template>

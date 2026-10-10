@@ -4,8 +4,8 @@ export function districts(places) {
   return [...new Set(places.map((p) => p.district))].sort((a, b) => a.localeCompare(b, 'ko'))
 }
 
-export function filterPlaces(places, { district = '', type = '' } = {}) {
-  return places.filter((p) => (!district || p.district === district) && (!type || p.type === type))
+export function filterPlaces(places, { district = '' } = {}) {
+  return places.filter((p) => !district || p.district === district)
 }
 
 /** 카카오맵에서 이 위치를 여는 주소 (키 없이도 열린다). */
@@ -23,7 +23,7 @@ export function loadKakao(key) {
       const s = document.createElement('script')
       s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&autoload=false`
       s.onload = () => {
-        if (!window.kakao?.maps) return reject(new Error('지도를 불러오지 못했습니다.'))
+        if (!window.kakao?.maps) return (sdk = null), reject(new Error('지도를 불러오지 못했습니다.'))
         window.kakao.maps.load(() => resolve(window.kakao))
       }
       s.onerror = () => {

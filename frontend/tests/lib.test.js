@@ -47,12 +47,11 @@ describe('양식 스키마 → 입력 칸', () => {
 
 describe('설정 (이 브라우저에만 저장)', () => {
   beforeEach(() => localStorage.clear())
-  it('오픈채팅 주소만 저장한다', () => {
-    expect(saveSettings({ ieumdanChatUrl: 'https://example.com/chat' })).toBe(false)
-    expect(loadSettings().ieumdanChatUrl).toBe('')
-    expect(saveSettings({ ieumdanChatUrl: ' https://open.kakao.com/o/abc123 ' })).toBe(true)
-    expect(loadSettings().ieumdanChatUrl).toBe('https://open.kakao.com/o/abc123')
-    expect(saveSettings({ ieumdanChatUrl: '' })).toBe(true)
+  it('멘토 정보만 저장하고, 예전에 저장한 이음단 주소 같은 다른 값은 읽지 않는다', () => {
+    localStorage.setItem('seoullearn.settings.v1', JSON.stringify({ name: '이멘토', ieumdanChatUrl: 'https://open.kakao.com/o/old', ieumdanChats: { 성동구: 'x' } }))
+    expect(loadSettings()).toEqual({ name: '이멘토', phone: '', mentoringType: '', university: '', major: '' })
+    saveSettings({ phone: ' 010-0000-0000 ' })
+    expect(JSON.parse(localStorage.getItem('seoullearn.settings.v1'))).toEqual({ name: '이멘토', phone: '010-0000-0000', mentoringType: '', university: '', major: '' })
   })
 })
 
@@ -73,13 +72,11 @@ describe('API 클라이언트', () => {
       }
       return reply(200, { intent: 'qa', answer: '답' })
     }))
-    const res = await api.chat('지각 처리 어떻게 해요?', 'https://open.kakao.com/o/abc')
+    const res = await api.chat('지각 처리 어떻게 해요?')
     expect(res.answer).toBe('답')
     expect(calls.map((c) => c[0])).toEqual(['/api/auth/csrf', '/api/chat'])
     expect(calls[1][1].headers['X-XSRF-TOKEN']).toBe('tok123')
-    expect(JSON.parse(calls[1][1].body)).toEqual({ message: '지각 처리 어떻게 해요?', ieumdan_chat_url: 'https://open.kakao.com/o/abc' })
-    await api.chat('질문입니다')
-    expect(JSON.parse(calls[2][1].body)).toEqual({ message: '질문입니다' }) // 주소가 없으면 보내지 않는다
+    expect(JSON.parse(calls[1][1].body)).toEqual({ message: '지각 처리 어떻게 해요?' })   // 질문만 보낸다
     expect(calls.every((c) => c[0].startsWith('/api/'))).toBe(true)
   })
 

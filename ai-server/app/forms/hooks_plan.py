@@ -70,7 +70,6 @@ class _PlanBase(Hooks):
             ctx.warn("인계 요약에서 허용되지 않은 항목(학업 수준, 정서·상담 내용 등)은 쓰지 않았습니다.")
         if not ctx.extra["handover"]:
             ctx.extra.pop("handover")
-        ctx.extra["_weekly_plan_given"] = bool(ctx.extra.get("weekly_plan"))
         self._drop_sensitive(ctx)
         lines = ctx.extra.pop("curriculum_lines", None)
         ctx.extra["_curriculum_lines"] = [str(x).strip() for x in lines if str(x).strip()] if isinstance(lines, list) else []
@@ -156,9 +155,10 @@ class PlanInitialHooks(_PlanBase):
                 text, removed = checks.plain_text(str(item)) if not str(item).startswith("[") else (str(item), [])
                 removed_all.update(removed)
                 cleaned.append(text)
-                limit = next((f.get("max_length") for f in ctx.form["fields"] if f["key"] == key), None) or LENGTH_WARN
+                field = next((f for f in ctx.form["fields"] if f["key"] == key), {})
+                limit = field.get("max_length") or LENGTH_WARN
                 if len(text) > limit:
-                    ctx.warn(f"'{key}' 칸이 {len(text)}자입니다. 내용이 많으면 등록 오류가 날 수 있으니 {limit}자 안팎으로 줄여 주세요.")
+                    ctx.warn(f"'{field.get('label', key)}' 칸이 {len(text)}자입니다. 내용이 많으면 등록 오류가 날 수 있으니 {limit}자 안팎으로 줄여 주세요.")
             d[key] = cleaned if isinstance(value, list) else cleaned[0]
         if removed_all:
             ctx.warn(f"플랫폼 등록 오류를 막으려고 특수문자({' '.join(sorted(removed_all))})를 바꾸거나 뺐습니다.")

@@ -28,7 +28,8 @@ function sized() {
   })
 }
 // 회차 수나 시작일이 바뀌면 줄 수와 날짜를 다시 맞춘다 (적어 둔 내용은 남긴다)
-watch(() => [props.rounds, props.start], () => emit('update:modelValue', sized()), { immediate: true })
+// 값을 하나씩 견준다: 한 배열로 묶어 돌려주면 표를 고칠 때마다 다르다고 보아 끝없이 되풀이된다
+watch([() => props.rounds, () => props.start, () => props.modelValue.length], () => emit('update:modelValue', sized()), { immediate: true })
 
 function set(i, key, value) {
   emit('update:modelValue', props.modelValue.map((r, k) => (k === i ? { ...r, [key]: value } : r)))
@@ -41,27 +42,28 @@ function setWhen(i, key, value) {
 <template>
   <div data-test="curriculum">
     <table class="curriculum">
-      <tr><th>주차</th><th>일시</th><th v-if="full">온라인 강의</th><th>{{ full ? '멘토링 내용' : '학습 내용' }}</th><th v-if="copyable"></th></tr>
+      <thead><tr><th>주차</th><th>일시</th><th>{{ full ? '온라인 강의와 멘토링 내용' : '학습 내용' }}</th><th v-if="copyable"></th></tr></thead>
+      <tbody>
       <tr v-for="(r, i) in modelValue" :key="r.week">
         <td>{{ r.week }}</td>
         <td class="when">
           <input type="date" :value="r.date" :data-date="r.week" :aria-label="`${r.week}주차 날짜`" @input="setWhen(i, 'date', $event.target.value)" />
           <input type="time" :value="r.time" :data-time="r.week" :aria-label="`${r.week}주차 시각`" @input="setWhen(i, 'time', $event.target.value)" />
         </td>
-        <td v-if="full" class="online">
+        <td v-if="full" class="cells">
           <select v-if="courses.length > 1" :value="r.course || 0" :aria-label="`${r.week}주차 강좌`" @change="set(i, 'course', Number($event.target.value))">
             <option v-for="(c, ci) in courses" :key="ci" :value="ci">{{ c.lecture || `강좌 ${ci + 1}` }}</option>
           </select>
-          <input :value="r.online" :data-online="r.week" :placeholder="`예: 강의 제목 (${2 * i + 1}~${2 * i + 2}강)`" @input="set(i, 'online', $event.target.value)" />
+          <label><span>온라인 강의</span><input :value="r.online" :data-online="r.week" :placeholder="`예: 강의 제목 (${2 * i + 1}~${2 * i + 2}강)`" @input="set(i, 'online', $event.target.value)" /></label>
+          <label><span>멘토링 내용</span><input :value="r.mentoring" :data-mentoring="r.week" @input="set(i, 'mentoring', $event.target.value)" /></label>
         </td>
-        <td>
-          <input v-if="full" :value="r.mentoring" :data-mentoring="r.week" @input="set(i, 'mentoring', $event.target.value)" />
-          <input v-else :value="r.content" :data-content="r.week" :placeholder="hints[i] ? `예: ${hints[i]}` : ''" @input="set(i, 'content', $event.target.value)" />
+        <td v-else data-label="학습 내용">
+          <input :value="r.content" :data-content="r.week" :aria-label="`${r.week}주차 학습 내용`" :placeholder="hints[i] ? `예: ${hints[i]}` : ''" @input="set(i, 'content', $event.target.value)" />
         </td>
         <td v-if="copyable"><button type="button" class="small" :disabled="!(r.online || r.mentoring)" :data-copy-week="r.week" @click="emit('copy', r)">복사</button></td>
       </tr>
+      </tbody>
     </table>
-    <p class="notice">일시는 1회차 일시에서 매주 같은 요일·같은 시각으로 채웠습니다. 일정이 다른 회차는 그 줄의 날짜와 시각을 고쳐 주세요. 고친 회차는 1회차 일시를 바꿔도 그대로 둡니다.</p>
-
+    <p class="notice">일시는 1회차 일시에서 매주 같은 요일·같은 시각으로 채웠습니다. 일정이 다른 회차는 그 줄의 날짜와 시각을 고쳐 주세요.</p>
   </div>
 </template>

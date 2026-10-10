@@ -7,7 +7,7 @@ import { toText } from '../../lib/formFields'
 import { displayName } from '../../lib/mentee'
 import { CURRICULUM_SUBJECTS, GRADES, SEMESTERS, findUnits, genericHints, gradeKey, hasExams, loadCurriculum, spreadUnits } from '../../lib/curriculum'
 import { DIAG_SLOTS, GOAL_SLOTS, changedLines, composeSlots, freshLines, mergeLines, parseSlots, platformSafe } from '../../lib/plan'
-import { curriculumLines, handoverForDraft, handoverFromVault, handoverNote, termSummaryFromVault, termSummaryText } from '../../lib/reports'
+import { curriculumLines, handoverForDraft, handoverFromVault, handoverNote, latestOf, termSummaryFromVault, termSummaryText } from '../../lib/reports'
 import { WEEKDAYS, weekdayOf } from '../../lib/schedule'
 import { totalRounds } from '../../lib/stage'
 import { toast } from '../../lib/toast'
@@ -22,7 +22,7 @@ defineOptions({ inheritAttrs: false })   // 멘티 화면이 모든 단계에 �
 const props = defineProps({ alias: { type: String, required: true }, profile: { type: Object, required: true }, items: { type: Array, required: true },
   update: { type: Function, required: true } })
 const mentor = loadSettings()
-const saved = computed(() => props.items.filter((x) => x.formId === FORM_ID).sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))[0])
+const saved = computed(() => latestOf(props.items, FORM_ID))
 const start = ref(props.profile.start_datetime || '')
 const weekday = ref(props.profile.regularSchedule?.[0]?.weekday || weekdayOf(props.profile.start_datetime))
 const goal = reactive({ parts: ['', '', '', ''], rest: '' })
@@ -46,7 +46,7 @@ const handoverDraft = previous ? null : handoverFromVault(props.items)
 const handover = handoverNote(handoverDraft)                       // 이전 멘토에게 인계받은 글 (참고용)
 const source = previous ? 'previous' : handoverForDraft(handoverDraft) ? 'handover' : ''
 const SOURCE = {
-  previous: { button: '지난 회기에 이어 초안 채우기', text: '지난 회기 요약을 바탕으로, 지난 회기의 진도와 과제에서 이어지는 학습목표와 학생진단의 초안을 채워 드립니다.' },
+  previous: { button: '지난 회기에 이어 초안 채우기', text: '지난 회기 요약을 바탕으로, 비워 둔 학습목표와 학생진단의 초안을 채워 드립니다.' },
   handover: { button: '인계받은 내용으로 초안 채우기', text: '이전 멘토에게 인계받은 내용(출석, 과제, 태도, 수강 진도)을 바탕으로 학생진단과 수강 목표의 초안을 채워 드립니다.' },
 }
 // AI가 바꾼 내용: 무엇이 새로 들어갔고 무엇이 어떻게 고쳐졌는지 보여 주고, 되돌릴 수 있게 한다
@@ -61,7 +61,7 @@ watch(start, (v, old) => { if (!weekday.value || weekday.value === weekdayOf(old
 function load(target, slots, value, fallback) {
   const { parts, rest } = parseSlots(slots, value)
   // 머리말 없이 적어 둔 예전 글은 가장 가까운 항목에 넣는다
-  if (rest && !parts.some(Boolean) && fallback !== undefined && !rest.includes('\n')) { parts[fallback] = rest; target.rest = '' } else target.rest = rest
+  if (rest && !parts.some(Boolean) && fallback !== undefined) { parts[fallback] = rest.replace(/\s*\n\s*/g, ' '); target.rest = '' } else target.rest = rest
   target.parts = parts
 }
 
@@ -184,7 +184,7 @@ async function draft(mode) {
       if (lines.length) fresh[k] = lines
     }
     extra.only = Object.keys(fresh)
-    extra.memo = Object.fromEntries(extra.only.map((k) => [k, fresh[k].join('\n')]))
+    extra.memo = { ...given, ...Object.fromEntries(extra.only.map((k) => [k, fresh[k].join('\n')])) }
   }
   if (polish && !extra.only.length) return null
   const res = await api.draft(FORM_ID, inputs(), extra)
@@ -196,7 +196,7 @@ async function draft(mode) {
     // 다듬어 돌아온 줄을 원래 글의 그 자리에 넣는다. 보내지 않은 줄과 칸은 적어 둔 그대로다
     for (const k of Object.keys(before)) {
       const merged = fresh[k] ? mergeLines(before[k], fresh[k], out[k]) : before[k]
-      if (merged === null) kept.push(`${LABELS[k]}은(는) 다듬은 글의 줄 수가 달라 적어 둔 그대로 두었습니다. 내용이 빠졌을 수 있으니 확인해 주세요.`)
+      if (merged === null) kept.push(`${LABELS[k]} 칸은 다듬은 글의 줄 수가 달라 적어 둔 그대로 두었습니다. 빠진 내용이 없는지 확인해 주세요.`)
       out[k] = merged ?? before[k]
     }
   }
@@ -211,7 +211,8 @@ async function draft(mode) {
     const items = now.flatMap(([label, after], i) => changedLines(snap[i][1], after).map(([b, a]) => ({ label, before: b, after: a })))
     changes.value = items.length ? { mode, items, undo: { goal: [...snap.slice(0, 4).map((x) => x[1])], diag: [...snap.slice(4, 8).map((x) => x[1])], structure: snap[8][1], rules: snap[9][1] } } : null
   }
-  notes.value = [...lost, ...(res.pii_masked.length ? [`AI에 보내기 전에 가린 정보: ${res.pii_masked.join(', ')}`] : []), ...res.missing_questions.map((q) => q.question), ...res.warnings, ...res.reminders]
+  // AI의 답을 읽지 못한 것을 '바꿀 표현이 없었습니다'로 넘기지 않는다
+  notes.value = [...(mode === 'polish' && res.error ? ['AI의 답을 읽지 못해 적어 둔 글을 그대로 두었습니다. 한 번 더 눌러 주세요.'] : []), ...lost, ...(res.pii_masked.length ? [`AI에 보내기 전에 가린 정보: ${res.pii_masked.join(', ')}`] : []), ...res.missing_questions.map((q) => q.question), ...res.warnings, ...res.reminders]
   return res
 }
 
@@ -266,26 +267,24 @@ const save = () => run('save', async () => {
 })
 
 // 복사하는 글은 플랫폼에서 오류가 나지 않게 글자를 정리한다 (서버가 저장할 때 하는 정리와 같은 규칙)
-async function copy(label, value) {
-  toast((await copyText(platformSafe(value))) ? `${label}을(를) 복사했습니다.` : '복사하지 못했습니다.')
-}
+const copy = (label, value) => copyText(platformSafe(value), label)
 </script>
 
 <template>
   <div>
-    <p class="muted">1회차 전에 서울런 플랫폼에 입력하는 계획입니다. 플랫폼 입력 칸과 같은 순서이고, 여기에 적은 글을 항목마다 복사해 그대로 옮기면 됩니다. 아직 협의가 덜 됐다면 아는 항목만 적어도 됩니다. 매칭 후 7일 이내에 입력합니다.</p>
+    <p class="muted">1회차 전에 서울런 플랫폼에 입력하는 계획입니다. 항목마다 [복사]해 플랫폼의 같은 칸에 붙여 넣어 주세요. 아직 정하지 못한 항목은 비워 두어도 됩니다. 매칭 후 7일 이내에 입력해 주세요.</p>
     <div v-if="error" class="box error">{{ error }}</div>
-    <div v-if="previous" class="mini" style="white-space: pre-wrap; margin: 12px 0" data-test="previous-term">
+    <div v-if="previous" class="mini pre" data-test="previous-term">
       <span class="t">지난 회기 요약 (참고)</span>{{ termSummaryText(previous) }}
     </div>
-    <div v-if="handover" class="mini" style="white-space: pre-wrap; margin: 12px 0" data-test="handover-ref">
+    <div v-if="handover" class="mini pre" data-test="handover-ref">
       <span class="t">이전 멘토에게 인계받은 내용 (참고)</span>{{ handover }}
     </div>
     <div v-if="filled" class="box ask closable" data-test="prefilled">
       <span>{{ filled }}</span><button type="button" aria-label="안내 닫기" data-test="close-prefilled" @click="filled = ''">×</button>
     </div>
 
-    <div class="card plan-form" data-test="plan-form">
+    <fieldset class="card plan-form" :disabled="!!busy" data-test="plan-form">
       <div class="facts" data-test="auto">
         <div><span>멘토링 유형</span>{{ mentor.mentoringType || '멘토 설정에서 선택' }}</div>
         <div><span>멘티</span>{{ displayName(profile, alias) }}</div>
@@ -302,11 +301,11 @@ async function copy(label, value) {
 
       <div v-if="canFill" class="course-card" data-test="fill-box" :data-source="source">
         <strong>AI로 초안 채우기</strong>
-        <p class="notice" style="margin-top: 2px">{{ SOURCE[source].text }} 쓰기 전에 눌러 두고 멘티와 이야기한 내용에 맞게 고쳐 쓰세요. 이미 적은 칸은 건드리지 않습니다.</p>
+        <p class="notice">{{ SOURCE[source].text }} 이미 적은 칸은 건드리지 않습니다. 채운 뒤 멘티와 이야기한 내용에 맞게 고쳐 주세요.</p>
         <button type="button" :disabled="!!busy || !start" data-test="fill" @click="fill">{{ busy === 'fill' ? '채우는 중…' : SOURCE[source].button }}</button>
       </div>
       <div v-if="changes && changes.mode === 'fill'" class="box ask changes" data-test="changes">
-        <div class="row"><strong>AI가 새로 채운 내용 {{ changes.items.length }}곳</strong><span style="flex: 1"></span><button type="button" class="small" data-test="undo" @click="undoChanges">되돌리기</button></div>
+        <div class="row"><strong class="grow">AI가 새로 채운 내용 {{ changes.items.length }}곳</strong><button type="button" class="small" data-test="undo" @click="undoChanges">되돌리기</button></div>
         <ul><li v-for="(c, i) in changes.items" :key="i"><b>{{ c.label }}</b><ins>{{ c.after }}</ins></li></ul>
         <p class="notice">멘티가 말한 내용이 아니라 참고 자료로 쓴 초안입니다. 멘티와 이야기한 내용에 맞게 고쳐 주세요.</p>
       </div>
@@ -327,46 +326,46 @@ async function copy(label, value) {
 
       <div class="item">
         <div class="head"><strong>멘토링 구성</strong><button type="button" class="small" :disabled="!text.structure.trim()" data-copy="structure" @click="copy('멘토링 구성', text.structure)">복사</button></div>
-        <textarea v-model="text.structure" rows="5" placeholder="17:00~17:10 온라인 강의 수강(필수) 확인 및 퀴즈&#10;17:10~17:30 개념학습&#10;…" data-field="structure"></textarea>
+        <textarea v-model="text.structure" rows="5" placeholder="17:00~17:10 온라인 강의 수강(필수) 확인 및 퀴즈&#10;17:10~17:30 개념학습&#10;…" aria-label="멘토링 구성" data-field="structure"></textarea>
       </div>
 
       <div class="item">
         <div class="head"><strong>활동규칙</strong><button type="button" class="small" :disabled="!text.rules.trim()" data-copy="rules" @click="copy('활동규칙', text.rules)">복사</button></div>
-        <textarea v-model="text.rules" rows="5" placeholder="한 줄에 규칙 하나씩" data-field="rules"></textarea>
+        <textarea v-model="text.rules" rows="5" placeholder="한 줄에 규칙 하나씩" aria-label="활동규칙" data-field="rules"></textarea>
       </div>
 
       <div class="item">
-        <div class="head"><strong>커리큘럼 ({{ rounds }}주)</strong><button type="button" class="small" data-test="copy-curriculum" @click="copy('커리큘럼', curriculumLines(rows).join('\n'))">복사</button></div>
-        <p class="notice" style="margin-top: 0">1회차 전이라 임시 계획입니다. 주차마다 학습 내용만 대략 적으면 됩니다. 수강 강좌의 목차로 자세히 채우는 것은 1회차 후 종합계획서②에서 합니다.</p>
+        <div class="head"><strong>커리큘럼 ({{ rounds }}주)</strong><button type="button" class="small" :disabled="!curriculumLines(rows).length" data-test="copy-curriculum" @click="copy('커리큘럼', curriculumLines(rows).join('\n'))">복사</button></div>
+        <p class="notice">1회차 전이라 임시 계획입니다. 주차마다 학습 내용만 대략 적어 주세요. 강좌 목차로 자세히 채우는 것은 종합계획서②에서 합니다.</p>
         <div class="course-card" data-test="general">
           <strong>교과과정으로 채우기</strong>
-          <p class="notice" style="margin-top: 2px">멘티의 신청 과목으로, 고른 학년·학기에 배우는 교육과정 단원을 주차에 나눠 채워 드립니다. 첫 주는 진단, 가운데와 마지막 주는 복습으로 잡습니다. 기초부터 해야 하면 아래 학년이나 지난 학기를 골라도 됩니다.</p>
+          <p class="notice">고른 학년·학기의 교육과정 단원을 주차에 나눠 채워 드립니다. 첫 주는 진단, 가운데와 마지막 주는 복습으로 잡습니다. 기초부터 해야 하면 아래 학년이나 지난 학기를 골라 주세요.</p>
           <div class="row">
-            <select v-model="general.grade" style="flex: 1; min-width: 96px" aria-label="학년" data-general="grade"><option value="">학년</option><option v-for="g in GRADES" :key="g">{{ g }}</option></select>
-            <select v-model="general.semester" style="flex: 1; min-width: 96px" aria-label="학기" data-general="semester" @change="semesterPicked = true"><option v-for="x in SEMESTERS" :key="x">{{ x }}</option></select>
+            <select v-model="general.grade" aria-label="학년" data-general="grade"><option value="">학년</option><option v-for="g in GRADES" :key="g">{{ g }}</option></select>
+            <select v-model="general.semester" aria-label="학기" data-general="semester" @change="semesterPicked = true"><option v-for="x in SEMESTERS" :key="x">{{ x }}</option></select>
             <span v-if="fixedSubject" class="tag strong" data-general="subject">{{ fixedSubject }}</span>
-            <select v-else v-model="general.subject" style="flex: 1; min-width: 96px" aria-label="과목" data-general="subject"><option value="">과목</option><option v-for="x in CURRICULUM_SUBJECTS" :key="x">{{ x }}</option></select>
-            <select v-if="found.courses.length" v-model="general.course" style="flex: 1.4; min-width: 130px" aria-label="세부 과목" data-general="course">
+            <select v-else v-model="general.subject" aria-label="과목" data-general="subject"><option value="">과목</option><option v-for="x in CURRICULUM_SUBJECTS" :key="x">{{ x }}</option></select>
+            <select v-if="found.courses.length" v-model="general.course" class="wide" aria-label="세부 과목" data-general="course">
               <option value="">{{ found.basic || '세부 과목을 골라 주세요' }}</option><option v-for="c in found.courses" :key="c">{{ c }}</option>
             </select>
             <button type="button" :disabled="!found.units.length" data-test="general-fill" @click="fillGeneral">단원으로 채우기</button>
           </div>
-          <ul v-if="general.grade && general.subject && found.notes.length" class="notice" style="margin: 8px 0 0" data-test="general-notes"><li v-for="n in found.notes" :key="n">{{ n }}</li></ul>
-          <p v-if="generalNote" class="ok" style="margin: 8px 0 0" data-test="general-done">{{ generalNote }}</p>
+          <ul v-if="general.grade && general.subject && found.notes.length" class="notice" data-test="general-notes"><li v-for="n in found.notes" :key="n">{{ n }}</li></ul>
+          <p v-if="generalNote" class="ok" data-test="general-done">{{ generalNote }}</p>
         </div>
         <CurriculumEditor v-model="rows" :rounds="rounds" :start="start" :hints="hints" />
       </div>
 
       <div v-if="changes && changes.mode === 'polish'" class="box ask changes" data-test="changes">
-        <div class="row"><strong>AI가 표현을 다듬은 곳 {{ changes.items.length }}곳</strong><span style="flex: 1"></span><button type="button" class="small" data-test="undo" @click="undoChanges">되돌리기</button></div>
+        <div class="row"><strong class="grow">AI가 표현을 다듬은 곳 {{ changes.items.length }}곳</strong><button type="button" class="small" data-test="undo" @click="undoChanges">되돌리기</button></div>
         <ul><li v-for="(c, i) in changes.items" :key="i"><b>{{ c.label }}</b><del v-if="c.before.trim()">{{ c.before }}</del><ins>{{ c.after || '(비워짐)' }}</ins></li></ul>
       </div>
       <div v-if="notes.length" class="box warn" data-test="notes"><ul><li v-for="n in notes" :key="n">{{ n }}</li></ul></div>
       <div class="row">
         <button type="button" class="primary" :disabled="!!busy || !start" data-test="save" @click="save">{{ busy === 'save' ? '저장하는 중…' : '저장' }}</button>
         <button type="button" :disabled="!!busy || !start" data-test="polish" @click="polish">{{ busy === 'polish' ? '다듬는 중…' : 'AI로 표현 다듬기' }}</button>
-        <span class="notice" style="margin: 0">저장은 AI를 쓰지 않습니다. 표현 다듬기는 새로 적거나 고친 줄의 표현만 고치고, 이미 다듬은 줄과 비워 둔 칸은 건드리지 않습니다. 무엇이 바뀌었는지 보여 드립니다.</span>
+        <span class="notice">표현 다듬기는 새로 적거나 고친 줄만 다듬고, 바뀐 곳을 보여 드립니다.</span>
       </div>
-    </div>
+    </fieldset>
   </div>
 </template>

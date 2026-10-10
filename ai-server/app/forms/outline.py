@@ -13,7 +13,7 @@ from .. import guard, prompts
 from ..llm import ChatLLM, LLMUnavailableError
 
 _NOISE = re.compile(r"^(수강하기|맛보기|미리보기|강의\s*목차|목차|교재|다운로드|재생|완강|수강\s*중|NEW|HOT|\d+%|총\s*\d+강.*)$", re.I)
-_UNIT = re.compile(r"^\s*(?:[\[\(<【■▶◆●]\s*)?((?:제?\s*\d+\s*(?:단원|장|부|편)|(?:PART|Part|CHAPTER|Chapter|UNIT|Unit)\s*\d+|[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]+\s*[.\)]|[IVX]{1,4}\s*\.)\s*.*?)\s*[\]\)>】]?\s*$")
+_UNIT = re.compile(r"^\s*(?:[\[\(<【■▶◆●]\s*)?((?:제?\s*\d+\s*(?:단원|장|부|편)(?![가-힣])|(?:PART|Part|CHAPTER|Chapter|UNIT|Unit)\s*\d+|[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]+\s*[.\)]|[IVX]{1,4}\s*\.)\s*.*?)\s*[\]\)>】]?\s*$")
 _LECTURE = [
     re.compile(r"^\s*[\[\(]?\s*(?:제\s*)?(\d{1,3})\s*(?:강|차시|회차|회)\s*[\]\)]?\s*[.:\-]?\s*(.+)$"),
     re.compile(r"^\s*(?:Theme|THEME|Lecture|LECTURE|Lesson|LESSON|Day|DAY)\s*(\d{1,3})\s*[.:\-]?\s*(.+)$"),

@@ -66,8 +66,8 @@ class DiskCache:
 
 
 class LLMUnavailableError(RuntimeError):
-    """요청 한도(429)나 서버 과부하(503)로 재시도를 다 써도 응답을 못 받았다.
-    답변 형식 오류와 달리 평가 문항의 실패로 기록하면 안 되므로 실행을 멈추게 한다."""
+    """제공사 쪽 문제로 응답을 못 받았다: 요청 한도(429)·과부하(503)로 재시도를 다 쓴 경우와 키 오류 같은 그 밖의 호출 오류.
+    답변 형식 오류와 달리 평가 문항의 실패나 '답 못 한 질문'으로 기록하면 안 되므로 실행을 멈추게 한다."""
 
 
 class LangChainLLM:
@@ -99,7 +99,7 @@ class LangChainLLM:
                 msg = str(e)
                 retryable = any(s in msg for s in ("429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "timeout"))
                 if not retryable:
-                    raise
+                    raise LLMUnavailableError(type(e).__name__) from e   # 형식 오류로 삼켜 '운영사무국에 문의'로 답하지 않게
                 if attempt == self.max_retries:
                     raise LLMUnavailableError(msg) from e
                 time.sleep(delay)

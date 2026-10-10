@@ -29,7 +29,7 @@ async function remove(id) {
     <p class="muted">매뉴얼로 답하지 못한 질문을 모은 목록입니다. 매뉴얼과 공지를 보완할 때 참고합니다. 개인정보는 가린 문장만 저장하고, 누가 물었는지는 저장하지 않습니다.</p>
     <div v-if="error" class="box error">{{ error }}</div>
     <div class="row">
-      <a href="/api/admin/unanswered/export.csv"><button type="button" :disabled="!rows.length">CSV로 내보내기</button></a>
+      <a v-if="rows.length" href="/api/admin/unanswered/export.csv" class="linkbutton">CSV로 내보내기</a>
       <span class="muted">{{ rows.length }}건 (최근 1,000건까지)</span>
     </div>
     <div class="card">
@@ -37,8 +37,8 @@ async function remove(id) {
       <table v-else>
         <tr><th>날짜</th><th>분류</th><th>문의처</th><th>질문</th><th></th></tr>
         <tr v-for="r in rows" :key="r.id">
-          <td style="white-space: nowrap">{{ r.createdOn }}</td><td style="white-space: nowrap">{{ LABEL[r.answerable] || r.answerable }}</td>
-          <td style="white-space: nowrap">{{ r.route || '-' }}</td><td>{{ r.question }}</td>
+          <td class="nowrap">{{ r.createdOn }}</td><td class="nowrap">{{ LABEL[r.answerable] || r.answerable }}</td>
+          <td class="nowrap">{{ r.route || '-' }}</td><td>{{ r.question }}</td>
           <td><button type="button" class="small danger" @click="remove(r.id)">삭제</button></td>
         </tr>
       </table>

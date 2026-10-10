@@ -5,7 +5,7 @@ import MenteeHeader from '../components/MenteeHeader.vue'
 import { PROFILE_FIELDS, PROFILE_FORM, docStatus, emptyProfile, menteePath, profileFromVault, sessionRows } from '../lib/mentee'
 import { WEEKDAYS } from '../lib/schedule'
 import { toast } from '../lib/toast'
-import { downloadJson, exportAlias, listItems, removeAlias, saveItem } from '../stores/vault'
+import { downloadJson, exportAll, listItems, removeAlias, saveItem } from '../stores/vault'
 
 // 멘티 설정: 단계와 무관한 일을 모았다. 멘티 정보 수정, 지난 보고서 다시 열기, 인계 요약, 보관, 자료 내보내기·삭제.
 const route = useRoute()
@@ -42,7 +42,7 @@ async function saveProfile() {
 }
 
 async function exportFile() {
-  const data = await exportAlias(alias)
+  const data = await exportAll(alias)
   downloadJson(data, `seoullearn-${alias.replace(/\s+/g, '_')}-${data.exportedAt.slice(0, 10)}.json`)
   toast(`${data.items.length}건을 파일로 내보냈습니다.`)
 }
@@ -68,14 +68,13 @@ async function removeAll() {
             <select v-if="f.control === 'select'" v-model="edit[f.key]" :data-profile="f.key">
               <option value="">선택해 주세요</option><option v-for="o in f.options" :key="o" :value="o">{{ o }}</option>
             </select>
-            <textarea v-else-if="f.control === 'textarea'" v-model="edit[f.key]" rows="2" :data-profile="f.key"></textarea>
             <input v-else v-model="edit[f.key]" :type="f.control" :placeholder="f.example ? `예: ${f.example}` : ''" :data-profile="f.key" />
             <span v-if="f.help" class="notice">{{ f.help }}</span>
           </label>
           <div class="field wide"><span class="name">정규 일정</span>
-            <div v-for="(r, i) in edit.regularSchedule" :key="i" class="row" style="margin-bottom: 6px">
-              <select v-model="r.weekday" style="width: 120px" aria-label="요일"><option value="">요일</option><option v-for="d in WEEKDAYS" :key="d">{{ d }}</option></select>
-              <input v-model="r.startTime" type="time" style="width: 140px" aria-label="시작 시각" />
+            <div v-for="(r, i) in edit.regularSchedule" :key="i" class="row schedule-row">
+              <select v-model="r.weekday" class="narrow" aria-label="요일"><option value="">요일</option><option v-for="d in WEEKDAYS" :key="d">{{ d }}</option></select>
+              <input v-model="r.startTime" type="time" class="narrow" aria-label="시작 시각" />
               <button v-if="edit.regularSchedule.length > 1" type="button" class="small" @click="edit.regularSchedule.splice(i, 1)">삭제</button>
             </div>
             <button type="button" class="small" @click="edit.regularSchedule.push({ weekday: '', startTime: '' })">요일 추가</button>
@@ -87,7 +86,7 @@ async function removeAll() {
         <button class="primary" data-test="save-profile">멘티 정보 저장</button>
       </form>
 
-      <h2>지난 보고서 <span class="tag">{{ status.reports }} / {{ rows.length }}</span></h2>
+      <h2>활동보고서 <span class="tag">{{ status.reports }} / {{ rows.length }}</span></h2>
       <div class="card">
         <div class="sessions" data-test="sessions">
           <router-link v-for="r in rows" :key="r.no" :to="to(`/report/${r.no}`)" class="session" :class="{ done: r.saved }" :data-session="r.no">
@@ -96,19 +95,19 @@ async function removeAll() {
           </router-link>
         </div>
         <p class="notice">색이 채워진 회차는 저장한 보고서가 있습니다. 누르면 다시 열어 고치거나 복사할 수 있습니다.</p>
-        <div class="row" style="margin-top: 8px">
-          <router-link :to="to('/handover')"><button type="button" class="small" data-test="doc-handover">멘토 교체 인계 요약 만들기{{ status.handover_summary ? ` (저장함 ${status.handover_summary})` : '' }}</button></router-link>
-          <router-link v-if="saved.mode === '오프라인'" to="/ieumdan"><button type="button" class="small">이음단 일정·장소 변경 요청</button></router-link>
+        <div class="row gap-top">
+          <router-link :to="to('/handover')" class="linkbutton small" data-test="doc-handover">멘토 교체 인계 요약 만들기{{ status.handover_summary ? ` (저장함 ${status.handover_summary})` : '' }}</router-link>
+          <router-link v-if="saved.mode === '오프라인'" :to="{ path: '/schedule', query: { mentee: alias } }" class="linkbutton small">오프라인 일정·장소</router-link>
         </div>
       </div>
 
       <h2>자료 관리</h2>
       <div class="card">
-        <p class="muted">이 멘티의 자료는 이 브라우저에만 있습니다. 브라우저 데이터를 지우거나 다른 기기에서 쓰려면 파일로 내보낸 뒤, 백업·복원에서 가져오세요.</p>
+        <p class="muted">이 멘티의 자료는 이 브라우저에만 있습니다. 브라우저 데이터를 지우거나 다른 기기에서 쓰려면 파일로 내보낸 뒤 <router-link to="/vault">백업·복원</router-link>에서 복원해 주세요.</p>
         <div class="row">
           <button type="button" @click="exportFile">이 멘티 자료 내보내기</button>
-          <button type="button" data-test="archive" @click="update({ archived: !saved.archived }, saved.archived ? '진행 중인 멘티로 되돌렸습니다.' : '종료한 멘티로 보관했습니다.')">{{ saved.archived ? '보관 해제' : '멘티 보관(종료)' }}</button>
-          <span style="flex: 1"></span>
+          <button type="button" data-test="archive" @click="update({ archived: !saved.archived }, saved.archived ? '진행 중인 멘티로 되돌렸습니다.' : '종료한 멘티로 보관했습니다.')">{{ saved.archived ? '보관 해제' : '멘토링 종료(보관)' }}</button>
+          <span class="grow"></span>
           <button type="button" class="danger" data-test="remove-all" @click="removeAll">이 멘티 자료 모두 지우기</button>
         </div>
       </div>

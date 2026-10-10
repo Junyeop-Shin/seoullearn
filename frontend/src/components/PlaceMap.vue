@@ -66,18 +66,18 @@ watch(() => props.places, draw)
 
 <template>
   <div>
-    <div v-show="!mapNote" ref="mapEl" data-test="map" style="width: 100%; height: 340px; border: 1px solid var(--line); border-radius: 10px"></div>
+    <div v-show="!mapNote" ref="mapEl" class="map" data-test="map"></div>
     <p v-if="mapNote" class="notice" data-test="map-note">{{ mapNote }}</p>
     <div v-for="p in places" :key="p.id" class="place" :class="{ on: selected === p.id || (pickable && picked === p.name) }" data-test="place">
       <div class="row">
-        <label v-if="pickable" class="check" style="margin: 0"><input type="radio" name="place" :checked="picked === p.name" :data-pick="p.id" @change="pick(p)" /><strong>{{ p.name }}</strong></label>
+        <label v-if="pickable" class="check flush"><input type="radio" name="place" :checked="picked === p.name" :data-pick="p.id" @change="pick(p)" /><strong>{{ p.name }}</strong></label>
         <strong v-else>{{ p.name }}</strong>
-        <span class="tag">{{ p.type }}</span><span style="flex: 1"></span>
+        <span class="tag">{{ p.type }}</span><span class="grow"></span>
         <button type="button" class="small" @click="focus(p)">지도에서 보기</button>
-        <a :href="kakaoLink(p)" target="_blank" rel="noopener noreferrer"><button type="button" class="small">카카오맵에서 보기</button></a>
+        <a :href="kakaoLink(p)" target="_blank" rel="noopener noreferrer" class="linkbutton small">카카오맵에서 보기</a>
       </div>
-      <div class="muted">{{ p.address }} · {{ p.hours }}</div>
-      <div class="notice" style="margin-top: 2px">{{ p.note }}</div>
+      <div class="muted">{{ [p.address, p.hours].filter(Boolean).join(' · ') }}</div>
+      <div v-if="p.note" class="notice">{{ p.note }}</div>
     </div>
   </div>
 </template>

@@ -1,4 +1,4 @@
-"""AI 서버 API. 매뉴얼 Q&A(/qa)와 의도 분류 라우터(/chat)가 있다. 보고서 초안은 다음 단계에서 추가."""
+"""AI 서버 API. 매뉴얼 Q&A(/qa), 의도 분류 라우터(/chat), 양식 초안(/drafts/…), 규칙 도구(/tools/…)가 있다."""
 from __future__ import annotations
 
 import logging
@@ -8,10 +8,10 @@ from functools import lru_cache
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from datetime import date, datetime
-from typing import Any
+from datetime import date
+from typing import Annotated, Any
 
-from . import allowance, forms, guard, inquiry, qa, router, unanswered
+from . import allowance, forms, inquiry, qa, router, unanswered
 from .config import settings
 from .llm import LLMUnavailableError, get_chat_model
 from .pipelines import build_retriever
@@ -38,8 +38,6 @@ def _llm():
 
 class QARequest(BaseModel):
     question: str = Field(..., min_length=2, max_length=1000)
-    # 소속 자치구 이음단 카카오톡 오픈채팅 주소. 멘토 브라우저에 저장해 두고 요청마다 보낸다 (서버 저장 안 함).
-    ieumdan_chat_url: str | None = Field(None, max_length=200, pattern=qa.KAKAO_OPENCHAT_PATTERN)
 
 
 class QAResponse(BaseModel):
@@ -47,7 +45,6 @@ class QAResponse(BaseModel):
     answerable: str
     route: str | None
     route_info: str | None
-    route_link: str | None
     citations: list[str]
     pii_masked: list[str]
     safety: bool
@@ -58,7 +55,6 @@ class QAResponse(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=2, max_length=1000)
-    ieumdan_chat_url: str | None = Field(None, max_length=200, pattern=qa.KAKAO_OPENCHAT_PATTERN)
 
 
 class ChatResponse(BaseModel):
@@ -70,7 +66,6 @@ class ChatResponse(BaseModel):
     answerable: str | None = None
     route: str | None = None
     route_info: str | None = None
-    route_link: str | None = None
     citations: list[str] = []
     safety: bool = False
     inquiry_draft: str | None = None
@@ -112,7 +107,7 @@ def health():
 def ask(req: QARequest):
     try:
         res = qa.answer(req.question, _retriever(), _llm(), settings.top_k)
-        draft = inquiry.build(res, _llm(), req.ieumdan_chat_url)
+        draft = inquiry.build(res, _llm())
     except LLMUnavailableError:
         log.warning("qa len=%d llm_unavailable", len(req.question))
         raise HTTPException(status_code=503, detail="지금은 답변을 만들 수 없습니다. 잠시 후 다시 시도해 주세요.")
@@ -120,9 +115,7 @@ def ask(req: QARequest):
              len(req.question), res.answerable, res.route, res.pii_masked, res.safety, bool(res.error),
              draft is not None, bool(draft and draft.error))
     unanswered.record(req.question, res.answerable, res.route, res.safety)
-    info, link = qa.route_contact(res.route, req.ieumdan_chat_url)
-    return QAResponse(answer=res.answer, answerable=res.answerable, route=res.route,
-                      route_info=info, route_link=link,
+    return QAResponse(answer=res.answer, answerable=res.answerable, route=res.route, route_info=qa.route_contact(res.route),
                       citations=res.cite_labels, pii_masked=res.pii_masked, safety=res.safety,
                       inquiry_draft=draft.text if draft else None, inquiry_contact=draft.contact if draft else None)
 
@@ -130,7 +123,7 @@ def ask(req: QARequest):
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
     try:
-        state = _graph().invoke({"message": req.message, "ieumdan_chat_url": req.ieumdan_chat_url})
+        state = _graph().invoke({"message": req.message})
     except LLMUnavailableError:
         log.warning("chat len=%d llm_unavailable", len(req.message))
         raise HTTPException(status_code=503, detail="지금은 답변을 만들 수 없습니다. 잠시 후 다시 시도해 주세요.")
@@ -237,7 +230,7 @@ class AllowanceRequest(BaseModel):
     senior: bool = False                       # 고학년지도 가산금
     vulnerable: bool = False                   # 취약계층지원 가산금
     hours: int = Field(1, ge=1, le=2)          # 회차당 시간 (시간확대면 2)
-    monthly_valid: list[int] = Field(default_factory=list, max_length=36)   # 달마다의 유효 진행 횟수 (구간 변화를 보고 싶을 때)
+    monthly_valid: list[Annotated[int, Field(ge=0, le=99)]] = Field(default_factory=list, max_length=36)   # 달마다의 유효 진행 횟수 (구간 변화를 보고 싶을 때)
 
 
 @app.post("/tools/allowance")
@@ -250,28 +243,31 @@ def allowance_calc(req: AllowanceRequest):
     return res
 
 
-class SplitRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=100000)
+class AllowanceGroup(BaseModel):
+    mode: str = Field(..., pattern="^(온라인|오프라인)$")
+    hours: int = Field(1, ge=1, le=2)
+    normal: int = Field(0, ge=0, le=31)
+    no_show: int = Field(0, ge=0, le=31)
+    late_cancel: int = Field(0, ge=0, le=31)
+    senior: bool = False
+
+
+class AllowanceMonthRequest(BaseModel):
+    groups: list[AllowanceGroup] = Field(..., min_length=1, max_length=20)   # 멘티 한 명이 한 줄. 이름은 받지 않는다
+    stage: int = Field(1, ge=1, le=6)
+    vulnerable: bool = False
+
+
+@app.post("/tools/allowance_month")
+def allowance_month(req: AllowanceMonthRequest):
+    """여러 멘티의 한 달 활동비 추정. 규칙 함수만 쓴다 (LLM 없음). 입력은 회차 수와 조건뿐이고 개인정보가 없다."""
+    res = allowance.estimate_month([g.model_dump() for g in req.groups], req.stage, req.vulnerable)
+    log.info("tool=allowance_month groups=%d total=%d", len(req.groups), res["total"])
+    return res
 
 
 class HandoverRequest(BaseModel):
     reports: list[dict[str, Any]] = Field(..., max_length=40)   # 활동보고서 초안들 (필드 key별 값)
-
-
-class IeumdanRequest(BaseModel):
-    kind: str = Field(..., pattern="^(장소 요청|일정 변경|장소 변경)$")
-    region: str = Field("", max_length=100)
-    schedule: str = Field("", max_length=100)
-    current: datetime | None = None
-    desired: datetime | None = None
-    reason: str = Field("", max_length=200)
-
-
-@app.post("/drafts/split_reports")
-def split_reports(req: SplitRequest):
-    res = forms.report_split.split(req.text)
-    log.info("draft form=split_reports len=%d sessions=%d warnings=%d", len(req.text), len(res["sessions"]), len(res["warnings"]))
-    return res
 
 
 @app.post("/drafts/handover_summary")
@@ -283,13 +279,6 @@ def handover_summary(req: HandoverRequest):
         raise HTTPException(status_code=503, detail="지금은 초안을 만들 수 없습니다. 잠시 후 다시 시도해 주세요.")
     log.info("draft form=handover_summary reports=%d items=%d warnings=%d pii=%s errors=%d", len(req.reports),
              sum(bool(v) for v in res["summary"].values()), len(res["warnings"]), res["pii_masked"], len(res["errors"]))
-    return res
-
-
-@app.post("/drafts/ieumdan_request")
-def ieumdan_request(req: IeumdanRequest):
-    res = forms.ieumdan.build(req.kind, req.region, req.schedule, req.current, req.desired, req.reason)
-    log.info("draft form=ieumdan_request kind=%s len=%d warnings=%d pii=%s", req.kind, res["length"], len(res["warnings"]), res["pii_masked"])
     return res
 
 

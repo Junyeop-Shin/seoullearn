@@ -141,11 +141,11 @@ docker compose up -d backend
 python scripts/check_no_leak.py
 ```
 
-문의처가 이음단이면 멘토가 보낸 소속 이음단 오픈채팅 주소(`ieumdan_chat_url`, `https://open.kakao.com/...`만 허용)를 `route_link`로 돌려준다. 이 주소는 멘토 브라우저에 저장하고 서버에는 저장하지 않는다.
+문의처가 이음단이면 안내 문구(`route_info`)만 돌려준다. 이음단은 자치구마다 카카오톡 채널이 달라서, 바로가기는 화면이 자치구별 목록(`frontend/public/data/eumdan_channels.json`)에서 만든다.
 
 ```bash
 curl -X POST localhost:8000/qa -H "Content-Type: application/json" \
-  -d '{"question": "보고서 승인이 안 나요", "ieumdan_chat_url": "https://open.kakao.com/o/예시주소"}'
+  -d '{"question": "보고서 승인이 안 나요"}'
 ```
 
 답을 다 못 했을 때(`answerable`이 `partial`·`no`)는 문의처에 보낼 글 초안 `inquiry_draft`와 연락 방법 `inquiry_contact`를 함께 돌려준다. 아동 안전 경로에서는 초안을 만들지 않는다.
@@ -162,17 +162,15 @@ docker compose run --rm ai-server python /project/scripts/compare_vector_backend
 
 | 경로 | 내용 | LLM |
 | --- | --- | --- |
-| `POST /drafts/activity_report` | 활동보고서 초안. 결석 회차 처리, 제출·증빙 안내 | 멘토가 쓴 사실을 문장으로 다듬기만 |
+| `POST /drafts/activity_report` | 활동보고서 정리. 진행하지 못한 회차(임박취소·무단결석·인정결석) 처리, 제출·증빙 안내. 화면은 칸의 글을 줄마다 이름표를 붙여 보내고 `extra.keep_lines`로 줄 구성을 지켜 달라고 한다. `extra.only`가 빈 목록이면 AI를 부르지 않는다(저장). `extra.duration`이 `120`이면 진행시간 검사와 연장 안내를 시간확대(120분·8회차) 기준으로 한다 | 멘토가 쓴 사실을 문장으로 다듬기만 |
 | `POST /drafts/pre_contact` | 사전 연락 질문지와 문자 문구. 문구는 `templates/pre_contact.md`, `subject`를 주면 과목이 들어간다 (`call_time`은 화면에서 쓰지 않는다) | 쓰지 않음 |
 | `POST /drafts/course_outline` | 붙여 넣은 강의 목차 → 강 목록. 재생 시간 줄이 되풀이되는 목차는 시간 줄로 강의를 가르고, 번호가 없으면 순서대로 붙인다(`auto_no`) | 규칙으로 못 읽은 줄만 |
 | `POST /drafts/weekly_plan` | 주차별 계획(`sessions`: 16 또는 8). 배분은 규칙 함수. `per_week`(일주일에 몇 강씩) 또는 `target`(이번 회기에 들을 강 수)을 줄 수 있다 | 회차별 멘토링 내용 문장만 (상담 문장은 만들지 않는다) |
 | `POST /drafts/plan_initial` | 종합계획서① 초안 (플랫폼 입력용 문자 정리, 수정 불가 경고) | 학습목표·학생진단만 |
 | `POST /drafts/plan_file` | 종합계획서② 초안 (서식 항목 순서 텍스트) | 학습목표, 멘토 입력 다듬기 |
 | `POST /drafts/course_outline_image` | 강의 목록 이미지 한 장(`image`: data URL, 약 0.9MB 이하)에서 강의 줄을 옮겨 적는다. 돌려주는 값 `{text, lines, error}` | 이미지 읽기 |
-| `POST /drafts/split_reports` | 플랫폼에서 복사한 활동보고서 여러 개를 회차별로 분리 | 쓰지 않음 |
-| `POST /drafts/completion_report` | 완료보고서 초안. 수행 리스트·통계는 규칙, 감성케어 칸은 멘토 입력만 | 멘토링 내용·성취도 |
+| `POST /drafts/completion_report` | 완료보고서 초안. 수행 리스트·통계는 규칙, 감성케어 칸은 멘토 입력만. `extra.duration`이 `120`이면 8회차를 한 회기로 본다 | 멘토링 내용·성취도 |
 | `POST /drafts/handover_summary` | 멘토 교체 인계 요약. 허용 항목 네 가지만, 항목마다 출처 칸만 모아 따로 질의 | 항목별 요약 |
-| `POST /drafts/ieumdan_request` | 이음단 장소·일정 요청 메시지. 장소 요청 문구는 `templates/venue_request.md`. 3일 전 규칙을 날짜 계산으로 확인 | 쓰지 않음 |
 
 - 필드의 `source`에 따라 처리가 갈린다: `user`는 입력 그대로, `placeholder`는 `[멘티명]` 같은 자리표시, `derived`는 규칙 계산, `user_text`는 다듬기, `llm_draft`는 초안.
 - 개인정보 칸에 입력이 오면 버리고 경고한다. 5점 척도, 시간, 회차, 날짜 계산은 LLM에 맡기지 않는다.
@@ -195,6 +193,9 @@ docker compose run --rm ai-server python -m evaluation.report_eval [--judge]   #
 활동가이드 4-1·4-2(p.41~47)의 기준을 규칙 함수로 옮겼다 (`app/allowance.py`). RAG와 LLM을 쓰지 않는다.
 
 - `POST /tools/allowance`: 유형, 회차 수(정상·무단결석·임박취소), 가산금 구간, 고학년지도·취약계층지원 가산금으로 추정 금액과 내역을 돌려준다. 달마다의 유효 진행 횟수를 넣으면 구간이 언제 오르는지 보여 준다.
+- `POST /tools/allowance_month`: 여러 멘티의 한 달치를 한 번에 계산한다. 요청은 `groups`(멘티 한 명이 한 줄: `mode`, `hours`, `normal`, `no_show`, `late_cancel`, `senior`), `stage`, `vulnerable`뿐이고 이름은 받지 않는다. 유효 진행 횟수는 멘티 구분 없이 온라인 멘토링의 정상 진행 회차를 더해 센다.
+- 시간확대(2시간) 회차의 무단결석·임박취소는 1시간분으로 잡고 그렇게 알린다(활동가이드 p.36: 멘토 단독 접속은 120분 그룹도 60분만 인정. 2시간분 지급 문구는 활동가이드에 없다). 결석·취소·친화활동·봉사형처럼 조건이 붙은 금액 질문은 계산기가 답하지 않고 매뉴얼 검색으로 보낸다.
+- 화면(`/allowance`)은 저장해 둔 활동보고서의 진행일과 회차 상태로 그 달의 멘티별 회차 수를 채운다(`frontend/src/lib/allowance.js`): 출석·지각은 정상 진행, 무단결석은 기본수당만, 임박취소(온라인)는 준비수당만, 인정결석은 금액에 넣지 않는다. 고학년지도 가산금은 수강 강좌 이름의 학습사이트로 짐작해 표시하고 멘토가 고친다. 장기활동 가산금 구간은 과거 이력이 있어야 알 수 있어 멘토가 고르고, 고른 값은 브라우저에 기억한다.
 - `/chat`에서 "시간당 얼마" 같은 금액 질문이 오면 검색 대신 이 함수로 답한다 (`intent`가 `calc`).
 - 금액은 추정값이다. 실제 지급액은 승인 결과와 운영사무국 정산에 따른다.
 
@@ -202,7 +203,7 @@ docker compose run --rm ai-server python -m evaluation.report_eval [--judge]   #
 
 오프라인 멘토링 장소를 자치구별로 찾아보는 화면이다 (`/places`). 장소는 직접 예약하지 않고 이음단에 요청한다.
 
-- 장소 목록은 backend가 파일에서 읽어 내준다 (`GET /api/places`, `PLACES_FILE`). **지금 들어 있는 12곳은 모두 지어낸 예시다** (`synthetic/places.json`). 실제 목록을 받으면 이 파일만 바꾼다.
+- 장소 목록은 backend가 파일에서 읽어 내준다 (`GET /api/places`, `PLACES_FILE`). docker compose에서는 `data/places/study_cafes_temp.json`을 쓴다. **임시로 넣은 스터디카페 150곳(자치구마다 6곳, 카카오맵 장소 검색으로 찾음)이며 실제 협약 장소가 아니다.** 자료의 `sample`이 참이면 화면이 `notice` 문구로 그 사실을 알린다. docker 없이 실행하거나 테스트할 때의 기본값은 지어낸 장소 12곳(`synthetic/places.json`)이다. 실제 목록을 받으면 `PLACES_FILE`이 가리키는 파일만 바꾼다.
 - 지도는 카카오맵이다. `.env`의 `KAKAO_MAP_JS_KEY`에 JavaScript 키를 넣고, 카카오 개발자 사이트의 플랫폼 > Web에 화면 주소(`http://localhost:3000`)를 등록해야 뜬다.
 - 키가 없거나 주소가 등록되지 않았으면 지도 없이 목록과 '카카오맵에서 보기' 링크만 보여 준다.
 - 카카오에는 장소 이름과 좌표만 전달된다. 멘티·멘토 정보는 보내지 않는다.

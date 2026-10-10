@@ -14,7 +14,7 @@ ROUTES = ["운영사무국", "이음단", "학습지원센터", "운영사무국
 DEFAULT_ROUTE = "운영사무국"  # 답을 다 못 했는데 모델이 문의처를 고르지 않았을 때
 ROUTE_INFO = {
     "운영사무국": "멘토링 운영사무국 (02-3274-9212, 카카오 채널 '서울런멘토링')",
-    "이음단": "소속 자치구 이음단 (카카오톡 오픈채팅)",
+    "이음단": "소속 자치구 이음단 (자치구별 카카오톡 채널)",
     "학습지원센터": "서울런 학습지원센터 (1533-0909)",
     "운영사무국(즉시)": "멘토링 운영사무국 (02-3274-9212)에 즉시 보고",
 }
@@ -66,17 +66,9 @@ class QAResult:
         return asdict(self)
 
 
-# 이음단 오픈채팅 주소 형식. 다른 주소는 받지 않는다.
-KAKAO_OPENCHAT_PATTERN = r"^https://open\.kakao\.com/[A-Za-z0-9/_\-]+$"
-
-
-def route_contact(route: str | None, ieumdan_chat_url: str | None = None) -> tuple[str | None, str | None]:
-    """문의처 안내 문구와 링크. 이음단 오픈채팅 주소는 자치구마다 달라서 멘토가 보낸 값을 그대로 쓴다.
-    서버는 이 주소를 저장하지 않는다."""
-    if not route:
-        return None, None
-    link = ieumdan_chat_url if route == "이음단" else None
-    return ROUTE_INFO.get(route), link
+def route_contact(route: str | None) -> str | None:
+    """문의처 안내 문구. 이음단은 자치구마다 카카오톡 채널이 달라, 바로가기는 화면이 자치구별 목록에서 만든다."""
+    return ROUTE_INFO.get(route) if route else None
 
 
 def build_context(chunks: list[Chunk]) -> str:
@@ -100,6 +92,8 @@ def parse_output(raw: str) -> dict:
     data = json.loads(m.group(0))
     if data.get("answerable") not in ("yes", "partial", "no"):
         raise ValueError(f"answerable 값 오류: {data.get('answerable')}")
+    if not isinstance(data.get("answer"), str) or not data["answer"].strip():
+        raise ValueError("answer 없음")
     if data.get("route") not in ROUTES:  # 키가 없거나 목록 밖의 값이면 문의처 없음으로 본다
         data["route"] = None
     data["citations"] = [int(x) for x in data.get("citations", []) if str(x).isdigit()]

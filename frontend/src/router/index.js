@@ -14,7 +14,7 @@ const routes = [
   { path: '/mentees/:alias/handover', component: () => import('../views/HandoverView.vue') },
   // 멘티와 무관한 도구
   { path: '/schedule', component: () => import('../views/ScheduleView.vue') },
-  { path: '/ieumdan', component: () => import('../views/IeumdanView.vue') },
+  { path: '/ieumdan', component: () => import('../views/ContactsView.vue') },   // 이음단 연락처 (자치구별 카카오톡 채널)
   { path: '/places', component: () => import('../views/PlacesView.vue') },
   { path: '/allowance', component: () => import('../views/AllowanceView.vue') },
   { path: '/forms', component: () => import('../views/OtherFormsView.vue') },
@@ -37,7 +37,7 @@ export const router = createRouter({ history: createWebHistory(), routes })
 router.beforeEach(async (to) => {
   if (!auth.checked) await loadUser()
   if (!to.meta.public && !auth.user) return '/login'
-  if (to.path === '/login' && auth.user) return '/'
+  if (to.path === '/login' && auth.user) return '/mentees'
   if (to.meta.admin && auth.user?.role !== 'ADMIN') return '/'
   return true
 })

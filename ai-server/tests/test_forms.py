@@ -63,6 +63,9 @@ class ChecksTest(unittest.TestCase):
         text, removed = checks.plain_text("① 수Ⅰ 완강 ★ 오답노트·플래너 [필수]")
         self.assertEqual(text, "(1) 수1 완강 오답노트, 플래너 필수")
         self.assertIn("★", removed)
+        # 줄 머리의 글머리 기호는 떼고(', 시간 지키기'가 되지 않게), 숫자 사이의 가운뎃점은 점으로 바꾼다
+        self.assertEqual(checks.plain_text("• 시간 지키기\n· 과제 하기\n6·25 전쟁")[0], "시간 지키기\n과제 하기\n6.25 전쟁")
+        self.assertIsNone(checks.parse_datetime("2026-10-12 25:00"))   # 없는 시각은 오류 대신 None
 
     def test_sensitive_filter(self):
         text, kinds = sensitive.filter_text("일반각 개념 금방 이해함. 마지막 10분은 부모님이랑 크게 다퉈서 집중 안 된다고 해서 얘기 들어줌")
@@ -326,16 +329,13 @@ class WorkflowSpecTest(unittest.TestCase):
         self.assertEqual(r.draft["period"], "2026.10.12.~2026.11.30.")   # 8회차면 7주 뒤
 
     def test_templates_fill_subject(self):
-        from app.forms import ieumdan, precontact
+        from app.forms import precontact
 
         sms = precontact.build("오프라인", "19시", subject="수학")["sms"]["text"]
         self.assertIn("서울런 수학 멘토", sms)
         self.assertIn("[멘토 연락처]", sms)
         self.assertNotIn("{", sms)
         self.assertNotIn("  ", precontact.build("온라인")["sms"]["text"])   # 과목이 없어도 빈칸이 겹치지 않는다
-        msg = ieumdan.build("장소 요청", region="성동구", schedule="매주 수 19:00")["message"]
-        self.assertIn("희망 지역: 성동구", msg)
-        self.assertNotIn("{", msg)
         self.assertFalse(any("직접 보관" in n for n in precontact.build("온라인")["notes"]))
 
 
@@ -397,6 +397,42 @@ class ActivityReportTest(unittest.TestCase):
         r6 = forms.draft("activity_report", session("M4", 6), EchoLLM())  # 장소 변경 요청
         self.assertTrue(any("이음단 승인" in x for x in r6.reminders))
 
+
+    def test_late_cancel_session(self):
+        # 임박취소(온라인): 진행하지 못한 회차라 학습 내용을 만들지 않고, 증빙과 준비수당 안내를 붙인다. 접속 기록(진행시간)은 묻지 않는다
+        r = forms.draft("activity_report", {"status": "임박취소", "session_date": "2026-10-12", "session_no": "3", "subject": "수학", "course": "가상 강좌",
+                                            "scope": "5~6강", "attendance": "임박취소"}, EchoLLM(), {"only": []})
+        self.assertEqual(r.draft["session_content"], "멘티의 임박취소로 멘토링을 진행하지 못함.")
+        self.assertEqual(r.draft["scope"], "")
+        self.assertNotIn("actual_time", [q["key"] for q in r.missing_questions])
+        self.assertTrue(any("준비수당만" in x for x in r.reminders))
+        self.assertTrue(any("임박취소 연락내역" in x for x in r.reminders))
+        self.assertFalse(any("진행시간은" in x for x in r.reminders))           # 진행하지 못한 회차에는 진행시간 안내를 붙이지 않는다
+
+    def test_screen_path_keeps_lines_as_written(self):
+        # 화면이 실제로 쓰는 경로: 줄마다 이름표를 붙여 보내고(keep_lines) 저장은 LLM 없이 한다. 보고서에 흔한 말이 가려져 사라지면 안 된다
+        sent = {"attendance": "(p0) 출결: 정시 출석\n(p0) 과제: 과제 양이 많다고 함", "session_content": "(u0) 개념 복습중 졸았음\n(u0) 문제를 혼자해결함",
+                "requests": "(r) 부모님과 상의해 일정을 변경하고 싶음"}
+        llm = EchoLLM()
+        r = forms.draft("activity_report", {**session("M1", 2), **sent}, llm, {"only": [], "keep_lines": True})
+        self.assertEqual({k: r.draft[k] for k in sent}, sent)
+        self.assertEqual((llm.calls, r.pii_masked), ([], []))
+        # 건강 낱말이 든 줄은 통째로 뺀다: 숫자 사이 쉼표에서 쪼개 '2강만 들음' 같은 적지 않은 사실을 남기지 않는다
+        sick = forms.draft("activity_report", {**session("M1", 2), "attendance": "(p0) 인강: 독감으로 1, 2강만 들음\n(p0) 출결: 정시 출석"}, EchoLLM(),
+                           {"only": [], "keep_lines": True})
+        self.assertEqual(sick.draft["attendance"], "(p0) 출결: 정시 출석")
+        self.assertTrue(any("문장은 활동보고서에서 뺐습니다" in w for w in sick.warnings))
+
+    def test_extended_session_needs_120_minutes(self):
+        # 시간확대(120분) 회차는 90분이면 출석 인정 기준에 못 미친다. 60분 회차는 60분이 기준이다
+        inputs = {**session("M1", 2), "actual_time": "17:00~18:30"}
+        long = forms.draft("activity_report", dict(inputs), EchoLLM(), {"only": [], "duration": "120"})
+        self.assertTrue(any("120분에 못 미칩니다" in w for w in long.warnings))
+        self.assertFalse(any("못 미칩니다" in w for w in forms.draft("activity_report", dict(inputs), EchoLLM(), {"only": []}).warnings))
+        # 연장 상의 안내: 시간확대는 8회차가 마지막이라 7회차부터, 60분은 14회차부터
+        late = lambda no, extra: any("연장 여부" in x for x in forms.draft("activity_report", {**session("M1", 2), "session_no": str(no)}, EchoLLM(), {"only": [], **extra}).reminders)
+        self.assertEqual([late(7, {"duration": "120"}), late(7, {}), late(14, {})], [True, False, True])
+
     def test_draft_endpoint(self):
         from fastapi.testclient import TestClient
 
@@ -456,6 +492,14 @@ class PreContactTest(unittest.TestCase):
 
 
 class OutlineTest(unittest.TestCase):
+    def test_titles_starting_with_unit_words_are_lectures(self):
+        # '3 부등식의 영역'처럼 번호 뒤 제목이 부·장·편으로 시작하는 강의를 단원 이름으로 읽어 빠뜨리지 않는다
+        from app.forms import outline
+
+        r = outline.parse("1단원 지수\n1 지수\n2 로그\n3 부등식의 영역\n4 부정적분\n5 편미분")
+        self.assertEqual([x["title"] for x in r["lectures"]], ["지수", "로그", "부등식의 영역", "부정적분", "편미분"])
+        self.assertEqual({x["unit"] for x in r["lectures"]}, {"1단원 지수"})
+
     def test_four_courses_roundtrip(self):
         from app.forms import outline
 

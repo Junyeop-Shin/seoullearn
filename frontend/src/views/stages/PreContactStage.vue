@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { api } from '../../api/client'
 import CopyBlock from '../../components/CopyBlock.vue'
-import { handoverFromVault, handoverNote, parseHandoverText } from '../../lib/reports'
+import { handoverNote, latestOf, parseHandoverText } from '../../lib/reports'
 import { fillNames } from '../../lib/schedule'
 import { toast } from '../../lib/toast'
 import { loadSettings } from '../../stores/settings'
@@ -19,8 +19,8 @@ const text = ref('')
 const error = ref('')
 // 인계받은 글은 붙여 넣은 그대로 이 브라우저에 둔다. 종합계획서①을 쓸 때 옆에 띄워 참고한다.
 // AI에는 글 전체가 아니라 그 안의 허용된 네 항목('[출석 패턴] …')만 참고 자료로 넘긴다 (lib/reports.js의 handoverForDraft)
-const savedHandover = props.items.filter((x) => x.formId === 'handover_summary').sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))[0]
-const note = ref(handoverNote(handoverFromVault(props.items)))
+const savedHandover = latestOf(props.items, 'handover_summary')
+const note = ref(handoverNote(savedHandover?.draft))
 
 async function saveHandover() {
   try {
@@ -56,11 +56,11 @@ onMounted(async () => {
       <div class="box warn"><ul><li v-for="n in res.notes" :key="n">{{ n }}</li></ul></div>
     </template>
 
-    <h2>이전 멘토에게 인계받은 내용</h2>
+    <h3>이전 멘토에게 인계받은 내용</h3>
     <form class="card" data-test="handover-form" @submit.prevent="saveHandover">
-      <textarea v-model="note" rows="5" placeholder="멘토 교체로 인계받은 멘티라면, 이전 멘토가 보낸 글을 그대로 붙여 넣어 주세요." data-test="handover-note"></textarea>
-      <p class="notice">종합계획서①을 쓸 때 옆에 띄워 드립니다. 쓸 만한 내용이 있으면 가져다 쓰세요. 인계받은 것이 없으면 비워 두면 됩니다.</p>
-      <button class="primary" :disabled="!note.trim() && !savedHandover" data-test="save-handover">저장</button>
+      <textarea v-model="note" rows="5" placeholder="멘토 교체로 인계받은 멘티라면, 이전 멘토가 보낸 글을 그대로 붙여 넣어 주세요." aria-label="이전 멘토에게 인계받은 내용" data-test="handover-note"></textarea>
+      <p class="notice">종합계획서①을 쓸 때 옆에 띄워 드립니다. 인계받은 것이 없으면 비워 두세요.</p>
+      <button :disabled="!note.trim() && !savedHandover" data-test="save-handover">인계받은 내용 저장</button>
     </form>
   </div>
 </template>

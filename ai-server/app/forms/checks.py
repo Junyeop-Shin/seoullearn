@@ -105,7 +105,10 @@ def parse_datetime(text: str) -> datetime | None:
     m = re.search(r"(\d{1,2}):(\d{2})", text or "")
     if not d or not m:
         return None
-    return datetime(d.year, d.month, d.day, int(m.group(1)), int(m.group(2)))
+    try:
+        return datetime(d.year, d.month, d.day, int(m.group(1)), int(m.group(2)))
+    except ValueError:   # 25:00 같은 없는 시각
+        return None
 
 
 def add_days(d: date, days: int) -> date:
@@ -120,6 +123,8 @@ def plain_text(text: str) -> tuple[str, list[str]]:
     """플랫폼 입력용: 동그라미 숫자·로마 숫자는 일반 숫자로, 그 밖의 특수문자는 뺀다. (정리한 글, 바꾸거나 뺀 문자)."""
     removed: list[str] = []
     out = []
+    text = re.sub(r"(?m)^[ \t]*[·•ㆍ][ \t]*", "", text)       # 줄 머리의 글머리 기호는 뗀다 (', 시간 지키기'가 되지 않게)
+    text = re.sub(r"(\d)[·ㆍ](\d)", r"\1.\2", text)          # 6·25 → 6.25 (화면의 platformSafe와 같은 규칙)
     for ch in text:
         if ch in _CIRCLED:
             out.append(f"({_CIRCLED[ch]})")

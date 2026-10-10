@@ -1,4 +1,5 @@
 // 보관함 항목 → 완료보고서·인계 요약의 입력(활동보고서 목록). 형식은 docs/vault_format.md 참고.
+import { assignedSentences, boxText } from './report'
 
 /** 같은 멘티의 활동보고서를 회차 순으로. 같은 회차가 여러 번 저장돼 있으면 가장 늦게 저장한 것을 쓴다. */
 export function reportsFromVault(items) {
@@ -22,8 +23,7 @@ export function reportsFromVault(items) {
 
 /** 종합계획서에 적은 학습목표. 종합계획서②가 있으면 그것을, 없으면 ①을 쓴다. */
 export function goalsFromVault(items) {
-  const pick = (formId) =>
-    items.filter((x) => x.formId === formId).sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))[0]?.draft?.learning_goal
+  const pick = (formId) => latestOf(items, formId)?.draft?.learning_goal
   const goal = pick('plan_file') ?? pick('plan_initial')
   if (Array.isArray(goal)) return goal.map((g) => String(g).trim()).filter(Boolean)
   return goal ? String(goal).split('\n').map((g) => g.trim()).filter(Boolean) : []
@@ -31,11 +31,8 @@ export function goalsFromVault(items) {
 
 /** 가장 최근에 저장한 인계 요약 (없으면 null). */
 export function handoverFromVault(items) {
-  return items.filter((x) => x.formId === 'handover_summary').sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))[0]?.draft ?? null
+  return latestOf(items, 'handover_summary')?.draft ?? null
 }
-
-// 내 강좌: 예전에 강의 목차를 저장해 두던 별칭. 이제 저장하지 않지만(2026-10-11), 보관함에 남아 있는 예전 자료가 멘티 목록에 섞이지 않게 거른다.
-export const COURSE_ALIAS = '내 강좌'
 
 /** 보관함 화면에 보여 줄 초안 한 칸의 글. 강의 목록은 '1강 제목'으로 풀어 쓴다. */
 export function draftValueText(value) {
@@ -45,7 +42,10 @@ export function draftValueText(value) {
   return value === null || value === undefined ? '' : String(value)
 }
 
-const latestOf = (items, formId) => items.filter((x) => x.formId === formId).sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))[0]
+/** 그 양식으로 가장 최근에 저장한 항목 (없으면 undefined). */
+export function latestOf(items, formId) {
+  return items.filter((x) => x.formId === formId).sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))[0]
+}
 
 /** 저장한 계획서의 그 주차 줄 ({week, date, time, content, online, mentoring}). 종합계획서②를 먼저, 없으면 ①을 본다. 없으면 null. */
 export function plannedRow(items, round, needContent = false) {
@@ -59,12 +59,28 @@ export function plannedRow(items, round, needContent = false) {
 /** 그 주차에 적어 둔 학습 계획. 내용이 없으면 null. */
 export const curriculumRow = (items, round) => plannedRow(items, round, true)
 
-/** 직전 회차에 낸 과제 ({lecture, task}). 직전 활동보고서에 없으면 멘티 등록 때 적은 것을 쓴다. */
+/** 그 주차의 계획 {row, course(그 주차 강좌 이름)}. 종합계획서②에 적은 것이 있으면 그것을, 없으면 ①의 학습 내용을 쓴다. 없으면 null. */
+export function plannedWeek(items, round) {
+  const file = latestOf(items, 'plan_file')
+  const row = (file?.extra?.rows || []).find((r) => Number(r.week) === Number(round))
+  if (row && ((row.online || '').trim() || (row.mentoring || '').trim())) {
+    const courses = file.extra.courses || []
+    return { row, course: courseName(courses[row.course || 0] || courses[0]) }
+  }
+  const pre = curriculumRow(items, round)
+  return pre ? { row: pre, course: '' } : null
+}
+
+/** 직전 회차에 낸 인강·과제. 아무것도 없으면 null.
+ * lecture, task: 따로 적어 둔 것 (예전 화면으로 저장한 보고서, 진행 중인 멘티를 등록할 때 적은 것).
+ * sentences: 직전 보고서의 학습 이해도에서 과제를 말한 문장 (활동가이드의 예시처럼 내 준 과제는 학습 이해도에 적는다). */
 export function previousHomework(items, round, profile) {
   const prev = items.filter((x) => x.formId === 'activity_report' && Number(x.sessionNo ?? x.inputs?.session_no) === Number(round) - 1)
     .sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))[0]
   const hw = prev?.extra?.assignedHomework || (prev ? null : profile?.lastHomework)
-  return hw && (hw.lecture || hw.task) ? hw : null
+  const sentences = assignedSentences([].concat(prev?.extra?.sheet?.understanding || []).map(boxText).join('\n'))
+  const out = { lecture: (hw?.lecture || '').trim(), task: (hw?.task || '').trim(), sentences }
+  return out.lecture || out.task || sentences.length ? out : null
 }
 
 /** 커리큘럼 표 → 계획서에 넣을 줄. 내용이 없는 주차는 뺀다.
@@ -107,7 +123,8 @@ export function handoverText(summary) {
 export function parseHandoverText(text) {
   const found = {}
   let dropped = 0
-  const parts = String(text || '').split(/\[([^\]\n]{1,20})\]/)   // [앞글, 이름1, 내용1, 이름2, 내용2, …]
+  // [앞글, 이름1, 내용1, 이름2, 내용2, …]. 서버가 개인정보를 가리며 넣은 표시([학교명] 등)는 항목 이름으로 보지 않는다
+  const parts = String(text || '').split(/\[(?!(?:이름|학교명|전화번호|이메일|주민등록번호)\])([^\]\n]{1,20})\]/)
   if (parts[0].trim()) dropped += 1
   for (let i = 1; i < parts.length; i += 2) {
     const item = HANDOVER_ITEMS.find(([, label]) => label.replace(/\s/g, '') === parts[i].replace(/\s/g, ''))
@@ -136,11 +153,11 @@ export const TERM_SUMMARY_FORM = 'term_summary'
 export function termSummary(items, profile, nextCourse = '') {
   const reports = reportsFromVault(items)
   const last = reports[reports.length - 1]
-  const lastItem = items.filter((x) => x.formId === 'activity_report').sort((a, b) => Number(b.sessionNo) - Number(a.sessionNo))[0]
+  const hw = previousHomework(items, (last?.session_no || 0) + 1, null)   // 마지막 회차에 낸 과제 (따로 적어 둔 것이나 학습 이해도의 과제 문장)
   const completion = latestOf(items, 'completion_report')?.draft || {}
   const list = (v) => (Array.isArray(v) ? v : v ? [v] : []).map((x) => String(x).trim()).filter(Boolean)
   return { term: Number(profile?.term) || 1, rounds: reports.length, course: profile?.course || '', goal: goalsFromVault(items),
-    last_scope: last?.scope || '', next_homework: lastItem?.extra?.assignedHomework || null,
+    last_scope: last?.scope || '', next_homework: hw ? { lecture: hw.lecture, task: hw.task || hw.sentences.join(' ') } : null,
     content: list(completion.content), achievement: list(completion.achievement), next_course: String(nextCourse || '').trim() }
 }
 

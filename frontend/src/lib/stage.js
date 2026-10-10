@@ -31,7 +31,7 @@ export function totalRounds(profile) {
 /** 왼쪽 메뉴에 붙이는 단계 표시. */
 export function stageBadge(profile) {
   if (profile.archived) return '종료'
-  if (profile.stage === 'ACTIVITY') return `보고서 ${profile.currentRound}회차`
+  if (profile.stage === 'ACTIVITY') return `활동보고서 ${profile.currentRound}회차`
   return STAGES.find((s) => s.id === profile.stage)?.label || ''
 }
 
@@ -61,8 +61,9 @@ export function afterReport(profile, savedRound) {
   return savedRound >= totalRounds(profile) ? { stage: 'COMPLETION' } : { currentRound: savedRound + 1 }
 }
 
-/** 다음 회기를 시작할 때의 멘티 정보. 시간확대(60↔120분)는 회기마다 다시 정한다. */
+/** 다음 회기를 시작할 때의 멘티 정보. 시간확대(60↔120분)는 회기마다 다시 정한다.
+ * 지난 회기의 목표·진단·1회차 일시는 넘기지 않는다: 남겨 두면 새 종합계획서①이 지난 글로 채워져 '지난 회기에 이어 초안 채우기'가 할 일이 없다 (지난 목표는 회기 요약에 남는다). */
 export function nextTerm(profile, duration) {
   return { ...profile, term: (Number(profile.term) || 1) + 1, currentRound: 1, stage: 'PLAN', duration: String(duration || profile.duration || '60'),
-    lastHomework: null }
+    lastHomework: null, goal: '', level: '', start_datetime: '' }
 }

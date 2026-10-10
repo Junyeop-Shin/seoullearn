@@ -41,12 +41,12 @@ def needs_draft(res: QAResult) -> bool:
     return not res.safety and res.answerable in ("partial", "no") and bool(res.route) and res.route != "운영사무국(즉시)"
 
 
-def build(res: QAResult, llm: ChatLLM, ieumdan_chat_url: str | None = None) -> InquiryDraft | None:
+def build(res: QAResult, llm: ChatLLM) -> InquiryDraft | None:
     if not needs_draft(res):
         return None
     question = guard.check(res.question).text
     pages = ", ".join(dict.fromkeys(res.cite_labels)) or "활동가이드"
-    contact = ieumdan_chat_url if res.route == "이음단" and ieumdan_chat_url else ROUTE_INFO.get(res.route)
+    contact = ROUTE_INFO.get(res.route)
     error = None
     try:
         raw = llm.complete(SYSTEM, f"[문의처]\n{res.route}\n\n[질문]\n{question}\n\n[확인한 근거]\n{pages}")

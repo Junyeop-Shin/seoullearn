@@ -11,7 +11,7 @@ export const vaultChanges = ref(0)
 
 function open() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, VERSION)
+    const req = indexedDB.open(DB_NAME, 1)   // DB 구조의 버전. 파일 형식의 VERSION과 따로다 (올리면 onupgradeneeded를 함께 고친다)
     req.onupgradeneeded = () => {
       const store = req.result.createObjectStore(STORE, { keyPath: 'id' })
       store.createIndex('alias', 'alias')
@@ -80,9 +80,9 @@ export async function clearAll() {
   await tx('readwrite', (s) => s.clear())
 }
 
-/** 보관함 전체를 파일로 내보낼 객체. */
-export async function exportAll() {
-  return { format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), items: await listItems() }
+/** 보관함 전체(alias를 주면 그 멘티만)를 파일로 내보낼 객체. 가져오기는 importAll로 한다. */
+export async function exportAll(alias) {
+  return { format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), items: await listItems(alias) }
 }
 
 /** 내보낸 파일 내용을 가져온다. 같은 id는 덮어쓴다. 가져온 개수를 돌려준다. */
@@ -91,7 +91,7 @@ export async function importAll(data) {
     throw new Error('보관함 파일이 아닙니다. 이 도구에서 내보낸 파일을 선택해 주세요.')
   }
   if (data.version > VERSION) throw new Error('더 새로운 버전에서 내보낸 파일입니다.')
-  const valid = data.items.filter((x) => x && typeof x.id === 'string' && typeof x.alias === 'string' && typeof x.formId === 'string')
+  const valid = data.items.filter((x) => x && [x.id, x.alias, x.formId, x.savedAt].every((v) => typeof v === 'string'))
   await tx('readwrite', (s) => valid.forEach((x) => s.put(JSON.parse(JSON.stringify(x)))))
   return valid.length
 }
@@ -101,11 +101,6 @@ export async function removeAlias(alias, keep = []) {
   const targets = (await listItems(alias)).filter((x) => !keep.includes(x.formId))
   await tx('readwrite', (s) => targets.forEach((x) => s.delete(x.id)))
   return targets.length
-}
-
-/** 한 멘티의 자료만 파일로 내보낼 객체 (가져오기는 importAll로 한다). */
-export async function exportAlias(alias) {
-  return { format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), items: await listItems(alias) }
 }
 
 /** 내보낼 객체를 파일로 내려받는다. */

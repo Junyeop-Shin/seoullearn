@@ -3,7 +3,7 @@ export const MAX_DATA_URL = 900_000   // 서버의 한도(950,000자)보다 조�
 
 /** 이미지 파일 → JPEG data URL. 긴 쪽을 max 픽셀로 줄이고, 그래도 크면 화질을 낮춘다. 끝내 못 맞추면 오류. */
 export async function shrinkImage(file, max = 1800) {
-  const bitmap = await createImageBitmap(file)
+  const bitmap = await createImageBitmap(file).catch(() => { throw new Error('이미지를 열지 못했습니다. JPG나 PNG 이미지를 붙여 넣어 주세요.') })
   const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height))
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(bitmap.width * scale)
@@ -17,5 +17,5 @@ export async function shrinkImage(file, max = 1800) {
     if (url.length <= MAX_DATA_URL) return url
   }
   if (max > 1000) return shrinkImage(file, 1000)
-  throw new Error('이미지가 너무 큽니다. 강의 목록 부분만 잘라서 올려 주세요.')
+  throw new Error('이미지가 너무 큽니다. 강의 목록 부분만 잘라서 붙여 넣어 주세요.')
 }

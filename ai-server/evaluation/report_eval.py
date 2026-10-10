@@ -22,6 +22,7 @@ from pathlib import Path
 from app import forms
 from app.config import settings
 from app.forms import checks, weekly_plan
+from app.forms.hooks_activity import ABSENT
 from app.llm import get_eval_model
 
 ROOT = settings.root
@@ -98,7 +99,7 @@ def score(form_id: str, case: dict, inputs: dict, extra: dict, res) -> dict:
     draft = res.draft
     asked = {q["key"] for q in res.missing_questions}
     expect_missing = set(case.get("expect_missing", []))
-    absent = inputs.get("status") in ("무단결석", "인정결석")
+    absent = inputs.get("status") in ABSENT
     need = [f["key"] for f in form["fields"] if f.get("required") and f.get("source") != "placeholder" and not f.get("pii")
             and f["key"] not in expect_missing and not (absent and f["key"] != "session_content" and f["key"] in
                                                           ("scope", "goal", "lecture_progress", "homework", "progress_scale",
@@ -138,7 +139,7 @@ def judge_draft(judge, form_id: str, inputs: dict, extra: dict, res) -> list[str
     keys = [f["key"] for f in form["fields"] if f.get("source") in ("user_text", "llm_draft")]
     if form_id == "plan_initial":
         keys = [k for k in keys if k not in ("structure", "rules", "curriculum")]
-    if inputs.get("status") in ("무단결석", "인정결석"):
+    if inputs.get("status") in ABSENT:
         keys = [k for k in keys if k != "session_content"]
     written = {k: res.draft[k] for k in keys if str(res.draft.get(k) or "").strip() and res.draft[k] != forms.hooks_plan.LATER}
     if not written:

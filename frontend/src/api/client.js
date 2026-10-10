@@ -29,12 +29,12 @@ function detailOf(body, status) {
 export async function request(method, path, body) {
   const headers = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
-  if (method !== 'GET') {
-    if (!readCookie('XSRF-TOKEN')) await fetch('/api/auth/csrf', { credentials: 'same-origin' })
-    headers['X-XSRF-TOKEN'] = readCookie('XSRF-TOKEN')
-  }
   let res
   try {
+    if (method !== 'GET') {
+      if (!readCookie('XSRF-TOKEN')) await fetch('/api/auth/csrf', { credentials: 'same-origin' })
+      headers['X-XSRF-TOKEN'] = readCookie('XSRF-TOKEN')
+    }
     res = await fetch(path, {
       method,
       headers,
@@ -61,16 +61,17 @@ export const api = {
   signup: (username, password) => request('POST', '/api/auth/signup', { username, password }),
   logout: () => request('POST', '/api/auth/logout'),
   places: () => request('GET', '/api/places'),
-  /** 종합활동계획서 서식 파일(docx, hwpx)의 bytes. 서버에 없으면 null. */
+  /** 종합활동계획서 서식 파일(docx, hwpx)의 bytes. 서버에 서식이 없으면(404) null. 로그인이 풀렸거나 연결이 끊긴 것은 오류로 알린다. */
   planTemplate: async (format) => {
-    const res = await fetch(`/api/templates/plan?format=${format}`, { credentials: 'same-origin' })
-    return res.ok ? new Uint8Array(await res.arrayBuffer()) : null
+    const res = await fetch(`/api/templates/plan?format=${format}`, { credentials: 'same-origin' }).catch(() => { throw new ApiError(0, '서버에 연결할 수 없습니다. 네트워크를 확인해 주세요.') })
+    if (res.status === 404) return null
+    if (!res.ok) throw new ApiError(res.status, detailOf(null, res.status))
+    return new Uint8Array(await res.arrayBuffer())
   },
   config: () => request('GET', '/api/config'),
   forms: () => request('GET', '/api/forms'),
   form: (id) => request('GET', `/api/forms/${id}`),
-  chat: (message, ieumdanChatUrl) =>
-    request('POST', '/api/chat', ieumdanChatUrl ? { message, ieumdan_chat_url: ieumdanChatUrl } : { message }),
+  chat: (message) => request('POST', '/api/chat', { message }),
   draft: (formId, inputs, extra = {}) => request('POST', `/api/drafts/${formId}`, { inputs, extra }),
   preContact: (mode, callTime, answers, subject = '') =>
     request('POST', '/api/drafts/pre_contact', { mode, call_time: callTime || null, answers: answers || null, subject }),
@@ -78,9 +79,8 @@ export const api = {
   courseOutlineImage: (image) => request('POST', '/api/drafts/course_outline_image', { image }),
   weeklyPlan: (payload) => request('POST', '/api/drafts/weekly_plan', payload),
   allowance: (payload) => request('POST', '/api/tools/allowance', payload),
-  splitReports: (text) => request('POST', '/api/drafts/split_reports', { text }),
+  allowanceMonth: (payload) => request('POST', '/api/tools/allowance_month', payload),
   handover: (reports) => request('POST', '/api/drafts/handover_summary', { reports }),
-  ieumdanRequest: (payload) => request('POST', '/api/drafts/ieumdan_request', payload),
   unanswered: () => request('GET', '/api/admin/unanswered'),
   deleteUnanswered: (id) => request('DELETE', `/api/admin/unanswered/${id}`),
 }
