@@ -104,7 +104,8 @@ def score(form_id: str, case: dict, inputs: dict, extra: dict, res) -> dict:
                                                           ("scope", "goal", "lecture_progress", "homework", "progress_scale",
                                                            "understanding_scale", "actual_time"))]
     filled = [k for k in need if str(draft.get(k) or "").strip() and draft.get(k) != []]
-    sources = json.dumps([inputs, extra], ensure_ascii=False)
+    # 줄 머리 표시((1), (2) …)는 양식이 정한 형식이고 규칙으로 붙이는 것이라 지어낸 숫자로 보지 않는다
+    sources = json.dumps([inputs, extra, [f.get("slot_marks") for f in form["fields"]]], ensure_ascii=False)
     llm_keys = {f["key"] for f in form["fields"] if f.get("source") in ("user_text", "llm_draft")}
     if form_id == "plan_initial":
         llm_keys -= {"structure", "rules", "curriculum"}  # 규칙으로 만든 칸은 지어내기 검사 대상이 아니다

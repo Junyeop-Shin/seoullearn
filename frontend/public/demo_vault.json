@@ -6,7 +6,7 @@
  "items": [
   {
    "id": "demo-001",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "mentee_profile",
    "title": "멘티 정보",
    "sessionNo": null,
@@ -21,7 +21,21 @@
     "start_datetime": "2026-03-09T17:00",
     "goal": "시발점 수1 완강, 기말고사 수학 3등급, 오답노트 습관",
     "level": "인강 의존도가 높고 오답 정리를 미루는 편",
-    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ"
+    "course": "메가스터디 수학의 시작, 시발점 - 수Ⅰ",
+    "name": "김OO",
+    "grade": "고2",
+    "district": "관악구",
+    "stage": "COMPLETION",
+    "currentRound": 16,
+    "term": 1,
+    "venue": "",
+    "regularSchedule": [
+     {
+      "weekday": "월",
+      "startTime": "17:00"
+     }
+    ],
+    "archived": false
    }
   },
   {
@@ -136,7 +150,7 @@
   },
   {
    "id": "demo-003",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "plan_initial",
    "title": "종합계획서①",
    "sessionNo": null,
@@ -427,6 +441,136 @@
       "counsel": "다음 회기 연장 상담",
       "line": "(온라인 강의) 수강 강의 총정리 / (멘토링 내용) 총정리 및 개념 복습 / (상담) 다음 회기 연장 상담"
      }
+    ],
+    "rows": [
+     {
+      "week": 1,
+      "date": "2026-03-09",
+      "content": "(온라인 강의) 1강 Theme 1. 거듭제곱근과 지수법칙 / (멘토링 내용) 거듭제곱근과 지수법칙 개념 정리 / (상담) 오답노트 작성법 상담",
+      "online": "1강 Theme 1. 거듭제곱근과 지수법칙",
+      "mentoring": "거듭제곱근과 지수법칙 개념 정리",
+      "counsel": "오답노트 작성법 상담"
+     },
+     {
+      "week": 2,
+      "date": "2026-03-16",
+      "content": "(온라인 강의) 2강 Theme 2. 로그의 뜻과 성질 / (멘토링 내용) 로그의 뜻과 성질 이해하기 / (상담) 기말고사 대비 학습법",
+      "online": "2강 Theme 2. 로그의 뜻과 성질",
+      "mentoring": "로그의 뜻과 성질 이해하기",
+      "counsel": "기말고사 대비 학습법"
+     },
+     {
+      "week": 3,
+      "date": "2026-03-23",
+      "content": "(온라인 강의) 3강 Theme 3. 상용로그 / (멘토링 내용) 상용로그 개념과 문제풀이 / (상담) 진도별 학습 계획 점검",
+      "online": "3강 Theme 3. 상용로그",
+      "mentoring": "상용로그 개념과 문제풀이",
+      "counsel": "진도별 학습 계획 점검"
+     },
+     {
+      "week": 4,
+      "date": "2026-03-30",
+      "content": "(온라인 강의) 4강 Theme 4. 지수함수의 뜻과 그래프 / (멘토링 내용) 지수함수 뜻과 그래프 분석 / (상담) 수학 공부 습관 점검",
+      "online": "4강 Theme 4. 지수함수의 뜻과 그래프",
+      "mentoring": "지수함수 뜻과 그래프 분석",
+      "counsel": "수학 공부 습관 점검"
+     },
+     {
+      "week": 5,
+      "date": "2026-04-06",
+      "content": "(온라인 강의) 5강 Theme 5. 지수함수 그래프의 활용 / (멘토링 내용) 지수함수 그래프 활용 문제풀이 / (상담) 오답노트 활용법 상담",
+      "online": "5강 Theme 5. 지수함수 그래프의 활용",
+      "mentoring": "지수함수 그래프 활용 문제풀이",
+      "counsel": "오답노트 활용법 상담"
+     },
+     {
+      "week": 6,
+      "date": "2026-04-13",
+      "content": "(온라인 강의) 6강 Theme 6. 로그함수의 뜻과 그래프 / (멘토링 내용) 로그함수 뜻과 그래프 이해 / (상담) 기말고사 목표 점검",
+      "online": "6강 Theme 6. 로그함수의 뜻과 그래프",
+      "mentoring": "로그함수 뜻과 그래프 이해",
+      "counsel": "기말고사 목표 점검"
+     },
+     {
+      "week": 7,
+      "date": "2026-04-20",
+      "content": "(온라인 강의) 7강 Theme 7. 로그함수의 그래프의 활용 / (멘토링 내용) 로그함수 그래프 활용 문제풀이 / (상담) 학습 동기 부여 상담",
+      "online": "7강 Theme 7. 로그함수의 그래프의 활용",
+      "mentoring": "로그함수 그래프 활용 문제풀이",
+      "counsel": "학습 동기 부여 상담"
+     },
+     {
+      "week": 8,
+      "date": "2026-04-27",
+      "content": "(온라인 강의) 8강 Theme 8. 지수방정식과 지수부등식, 9강 Theme 9. 로그방정식과 로그부등식 / (멘토링 내용) 지수·로그 방정식과 부등식 풀이 / (상담) 진학 목표 상담",
+      "online": "8강 Theme 8. 지수방정식과 지수부등식, 9강 Theme 9. 로그방정식과 로그부등식",
+      "mentoring": "지수·로그 방정식과 부등식 풀이",
+      "counsel": "진학 목표 상담"
+     },
+     {
+      "week": 9,
+      "date": "2026-05-04",
+      "content": "(온라인 강의) 10강 Theme 10. 일반각 / (멘토링 내용) 일반각 개념과 문제풀이 / (상담) 시험 대비 전략 상담",
+      "online": "10강 Theme 10. 일반각",
+      "mentoring": "일반각 개념과 문제풀이",
+      "counsel": "시험 대비 전략 상담"
+     },
+     {
+      "week": 10,
+      "date": "2026-05-11",
+      "content": "(온라인 강의) 11강 Theme 11. 호도법과 부채꼴 / (멘토링 내용) 호도법과 부채꼴 개념 정리 / (상담) 학습 시간 관리 상담",
+      "online": "11강 Theme 11. 호도법과 부채꼴",
+      "mentoring": "호도법과 부채꼴 개념 정리",
+      "counsel": "학습 시간 관리 상담"
+     },
+     {
+      "week": 11,
+      "date": "2026-05-18",
+      "content": "(온라인 강의) 12강 Theme 12. 삼각함수의 뜻 / (멘토링 내용) 삼각함수 뜻과 기본 개념 / (상담) 오답노트 습관 점검",
+      "online": "12강 Theme 12. 삼각함수의 뜻",
+      "mentoring": "삼각함수 뜻과 기본 개념",
+      "counsel": "오답노트 습관 점검"
+     },
+     {
+      "week": 12,
+      "date": "2026-05-25",
+      "content": "(온라인 강의) 13강 Theme 13. 삼각함수의 각의 변환 / (멘토링 내용) 삼각함수 각의 변환 문제풀이 / (상담) 기말고사 대비 상담",
+      "online": "13강 Theme 13. 삼각함수의 각의 변환",
+      "mentoring": "삼각함수 각의 변환 문제풀이",
+      "counsel": "기말고사 대비 상담"
+     },
+     {
+      "week": 13,
+      "date": "2026-06-01",
+      "content": "(온라인 강의) 14강 Theme 14. 삼각함수의 그래프 / (멘토링 내용) 삼각함수 그래프 이해와 풀이 / (상담) 학습 진도 점검",
+      "online": "14강 Theme 14. 삼각함수의 그래프",
+      "mentoring": "삼각함수 그래프 이해와 풀이",
+      "counsel": "학습 진도 점검"
+     },
+     {
+      "week": 14,
+      "date": "2026-06-08",
+      "content": "(온라인 강의) 15강 Theme 15. 삼각함수 그래프의 평행이동 / 최대와 최소 / (멘토링 내용) 삼각함수 그래프 평행이동과 최대최소 / (상담) 학습 계획 조정",
+      "online": "15강 Theme 15. 삼각함수 그래프의 평행이동 / 최대와 최소",
+      "mentoring": "삼각함수 그래프 평행이동과 최대최소",
+      "counsel": "학습 계획 조정"
+     },
+     {
+      "week": 15,
+      "date": "2026-06-15",
+      "content": "(온라인 강의) 16강 Theme 16. 삼각방정식과 삼각부등식 / (멘토링 내용) 삼각방정식과 부등식 문제풀이 / (상담) 시험 대비 학습법",
+      "online": "16강 Theme 16. 삼각방정식과 삼각부등식",
+      "mentoring": "삼각방정식과 부등식 문제풀이",
+      "counsel": "시험 대비 학습법"
+     },
+     {
+      "week": 16,
+      "date": "2026-06-22",
+      "content": "(온라인 강의) 수강 강의 총정리 / (멘토링 내용) 총정리 및 개념 복습 / (상담) 다음 회기 연장 상담",
+      "online": "수강 강의 총정리",
+      "mentoring": "총정리 및 개념 복습",
+      "counsel": "다음 회기 연장 상담"
+     }
     ]
    },
    "draft": {
@@ -459,7 +603,7 @@
   },
   {
    "id": "demo-004",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 1회차",
    "sessionNo": 1,
@@ -506,7 +650,7 @@
   },
   {
    "id": "demo-005",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 2회차",
    "sessionNo": 2,
@@ -553,7 +697,7 @@
   },
   {
    "id": "demo-006",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 3회차",
    "sessionNo": 3,
@@ -600,7 +744,7 @@
   },
   {
    "id": "demo-007",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 4회차",
    "sessionNo": 4,
@@ -647,7 +791,7 @@
   },
   {
    "id": "demo-008",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 5회차",
    "sessionNo": 5,
@@ -694,7 +838,7 @@
   },
   {
    "id": "demo-009",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 6회차",
    "sessionNo": 6,
@@ -741,7 +885,7 @@
   },
   {
    "id": "demo-010",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 7회차",
    "sessionNo": 7,
@@ -788,7 +932,7 @@
   },
   {
    "id": "demo-011",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 8회차",
    "sessionNo": 8,
@@ -835,7 +979,7 @@
   },
   {
    "id": "demo-012",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 9회차",
    "sessionNo": 9,
@@ -882,7 +1026,7 @@
   },
   {
    "id": "demo-013",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 10회차",
    "sessionNo": 10,
@@ -929,7 +1073,7 @@
   },
   {
    "id": "demo-014",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 11회차",
    "sessionNo": 11,
@@ -976,7 +1120,7 @@
   },
   {
    "id": "demo-015",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 12회차",
    "sessionNo": 12,
@@ -1023,7 +1167,7 @@
   },
   {
    "id": "demo-016",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 13회차",
    "sessionNo": 13,
@@ -1070,7 +1214,7 @@
   },
   {
    "id": "demo-017",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 14회차",
    "sessionNo": 14,
@@ -1117,7 +1261,7 @@
   },
   {
    "id": "demo-018",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 15회차",
    "sessionNo": 15,
@@ -1164,7 +1308,7 @@
   },
   {
    "id": "demo-019",
-   "alias": "수학 A (회기 마무리)",
+   "alias": "김OO",
    "formId": "activity_report",
    "title": "활동보고서 16회차",
    "sessionNo": 16,
@@ -1211,7 +1355,7 @@
   },
   {
    "id": "demo-020",
-   "alias": "영어 B (멘토 교체 예정)",
+   "alias": "이OO",
    "formId": "mentee_profile",
    "title": "멘티 정보",
    "sessionNo": null,
@@ -1226,7 +1370,21 @@
     "start_datetime": "2026-03-11T19:00",
     "goal": "문법 기본 다지기, 단어 암기 습관",
     "level": "문법 인강은 꾸준히 듣고 단어 과제를 자주 덜 해 옴",
-    "course": "밀크T 중학 (가상) 중2 영어 문법 기본"
+    "course": "밀크T 중학 (가상) 중2 영어 문법 기본",
+    "name": "이OO",
+    "grade": "중2",
+    "district": "마포구",
+    "stage": "ACTIVITY",
+    "currentRound": 9,
+    "term": 1,
+    "venue": "(가상) 마포 청소년센터 스터디룸",
+    "regularSchedule": [
+     {
+      "weekday": "수",
+      "startTime": "19:00"
+     }
+    ],
+    "archived": false
    }
   },
   {
@@ -1365,7 +1523,7 @@
   },
   {
    "id": "demo-022",
-   "alias": "영어 B (멘토 교체 예정)",
+   "alias": "이OO",
    "formId": "plan_initial",
    "title": "종합계획서①",
    "sessionNo": null,
@@ -1648,6 +1806,136 @@
       "counsel": "다음 회기 연장 상담",
       "line": "(온라인 강의) 수강 강의 총정리 / (멘토링 내용) 총정리 및 복습 계획 / (상담) 다음 회기 연장 상담"
      }
+    ],
+    "rows": [
+     {
+      "week": 1,
+      "date": "2026-03-11",
+      "content": "(온라인 강의) 1강 문장의 5형식 / (멘토링 내용) 문장의 5형식 개념 정리 / (상담) 기본 문법 이해 점검",
+      "online": "1강 문장의 5형식",
+      "mentoring": "문장의 5형식 개념 정리",
+      "counsel": "기본 문법 이해 점검"
+     },
+     {
+      "week": 2,
+      "date": "2026-03-18",
+      "content": "(온라인 강의) 2강 현재완료, 3강 현재완료 진행 / (멘토링 내용) 현재완료와 진행형 설명 / (상담) 단어 암기 습관 점검",
+      "online": "2강 현재완료, 3강 현재완료 진행",
+      "mentoring": "현재완료와 진행형 설명",
+      "counsel": "단어 암기 습관 점검"
+     },
+     {
+      "week": 3,
+      "date": "2026-03-25",
+      "content": "(온라인 강의) 4강 조동사 can, may / (멘토링 내용) 조동사 can, may 용법 정리 / (상담) 학습 계획 점검",
+      "online": "4강 조동사 can, may",
+      "mentoring": "조동사 can, may 용법 정리",
+      "counsel": "학습 계획 점검"
+     },
+     {
+      "week": 4,
+      "date": "2026-04-01",
+      "content": "(온라인 강의) 5강 조동사 must, have to / (멘토링 내용) 조동사 must, have to 설명 / (상담) 진도별 이해도 상담",
+      "online": "5강 조동사 must, have to",
+      "mentoring": "조동사 must, have to 설명",
+      "counsel": "진도별 이해도 상담"
+     },
+     {
+      "week": 5,
+      "date": "2026-04-08",
+      "content": "(온라인 강의) 6강 to부정사의 명사적 용법, 7강 to부정사의 형용사·부사적 용법 / (멘토링 내용) to부정사의 용법 정리 / (상담) 단어 암기 방법 상담",
+      "online": "6강 to부정사의 명사적 용법, 7강 to부정사의 형용사·부사적 용법",
+      "mentoring": "to부정사의 용법 정리",
+      "counsel": "단어 암기 방법 상담"
+     },
+     {
+      "week": 6,
+      "date": "2026-04-15",
+      "content": "(온라인 강의) 8강 동명사 / (멘토링 내용) 동명사 개념과 용법 정리 / (상담) 학습 동기 부여",
+      "online": "8강 동명사",
+      "mentoring": "동명사 개념과 용법 정리",
+      "counsel": "학습 동기 부여"
+     },
+     {
+      "week": 7,
+      "date": "2026-04-22",
+      "content": "(온라인 강의) 9강 동명사와 to부정사 비교 / (멘토링 내용) 동명사와 to부정사 비교 / (상담) 문법 이해도 상담",
+      "online": "9강 동명사와 to부정사 비교",
+      "mentoring": "동명사와 to부정사 비교",
+      "counsel": "문법 이해도 상담"
+     },
+     {
+      "week": 8,
+      "date": "2026-04-29",
+      "content": "(온라인 강의) 10강 수동태 기본, 11강 수동태 시제 / (멘토링 내용) 수동태 기본과 시제 설명 / (상담) 복습 방법 상담",
+      "online": "10강 수동태 기본, 11강 수동태 시제",
+      "mentoring": "수동태 기본과 시제 설명",
+      "counsel": "복습 방법 상담"
+     },
+     {
+      "week": 9,
+      "date": "2026-05-06",
+      "content": "(온라인 강의) 12강 비교급과 최상급 / (멘토링 내용) 비교급과 최상급 개념 정리 / (상담) 단어 암기 점검",
+      "online": "12강 비교급과 최상급",
+      "mentoring": "비교급과 최상급 개념 정리",
+      "counsel": "단어 암기 점검"
+     },
+     {
+      "week": 10,
+      "date": "2026-05-13",
+      "content": "(온라인 강의) 13강 원급 비교 / (멘토링 내용) 원급 비교 개념 설명 / (상담) 학습 진도 상담",
+      "online": "13강 원급 비교",
+      "mentoring": "원급 비교 개념 설명",
+      "counsel": "학습 진도 상담"
+     },
+     {
+      "week": 11,
+      "date": "2026-05-20",
+      "content": "(온라인 강의) 14강 관계대명사 who, which, 15강 관계대명사 that, what / (멘토링 내용) 관계대명사 who, which, that, what / (상담) 문법 응용 상담",
+      "online": "14강 관계대명사 who, which, 15강 관계대명사 that, what",
+      "mentoring": "관계대명사 who, which, that, what",
+      "counsel": "문법 응용 상담"
+     },
+     {
+      "week": 12,
+      "date": "2026-05-27",
+      "content": "(온라인 강의) 16강 접속사 when, because, if / (멘토링 내용) 접속사 when, because, if 설명 / (상담) 학습 계획 점검",
+      "online": "16강 접속사 when, because, if",
+      "mentoring": "접속사 when, because, if 설명",
+      "counsel": "학습 계획 점검"
+     },
+     {
+      "week": 13,
+      "date": "2026-06-03",
+      "content": "(온라인 강의) 17강 간접의문문 / (멘토링 내용) 간접의문문 개념 정리 / (상담) 진학 관련 상담",
+      "online": "17강 간접의문문",
+      "mentoring": "간접의문문 개념 정리",
+      "counsel": "진학 관련 상담"
+     },
+     {
+      "week": 14,
+      "date": "2026-06-10",
+      "content": "(온라인 강의) 18강 분사, 19강 종합 문제 1 / (멘토링 내용) 분사와 종합 문제 풀이 / (상담) 학습 전략 상담",
+      "online": "18강 분사, 19강 종합 문제 1",
+      "mentoring": "분사와 종합 문제 풀이",
+      "counsel": "학습 전략 상담"
+     },
+     {
+      "week": 15,
+      "date": "2026-06-17",
+      "content": "(온라인 강의) 20강 종합 문제 2 / (멘토링 내용) 종합 문제 2 풀이 / (상담) 시험 대비 상담",
+      "online": "20강 종합 문제 2",
+      "mentoring": "종합 문제 2 풀이",
+      "counsel": "시험 대비 상담"
+     },
+     {
+      "week": 16,
+      "date": "2026-06-24",
+      "content": "(온라인 강의) 수강 강의 총정리 / (멘토링 내용) 총정리 및 복습 계획 / (상담) 다음 회기 연장 상담",
+      "online": "수강 강의 총정리",
+      "mentoring": "총정리 및 복습 계획",
+      "counsel": "다음 회기 연장 상담"
+     }
     ]
    },
    "draft": {
@@ -1680,7 +1968,7 @@
   },
   {
    "id": "demo-023",
-   "alias": "영어 B (멘토 교체 예정)",
+   "alias": "이OO",
    "formId": "activity_report",
    "title": "활동보고서 1회차",
    "sessionNo": 1,
@@ -1727,7 +2015,7 @@
   },
   {
    "id": "demo-024",
-   "alias": "영어 B (멘토 교체 예정)",
+   "alias": "이OO",
    "formId": "activity_report",
    "title": "활동보고서 2회차",
    "sessionNo": 2,
@@ -1774,7 +2062,7 @@
   },
   {
    "id": "demo-025",
-   "alias": "영어 B (멘토 교체 예정)",
+   "alias": "이OO",
    "formId": "activity_report",
    "title": "활동보고서 3회차",
    "sessionNo": 3,
@@ -1821,7 +2109,7 @@
   },
   {
    "id": "demo-026",
-   "alias": "영어 B (멘토 교체 예정)",
+   "alias": "이OO",
    "formId": "activity_report",
    "title": "활동보고서 4회차",
    "sessionNo": 4,
@@ -1868,7 +2156,7 @@
   },
   {
    "id": "demo-027",
-   "alias": "영어 B (멘토 교체 예정)",
+   "alias": "이OO",
    "formId": "activity_report",
    "title": "활동보고서 5회차",
    "sessionNo": 5,
@@ -1915,7 +2203,7 @@
   },
   {
    "id": "demo-028",
-   "alias": "영어 B (멘토 교체 예정)",
+   "alias": "이OO",
    "formId": "activity_report",
    "title": "활동보고서 6회차",
    "sessionNo": 6,
@@ -1962,7 +2250,7 @@
   },
   {
    "id": "demo-029",
-   "alias": "영어 B (멘토 교체 예정)",
+   "alias": "이OO",
    "formId": "activity_report",
    "title": "활동보고서 7회차",
    "sessionNo": 7,
@@ -2009,7 +2297,7 @@
   },
   {
    "id": "demo-030",
-   "alias": "영어 B (멘토 교체 예정)",
+   "alias": "이OO",
    "formId": "activity_report",
    "title": "활동보고서 8회차",
    "sessionNo": 8,
@@ -2056,7 +2344,7 @@
   },
   {
    "id": "demo-031",
-   "alias": "국어 C (매칭 직후)",
+   "alias": "박OO",
    "formId": "mentee_profile",
    "title": "멘티 정보",
    "sessionNo": null,
@@ -2071,7 +2359,21 @@
     "start_datetime": "2026-10-12T20:00",
     "goal": "문학 감 잡기, 인강 끝까지 듣기",
     "level": "문학이 특히 약하다고 함. 강좌는 신청만 하고 아직 안 들음",
-    "course": "대성마이맥 (가상) 고1 국어 문학 개념"
+    "course": "대성마이맥 (가상) 고1 국어 문학 개념",
+    "name": "박OO",
+    "grade": "고1",
+    "district": "성북구",
+    "stage": "PRE_CONTACT",
+    "currentRound": 1,
+    "term": 1,
+    "venue": "",
+    "regularSchedule": [
+     {
+      "weekday": "월",
+      "startTime": "20:00"
+     }
+    ],
+    "archived": false
    }
   },
   {
@@ -2234,7 +2536,7 @@
   },
   {
    "id": "demo-033",
-   "alias": "수학 D (결석이 있는 회기)",
+   "alias": "최OO",
    "formId": "mentee_profile",
    "title": "멘티 정보",
    "sessionNo": null,
@@ -2249,7 +2551,21 @@
     "start_datetime": "2026-08-29T10:00",
     "goal": "다음 검정고시 합격",
     "level": "아르바이트로 지각과 결석이 있었음",
-    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본"
+    "course": "에듀윌(검정고시) (가상) 고졸 검정고시 수학 기본",
+    "name": "최OO",
+    "grade": "19세",
+    "district": "송파구",
+    "stage": "ACTIVITY",
+    "currentRound": 7,
+    "term": 1,
+    "venue": "(가상) 송파 청소년센터 스터디룸",
+    "regularSchedule": [
+     {
+      "weekday": "토",
+      "startTime": "10:00"
+     }
+    ],
+    "archived": false
    }
   },
   {
@@ -2364,7 +2680,7 @@
   },
   {
    "id": "demo-035",
-   "alias": "수학 D (결석이 있는 회기)",
+   "alias": "최OO",
    "formId": "plan_initial",
    "title": "종합계획서①",
    "sessionNo": null,
@@ -2631,6 +2947,136 @@
       "counsel": "다음 회기 연장 상담",
       "line": "(온라인 강의) 수강 강의 총정리 / (멘토링 내용) 전체 내용 총정리 / (상담) 다음 회기 연장 상담"
      }
+    ],
+    "rows": [
+     {
+      "week": 1,
+      "date": "2026-08-29",
+      "content": "(온라인 강의) 1강 다항식의 연산 / (멘토링 내용) 다항식의 연산 개념 정리 / (상담) 학습 계획 점검",
+      "online": "1강 다항식의 연산",
+      "mentoring": "다항식의 연산 개념 정리",
+      "counsel": "학습 계획 점검"
+     },
+     {
+      "week": 2,
+      "date": "2026-09-05",
+      "content": "(온라인 강의) 2강 항등식과 나머지정리 / (멘토링 내용) 항등식과 나머지정리 이해 / (상담) 진도별 어려운 점 상담",
+      "online": "2강 항등식과 나머지정리",
+      "mentoring": "항등식과 나머지정리 이해",
+      "counsel": "진도별 어려운 점 상담"
+     },
+     {
+      "week": 3,
+      "date": "2026-09-12",
+      "content": "(온라인 강의) 3강 인수분해 / (멘토링 내용) 인수분해 방법 익히기 / (상담) 복습 방법 조언",
+      "online": "3강 인수분해",
+      "mentoring": "인수분해 방법 익히기",
+      "counsel": "복습 방법 조언"
+     },
+     {
+      "week": 4,
+      "date": "2026-09-19",
+      "content": "(온라인 강의) 4강 복소수 / (멘토링 내용) 복소수 기본 개념 학습 / (상담) 진학 목표 상담",
+      "online": "4강 복소수",
+      "mentoring": "복소수 기본 개념 학습",
+      "counsel": "진학 목표 상담"
+     },
+     {
+      "week": 5,
+      "date": "2026-09-26",
+      "content": "(온라인 강의) 5강 이차방정식 / (멘토링 내용) 이차방정식 풀이 연습 / (상담) 시험 대비 전략",
+      "online": "5강 이차방정식",
+      "mentoring": "이차방정식 풀이 연습",
+      "counsel": "시험 대비 전략"
+     },
+     {
+      "week": 6,
+      "date": "2026-10-03",
+      "content": "(온라인 강의) 6강 이차함수 / (멘토링 내용) 이차함수 그래프 이해 / (상담) 학습 습관 점검",
+      "online": "6강 이차함수",
+      "mentoring": "이차함수 그래프 이해",
+      "counsel": "학습 습관 점검"
+     },
+     {
+      "week": 7,
+      "date": "2026-10-10",
+      "content": "(온라인 강의) 7강 여러 가지 방정식 / (멘토링 내용) 여러 가지 방정식 문제풀이 / (상담) 진도 조절 상담",
+      "online": "7강 여러 가지 방정식",
+      "mentoring": "여러 가지 방정식 문제풀이",
+      "counsel": "진도 조절 상담"
+     },
+     {
+      "week": 8,
+      "date": "2026-10-17",
+      "content": "(온라인 강의) 8강 부등식, 9강 평면좌표와 직선 / (멘토링 내용) 부등식과 평면좌표 정리 / (상담) 시간 관리 방법",
+      "online": "8강 부등식, 9강 평면좌표와 직선",
+      "mentoring": "부등식과 평면좌표 정리",
+      "counsel": "시간 관리 방법"
+     },
+     {
+      "week": 9,
+      "date": "2026-10-24",
+      "content": "(온라인 강의) 10강 원의 방정식 / (멘토링 내용) 원의 방정식 개념 정리 / (상담) 학습 동기 부여",
+      "online": "10강 원의 방정식",
+      "mentoring": "원의 방정식 개념 정리",
+      "counsel": "학습 동기 부여"
+     },
+     {
+      "week": 10,
+      "date": "2026-10-31",
+      "content": "(온라인 강의) 11강 도형의 이동 / (멘토링 내용) 도형의 이동 원리 학습 / (상담) 진학 상담",
+      "online": "11강 도형의 이동",
+      "mentoring": "도형의 이동 원리 학습",
+      "counsel": "진학 상담"
+     },
+     {
+      "week": 11,
+      "date": "2026-11-07",
+      "content": "(온라인 강의) 12강 집합 / (멘토링 내용) 집합 개념과 문제풀이 / (상담) 목표 점검",
+      "online": "12강 집합",
+      "mentoring": "집합 개념과 문제풀이",
+      "counsel": "목표 점검"
+     },
+     {
+      "week": 12,
+      "date": "2026-11-14",
+      "content": "(온라인 강의) 13강 명제 / (멘토링 내용) 명제 이해와 적용 / (상담) 학습 계획 조정",
+      "online": "13강 명제",
+      "mentoring": "명제 이해와 적용",
+      "counsel": "학습 계획 조정"
+     },
+     {
+      "week": 13,
+      "date": "2026-11-21",
+      "content": "(온라인 강의) 14강 함수 / (멘토링 내용) 함수 개념과 문제풀이 / (상담) 진학 준비 상담",
+      "online": "14강 함수",
+      "mentoring": "함수 개념과 문제풀이",
+      "counsel": "진학 준비 상담"
+     },
+     {
+      "week": 14,
+      "date": "2026-11-28",
+      "content": "(온라인 강의) 15강 경우의 수 / (멘토링 내용) 경우의 수 문제 해결 / (상담) 시험 대비 상담",
+      "online": "15강 경우의 수",
+      "mentoring": "경우의 수 문제 해결",
+      "counsel": "시험 대비 상담"
+     },
+     {
+      "week": 15,
+      "date": "2026-12-05",
+      "content": "(온라인 강의) 16강 기출 문제 풀이 / (멘토링 내용) 기출 문제 풀이 집중 / (상담) 시험 전략 점검",
+      "online": "16강 기출 문제 풀이",
+      "mentoring": "기출 문제 풀이 집중",
+      "counsel": "시험 전략 점검"
+     },
+     {
+      "week": 16,
+      "date": "2026-12-12",
+      "content": "(온라인 강의) 수강 강의 총정리 / (멘토링 내용) 전체 내용 총정리 / (상담) 다음 회기 연장 상담",
+      "online": "수강 강의 총정리",
+      "mentoring": "전체 내용 총정리",
+      "counsel": "다음 회기 연장 상담"
+     }
     ]
    },
    "draft": {
@@ -2663,7 +3109,7 @@
   },
   {
    "id": "demo-036",
-   "alias": "수학 D (결석이 있는 회기)",
+   "alias": "최OO",
    "formId": "activity_report",
    "title": "활동보고서 1회차",
    "sessionNo": 1,
@@ -2710,7 +3156,7 @@
   },
   {
    "id": "demo-037",
-   "alias": "수학 D (결석이 있는 회기)",
+   "alias": "최OO",
    "formId": "activity_report",
    "title": "활동보고서 2회차",
    "sessionNo": 2,
@@ -2757,7 +3203,7 @@
   },
   {
    "id": "demo-038",
-   "alias": "수학 D (결석이 있는 회기)",
+   "alias": "최OO",
    "formId": "activity_report",
    "title": "활동보고서 3회차",
    "sessionNo": 3,
@@ -2804,7 +3250,7 @@
   },
   {
    "id": "demo-039",
-   "alias": "수학 D (결석이 있는 회기)",
+   "alias": "최OO",
    "formId": "activity_report",
    "title": "활동보고서 4회차",
    "sessionNo": 4,
@@ -2851,7 +3297,7 @@
   },
   {
    "id": "demo-040",
-   "alias": "수학 D (결석이 있는 회기)",
+   "alias": "최OO",
    "formId": "activity_report",
    "title": "활동보고서 5회차",
    "sessionNo": 5,
@@ -2898,7 +3344,7 @@
   },
   {
    "id": "demo-041",
-   "alias": "수학 D (결석이 있는 회기)",
+   "alias": "최OO",
    "formId": "activity_report",
    "title": "활동보고서 6회차",
    "sessionNo": 6,

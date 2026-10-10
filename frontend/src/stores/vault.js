@@ -1,9 +1,13 @@
 // 브라우저 보관함 (IndexedDB). 멘토가 만든 초안을 멘티 별칭별로 이 브라우저 안에만 둔다. 서버로 보내지 않는다.
 // 데이터 형식은 docs/vault_format.md 참고.
+import { ref } from 'vue'
+
 const DB_NAME = 'seoullearn-mentor-vault'
 const STORE = 'items'
 export const FORMAT = 'seoullearn-mentor-vault'
 export const VERSION = 1
+// 보관함 내용이 바뀔 때마다 1씩 오른다. 왼쪽 메뉴의 멘티 목록처럼 화면 밖에서 보관함을 따라가야 하는 곳에서 지켜본다.
+export const vaultChanges = ref(0)
 
 function open() {
   return new Promise((resolve, reject) => {
@@ -20,16 +24,22 @@ function open() {
 async function tx(mode, fn) {
   const db = await open()
   try {
-    return await new Promise((resolve, reject) => {
-      const t = db.transaction(STORE, mode)
-      const out = fn(t.objectStore(STORE))
-      t.oncomplete = () => resolve(out && 'result' in out ? out.result : out)
-      t.onerror = () => reject(t.error)
-      t.onabort = () => reject(t.error)
-    })
+    const out = await run(db, mode, fn)
+    if (mode === 'readwrite') vaultChanges.value += 1
+    return out
   } finally {
     db.close()
   }
+}
+
+function run(db, mode, fn) {
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(STORE, mode)
+    const out = fn(t.objectStore(STORE))
+    t.oncomplete = () => resolve(out && 'result' in out ? out.result : out)
+    t.onerror = () => reject(t.error)
+    t.onabort = () => reject(t.error)
+  })
 }
 
 function newId() {

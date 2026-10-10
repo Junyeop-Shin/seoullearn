@@ -3,20 +3,34 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from . import checks
+from . import checks, sensitive
 from .engine import Context, DraftResult, Hooks, load_form, register
 
 WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"]
 LATER = "1회차에 자세한 상담 예정"
-DEFAULT_RULES = ["멘토링 시간 준수하기", "일정 변경은 미리 논의하기", "인강은 계획대로 수강하고 과제 해 오기"]
+# 서식의 작성 예시를 기본안으로 쓴다. 멘티와 협의한 내용으로 고치게 안내한다
+DEFAULT_RULES = ["멘토링 시간 준수하기", "일정 변경은 최소 3일 전에 논의하기", "인강은 계획대로 규칙적으로 수강하고 인증 사진 보내기",
+                 "과제는 답지를 보지 않고 스스로 풀기", "개념은 확실히 이해하고 오답 노트 반드시 작성하기"]
 LENGTH_WARN = 300  # 플랫폼 칸별 글자 수 제한은 미확인. 확인 전까지 이 길이를 넘으면 경고만 한다
 
 
 def structure_blocks(minutes: int) -> list[tuple[int, str]]:
     """멘토링 구성 (분, 내용). 숫자 배분은 규칙으로 정한다."""
-    unit = minutes // 6
-    return [(unit, "온라인 강의 수강 확인 및 질의응답"), (unit * 3, "개념 학습과 문제 풀이"),
-            (unit, "오답 정리"), (minutes - unit * 5, "상담 및 다음 회차 안내")]
+    unit = minutes // 6   # 서식 예시의 배분(10·20·10·10·10분)을 시간에 맞춰 늘린다
+    return [(unit, "온라인 강의 수강(필수) 확인 & 퀴즈"), (unit * 2, "개념학습"), (unit, "개념 테스트"), (unit, "오답 풀이"),
+            (minutes - unit * 5, "상담 및 다음 회차 안내")]
+
+
+def structure_lines(minutes: int, start) -> list[str]:
+    """'17:00~17:10 온라인 강의 수강(필수) 확인 & 퀴즈' 줄들. 시작 시각을 모르면 '10분 …'으로 쓴다."""
+    blocks = structure_blocks(minutes)
+    if not start:
+        return [f"{m}분 {what}" for m, what in blocks]
+    out, t = [], start.hour * 60 + start.minute
+    for m, what in blocks:
+        out.append(f"{t // 60:02d}:{t % 60:02d}~{(t + m) // 60:02d}:{(t + m) % 60:02d} {what}")
+        t += m
+    return out
 
 
 def allowed_handover(handover) -> dict:
@@ -27,7 +41,15 @@ def allowed_handover(handover) -> dict:
     return {allow[k]: v for k, v in handover.items() if k in allow and v}
 
 
+def _memo(ctx: Context, key: str) -> str:
+    memo = ctx.extra.get("memo")
+    return str(memo.get(key) or "").strip() if isinstance(memo, dict) else ""
+
+
 def _curriculum(ctx: Context, fmt: str) -> list[str] | None:
+    lines = ctx.extra.get("_curriculum_lines")
+    if lines:   # 화면에서 주차별로 적은 커리큘럼은 그대로 쓴다
+        return lines
     sessions = ctx.extra.get("weekly_plan")
     if not sessions:
         return None
@@ -49,6 +71,33 @@ class _PlanBase(Hooks):
         if not ctx.extra["handover"]:
             ctx.extra.pop("handover")
         ctx.extra["_weekly_plan_given"] = bool(ctx.extra.get("weekly_plan"))
+        self._drop_sensitive(ctx)
+        lines = ctx.extra.pop("curriculum_lines", None)
+        ctx.extra["_curriculum_lines"] = [str(x).strip() for x in lines if str(x).strip()] if isinstance(lines, list) else []
+
+
+    # 멘토가 적은 글(메모, 진단·규칙 입력)에서 정서·가정·건강 문장을 뺀다. LLM에 보내기 전에 하고, 저장만 할 때도 같다
+    _TEXT_KEYS = ("learning_goal", "diagnosis", "structure", "rules")
+
+    def _drop_sensitive(self, ctx: Context) -> None:
+        found: set[str] = set()
+
+        def clean(v):
+            if isinstance(v, str):
+                kept, kinds = sensitive.drop_lines(v)
+                found.update(kinds)
+                return kept
+            if isinstance(v, list):
+                return [x for x in (clean(i) for i in v) if not isinstance(x, str) or x.strip()]
+            return v
+
+        memo = ctx.extra.get("memo")
+        for box in (memo if isinstance(memo, dict) else {}, ctx.inputs):
+            for k in self._TEXT_KEYS:
+                if k in box:
+                    box[k] = clean(box[k])
+        if found:
+            ctx.warn("정서·가정·건강 관련 내용은 종합계획서에 넣지 않았고 AI에도 보내지 않았습니다. 꼭 필요한 내용이면 운영사무국과 상의해 주세요.")
 
 
 @register("plan_initial")
@@ -72,10 +121,14 @@ class PlanInitialHooks(_PlanBase):
         ctx.extra["_plan_sessions"] = ctx.extra.pop("weekly_plan", None)
 
     def fixed(self, f: dict, ctx: Context):
+        if f["key"] in ("structure", "rules") and _memo(ctx, f["key"]):
+            return None   # 멘토가 적은 메모가 있으면 기본 예시를 쓰지 않는다
         if f["key"] == "structure":
-            return " / ".join(f"{m}분 {what}" for m, what in structure_blocks(ctx.extra["_minutes"]))
+            # 플랫폼은 특수문자에서 오류가 날 수 있어 '&'는 '및'으로 쓴다
+            start = checks.parse_datetime(str(ctx.inputs.get("start_datetime", "")))
+            return "\n".join(x.replace(" & ", " 및 ") for x in structure_lines(ctx.extra["_minutes"], start))
         if f["key"] == "rules":
-            return ", ".join(DEFAULT_RULES)
+            return "\n".join(DEFAULT_RULES)
         if f["key"] == "curriculum":
             ctx.extra["weekly_plan"] = ctx.extra.get("_plan_sessions")
             lines = _curriculum(ctx, "platform")
@@ -85,11 +138,16 @@ class PlanInitialHooks(_PlanBase):
 
     def finish(self, ctx: Context, result: DraftResult) -> None:
         d = result.draft
-        if not ctx.extra.get("_plan_sessions"):
-            ctx.warn("주차별 계획이 없어 회차별 커리큘럼을 1회차만 채웠습니다. 강의 목차로 주차별 계획을 먼저 만들어 주세요.")
-        if isinstance(d.get("diagnosis"), str) and LATER not in d["diagnosis"]:
-            d["diagnosis"] = (d["diagnosis"].rstrip(". ") + ". " if d["diagnosis"].strip() else "") + LATER
-        ctx.warn("활동규칙은 기본 예시입니다. 멘티와 협의한 규칙으로 고쳐 주세요.")
+        if not ctx.extra.get("_plan_sessions") and not ctx.extra.get("_curriculum_lines"):
+            ctx.warn("주차별 계획이 없어 회차별 커리큘럼을 1회차만 채웠습니다. 커리큘럼을 주차별로 적거나 강의 목차로 추천을 받아 주세요.")
+        # 멘토가 진단을 직접 적었으면 그대로 둔다. 적지 않았거나 AI가 사전 정보만으로 쓴 진단에만 붙인다
+        if isinstance(d.get("diagnosis"), str) and LATER not in d["diagnosis"] and not _memo(ctx, "diagnosis"):
+            text = d["diagnosis"].strip()
+            # 항목별로 줄을 나눠 쓴 진단에는 새 줄로 붙인다
+            itemized = "\n" in text or text.startswith("(")   # '(과목역량) …'처럼 항목별로 쓴 진단
+            d["diagnosis"] = LATER if not text else f"{text}\n{LATER}" if itemized else text.rstrip(". ") + ". " + LATER
+        if not _memo(ctx, "rules"):
+            ctx.warn("활동규칙은 기본 예시입니다. 멘티와 협의한 규칙으로 고쳐 주세요.")
         removed_all: set[str] = set()
         for key, value in list(d.items()):
             items = value if isinstance(value, list) else [value]
@@ -119,7 +177,10 @@ class PlanFileHooks(_PlanBase):
         self._common_prepare(ctx)
         ctx.extra["_plan_sessions"] = ctx.extra.pop("weekly_plan", None)
         ctx.extra["_start"] = ctx.extra.pop("start_datetime", None)
-        ctx.extra["_minutes"] = int(ctx.extra.pop("duration", 60) or 60)
+        rounds = str(ctx.extra.pop("rounds", "") or "")
+        ctx.extra["_rounds"] = int(rounds) if rounds.isdigit() and 1 <= int(rounds) <= 40 else 16
+        duration = str(ctx.extra.pop("duration", "") or "")
+        ctx.extra["_minutes"] = int(duration) if duration.isdigit() else 60
 
     def derive(self, f: dict, ctx: Context):
         if f["key"] == "period":
@@ -127,7 +188,8 @@ class PlanFileHooks(_PlanBase):
             d = dt.date() if dt else checks.parse_date(str(ctx.extra.get("_start") or ""))
             if not d:
                 return None
-            return f"{checks.fmt(d)}~{checks.fmt(d + timedelta(days=7 * 15))}"  # 1회차 ~ 16회차 예정일
+            rounds = ctx.extra.get("_rounds") or 16
+            return f"{checks.fmt(d)}~{checks.fmt(d + timedelta(days=7 * (rounds - 1)))}"  # 1회차 ~ 마지막 회차 예정일
         return None
 
     def fixed(self, f: dict, ctx: Context):
@@ -136,16 +198,10 @@ class PlanFileHooks(_PlanBase):
             lines = _curriculum(ctx, "file")
             ctx.extra.pop("weekly_plan", None)
             return lines if lines else []
+        if f["key"] == "structure" and _memo(ctx, "structure"):
+            return None   # 멘토가 적은 구성이 있으면 기본 배분을 쓰지 않는다
         if f["key"] == "structure":
-            dt = checks.parse_datetime(str(ctx.extra.get("_start") or ""))
-            blocks = structure_blocks(ctx.extra["_minutes"])
-            if not dt:
-                return [f"{m}분 {what}" for m, what in blocks]
-            out, t = [], dt.hour * 60 + dt.minute
-            for m, what in blocks:
-                out.append(f"{t // 60:02d}:{t % 60:02d}~{(t + m) // 60:02d}:{(t + m) % 60:02d} {what}")
-                t += m
-            return out
+            return structure_lines(ctx.extra["_minutes"], checks.parse_datetime(str(ctx.extra.get("_start") or "")))
         return None
 
     def finish(self, ctx: Context, result: DraftResult) -> None:

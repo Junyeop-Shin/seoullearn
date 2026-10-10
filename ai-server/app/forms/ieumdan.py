@@ -6,8 +6,9 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
-from .. import guard
+from .. import guard, prompts
 
 WEEKDAYS = "월화수목금토일"
 KINDS = ("장소 요청", "일정 변경", "장소 변경")
@@ -24,7 +25,7 @@ def build(kind: str, region: str = "", schedule: str = "", current: datetime | N
     region: 희망 지역. schedule: 희망 요일·시간(장소 요청). current: 지금 예약된 일시. desired: 바꾸고 싶은 일시."""
     if kind not in KINDS:
         raise ValueError(f"요청 종류는 {', '.join(KINDS)} 중 하나여야 합니다.")
-    now = now or datetime.now()
+    now = now or datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)  # 컨테이너 시계는 UTC다
     warnings: list[str] = []
     pii: set[str] = set()
 
@@ -40,10 +41,8 @@ def build(kind: str, region: str = "", schedule: str = "", current: datetime | N
             warnings.append("희망 지역을 적어 주세요.")
         if not schedule:
             warnings.append("희망 요일과 시간을 적어 주세요.")
-        lines.append("새로 매칭된 오프라인 멘토링의 공간 지원을 요청드립니다.")
-        lines.append(f"희망 지역: {region or '(작성 필요)'}")
-        lines.append(f"희망 일정: {schedule or '(작성 필요)'}")
-        lines.append("가능한 장소를 안내해 주시면 종합계획서를 등록하겠습니다.")
+        # 문구는 templates/venue_request.md에 있다
+        lines = prompts.render("venue_request", region=region or "(작성 필요)", schedule=schedule or "(작성 필요)").split("\n")
     else:
         if current is None:
             warnings.append("지금 예약된 멘토링 일시를 넣어 주세요.")

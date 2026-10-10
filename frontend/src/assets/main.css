@@ -40,6 +40,17 @@ a { color: var(--primary); text-underline-offset: 3px; }
 .side a.nav:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
 .side a.nav.router-link-exact-active { background: var(--side-active); color: #fff; font-weight: 600; box-shadow: inset 3px 0 0 #5b7cff; }
 .side a.nav.router-link-exact-active svg { opacity: 1; }
+.side a.nav.sub { padding: 6px 10px 6px 38px; font-size: 0.88rem; color: var(--side-muted); }
+.side a.nav.sub.router-link-exact-active { color: #fff; }
+.side a.nav.sub .label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side a.nav.mentee .label { min-width: 0; line-height: 1.35; }
+.side a.nav.mentee .label strong { display: block; font-weight: 600; }
+.side a.nav.mentee .label small { display: block; font-size: 0.76rem; color: var(--side-muted); }   /* 이름 아래 줄에 학년 · 과목 · 자치구 · 방식 */
+.side a.nav.mentee { justify-content: space-between; padding-left: 14px; font-size: 0.9rem; }
+.side a.nav.mentee .badge { flex: none; font-size: 0.7rem; padding: 1px 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.09); color: var(--side-ink); }
+.side a.nav.mentee.archived { opacity: 0.55; }
+.side a.nav.add { color: #fff; border: 1px dashed rgba(255, 255, 255, 0.22); margin-bottom: 6px; }
+.side a.nav .dot { width: 8px; height: 8px; border-radius: 50%; background: #ff8a5b; margin-left: auto; }
 .side .foot { margin-top: auto; padding: 14px 10px 4px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; gap: 8px; }
 .side .foot .who { flex: 1; min-width: 0; font-size: 0.86rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side .foot .who small { display: block; color: var(--side-muted); font-size: 0.74rem; }
@@ -184,3 +195,81 @@ a.session strong { color: var(--ink-2); font-size: 0.92rem; }
 a.session:hover { border-color: var(--primary); background: var(--primary-soft); }
 a.session.done { border-style: solid; border-color: #b9c7f5; background: var(--primary-soft); color: var(--primary); }
 a.session.done strong { color: var(--primary); }
+
+/* ------------------------------------------------------------ 멘티 화면: 단계 진행바 */
+.mentee-head h1 { margin-bottom: 8px; }
+.mentee-head .tag { margin-left: 0; }
+.tag.strong { background: var(--primary); color: var(--primary-ink); }
+.stagebar { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 18px 0 6px; }
+.stagebar li { margin: 0; }
+.stagebar button { display: flex; align-items: center; gap: 6px; padding: 6px 12px 6px 6px; border-radius: 999px; font-size: 0.86rem; color: var(--muted); background: var(--surface); }
+.stagebar .n { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); font-size: 0.76rem; font-weight: 700; }
+.stagebar .done button { color: var(--primary); border-color: #b9c7f5; }
+.stagebar .done .n { background: var(--primary-soft); }
+.stagebar .now button { color: var(--primary-ink); background: var(--primary); border-color: var(--primary); }
+.stagebar .now .n { background: rgba(255, 255, 255, 0.22); }
+.stagebar .viewing button { box-shadow: var(--ring); }
+.stage-nav { margin: 22px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+.copy-block textarea { margin-top: 10px; }
+table.curriculum td { padding: 5px 6px; vertical-align: middle; }
+table.curriculum td:first-child { white-space: nowrap; color: var(--muted); font-size: 0.86rem; }
+table.curriculum td.when { white-space: nowrap; width: 1%; }
+table.curriculum td.when input { width: auto; font-size: 0.86rem; padding: 6px 7px; }
+table.curriculum td.when input + input { margin-left: 4px; }
+button.icon { display: inline-flex; align-items: center; gap: 6px; }
+button.icon svg { width: 15px; height: 15px; }
+table.curriculum input:not([type='checkbox']) { padding: 7px 9px; }
+.extras, .choices { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.86rem; color: var(--ink-2); margin-top: 4px; }
+.extras label, .choices label, label.check, label.pick, label.toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.extras input, .choices input, label.check input, label.pick input, label.toggle input { width: auto; }
+label.check { margin: 12px 0; font-weight: 600; }
+label.pick { display: flex; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 0.93rem; }
+label.toggle { float: right; font-weight: 500; font-size: 0.84rem; color: var(--muted); }
+.form-grid > .notice.wide { grid-column: 1 / -1; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; border-bottom: 1px solid var(--line); }
+.tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; padding: 9px 12px; color: var(--muted); }
+.tabs button.on { color: var(--primary); border-bottom-color: var(--primary); }
+.plan-form .item { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.plan-form .item .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.plan-form label.slot { display: block; margin: 8px 0; }
+.plan-form label.slot > span { display: block; font-size: 0.84rem; color: var(--ink-2); margin-bottom: 4px; }
+.plan-form .facts { margin-bottom: 6px; }
+pre.mini { white-space: pre-wrap; font: inherit; font-size: 0.9rem; margin: 6px 0 12px; }
+.box.closable { display: flex; align-items: flex-start; gap: 10px; }
+.box.closable > span { flex: 1; }
+.box.closable > button { flex: none; padding: 2px 9px; border-color: transparent; background: transparent; color: inherit; font-size: 1rem; line-height: 1.2; }
+.course-card { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px; margin: 10px 0; background: var(--surface-2); }
+table.curriculum td.online select { font-size: 0.82rem; padding: 5px 26px 5px 7px; margin-bottom: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+.chips button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 9px 14px; text-align: left; }
+.chips button small { font-weight: 500; font-size: 0.78rem; color: var(--muted); }
+.chips button.on { border-color: var(--primary); background: var(--primary-soft); box-shadow: var(--ring); }
+.chips button.on strong { color: var(--primary); }
+.place { padding: 12px 2px; border-bottom: 1px solid var(--line); }
+.place:last-child { border-bottom: 0; }
+.place.on { background: var(--primary-soft); border-radius: var(--radius-sm); padding-left: 10px; padding-right: 10px; }
+.changes ul { list-style: none; padding: 0; margin: 8px 0 0; }
+.changes li { margin: 0; padding: 8px 0; border-top: 1px solid var(--ask-line); display: grid; gap: 3px; }
+.changes li b { font-size: 0.8rem; color: var(--ink-2); }
+.changes del { color: var(--muted); text-decoration: line-through; white-space: pre-wrap; }
+.changes ins { text-decoration: none; background: #e3f6e8; color: #17603a; border-radius: 4px; padding: 1px 5px; white-space: pre-wrap; justify-self: start; }
+/* 종합계획서②: 서식 파일(종합활동계획서)의 표와 같은 칸 */
+.sheet { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.sheet > tr > th, .sheet > tr > td, .sheet > tbody > tr > th, .sheet > tbody > tr > td { border: 1px solid var(--line); padding: 10px 12px; vertical-align: top; text-align: left; }
+.sheet > tr > th, .sheet > tbody > tr > th { width: 108px; background: var(--surface-2); font-weight: 600; text-align: center; vertical-align: middle; word-break: keep-all; }
+.sheet th small { display: block; margin-top: 4px; font-weight: 400; color: var(--ink-2); word-break: break-all; }
+.sheet .cell-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.sheet .cell-row > span:first-child { flex: 1; }
+.sheet textarea { width: 100%; }
+@media (max-width: 720px) {
+  .sheet, .sheet > tr, .sheet > tbody, .sheet > tbody > tr, .sheet > tr > th, .sheet > tr > td, .sheet > tbody > tr > th, .sheet > tbody > tr > td { display: block; width: auto; }
+  .sheet > tr > th, .sheet > tbody > tr > th { text-align: left; }
+  .sheet th br { display: none; }
+}
+/* 서식 표 안의 커리큘럼: 칸이 좁아 일시는 두 줄로 쌓고, 멘토링 내용을 넓게 쓴다 */
+.sheet table.curriculum { width: 100%; }
+.sheet table.curriculum td.when input { display: block; width: 132px; }
+.sheet table.curriculum td.when input + input { margin: 4px 0 0; }
+.sheet table.curriculum td.online { width: 30%; }
+.sheet table.curriculum td.online select, .sheet table.curriculum td.online input { width: 100%; }
+.sheet table.curriculum button { white-space: nowrap; }

@@ -67,8 +67,8 @@ export const api = {
   chat: (message, ieumdanChatUrl) =>
     request('POST', '/api/chat', ieumdanChatUrl ? { message, ieumdan_chat_url: ieumdanChatUrl } : { message }),
   draft: (formId, inputs, extra = {}) => request('POST', `/api/drafts/${formId}`, { inputs, extra }),
-  preContact: (mode, callTime, answers) =>
-    request('POST', '/api/drafts/pre_contact', { mode, call_time: callTime || null, answers: answers || null }),
+  preContact: (mode, callTime, answers, subject = '') =>
+    request('POST', '/api/drafts/pre_contact', { mode, call_time: callTime || null, answers: answers || null, subject }),
   courseOutline: (text) => request('POST', '/api/drafts/course_outline', { text }),
   weeklyPlan: (payload) => request('POST', '/api/drafts/weekly_plan', payload),
   allowance: (payload) => request('POST', '/api/tools/allowance', payload),

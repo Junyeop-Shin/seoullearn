@@ -1,7 +1,7 @@
 """입력 본문이 서버 어디에도 남지 않는지 검사한다.
 
 가상 회차 기록(synthetic/sessions_M1.json 등)의 내용으로 backend의 /api/qa와 /api/chat을 10번,
-활동보고서 초안(/api/drafts/activity_report)을 3번 호출한 뒤, 보낸 문장의 조각이 아래 세 곳에 남았는지 찾는다.
+활동보고서 초안(/api/drafts/activity_report)을 3번, 인계 요약(/api/drafts/handover_summary)을 1번 호출한 뒤, 보낸 문장의 조각이 아래 세 곳에 남았는지 찾는다.
   1) frontend, backend, ai-server, db 컨테이너 로그
   2) DB 전체 (pg_dump). '답 못 한 질문 모음' 테이블은 가린 질문 문장을 일부러 저장하므로 따로 검사한다:
      전화번호·이름·학교명과 정서·성적 내용이 없는지, 질문한 사람을 알 수 있는 열이 없는지
@@ -137,6 +137,8 @@ def send(base: str, messages: list[str], drafts: list[dict]) -> tuple[str, list[
     for d in drafts:
         code, _ = c.call("POST", "/api/drafts/activity_report", {"inputs": d})
         codes.append(code)
+    code, _ = c.call("POST", "/api/drafts/handover_summary", {"reports": drafts})
+    codes.append(code)
     c.call("POST", "/api/auth/logout")
     return username, codes
 

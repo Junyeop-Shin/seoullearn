@@ -13,13 +13,17 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "8000:8000"
+      # 이 PC에서만 직접 접근할 수 있다. 로그인 검사는 backend가 하므로 밖에 열면 안 된다
+      - "127.0.0.1:8000:8000"
     volumes:
       # 코드와 데이터를 컨테이너에 연결 (수정 즉시 반영, 평가 결과도 로컬에 남음)
       - ./ai-server:/project/ai-server
       - ./data:/project/data:ro
       - ./eval:/project/eval
       - ./forms:/project/forms:ro
+      # 프롬프트와 문구 템플릿 (문구만 따로 고칠 수 있다)
+      - ./prompts:/project/prompts:ro
+      - ./templates:/project/templates:ro
       # 가상 데이터. 테스트와 평가에서만 읽는다
       - ./synthetic:/project/synthetic:ro
       - ./scripts:/project/scripts:ro

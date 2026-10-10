@@ -17,7 +17,8 @@ async function submit() {
   try {
     if (mode.value === 'signup') await api.signup(username.value, password.value)
     await login(username.value, password.value)
-    router.replace('/')
+    // 가입 직후에는 멘토 설정(이름, 연락처, 멘토링 유형)부터 적게 한다
+    router.replace(mode.value === 'signup' ? '/settings' : '/')
   } catch (e) {
     error.value = e.message
   } finally {
@@ -34,7 +35,7 @@ async function submit() {
       <ul>
         <li>활동가이드와 공지에서 근거와 함께 답을 찾아 드립니다.</li>
         <li>활동보고서, 종합계획서, 완료보고서의 초안을 만들어 드립니다.</li>
-        <li>멘티의 이름·연락처·학교는 입력받지 않고, 초안은 이 브라우저에만 보관합니다.</li>
+        <li>멘티 정보와 초안은 이 브라우저에만 보관하고, 이름은 서버와 AI로 보내지 않습니다.</li>
       </ul>
     </section>
     <section class="panel">

@@ -9,8 +9,13 @@ const props = defineProps({
   result: { type: Object, required: true },
   // 복사 전에 한 번 더 확인할 문구 (종합계획서①: 등록 후 수정 불가)
   confirmBeforeCopy: { type: String, default: '' },
+  // 개인정보 칸에 이 브라우저에서 채울 값 (필드 key별). 서버 초안에는 자리표시만 온다
+  fill: { type: Object, default: () => ({}) },
+  // 켜면 AI가 쓴 칸마다 [다시 생성] 버튼을 둔다
+  regen: { type: Boolean, default: false },
+  busyKey: { type: String, default: '' },
 })
-const emit = defineEmits(['change'])
+const emit = defineEmits(['change', 'regen'])
 
 const fields = draftFields(props.form)
 const text = reactive({})
@@ -18,7 +23,7 @@ const copied = ref('')
 let confirmed = false
 
 watch(() => props.result, (r) => {
-  for (const f of fields) text[f.key] = toText(r.draft?.[f.key])
+  for (const f of fields) text[f.key] = f.pii && props.fill[f.key] ? props.fill[f.key] : toText(r.draft?.[f.key])
   confirmed = false
 }, { immediate: true })
 
@@ -50,15 +55,17 @@ async function copy(key) {
     <p v-if="result.pii_masked?.length" class="notice" data-test="pii">
       AI에 보내기 전에 가린 정보: {{ result.pii_masked.join(', ') }}
     </p>
-    <p class="muted">초안입니다. 내용을 확인하고 고친 뒤 플랫폼에 옮겨 주세요. [멘티명] 같은 자리표시는 플랫폼에서 직접 채웁니다.</p>
+    <p class="muted">초안입니다. 내용을 확인하고 고친 뒤 플랫폼에 옮겨 주세요. 이름 칸은 이 브라우저에 적어 둔 값으로 채우며, 적어 둔 값이 없으면 [멘티명] 같은 자리표시로 남습니다.</p>
 
     <div v-for="f in fields" :key="f.key" class="card">
       <div class="row">
         <strong>{{ f.label }}</strong>
-        <span v-if="f.pii" class="tag">직접 입력</span>
+        <span v-if="f.pii" class="tag">{{ fill[f.key] ? '이 브라우저에서 채움' : '직접 입력' }}</span>
         <span class="spacer" style="flex: 1"></span>
         <span v-if="copied === f.key" class="ok">복사했습니다</span>
-        <button v-if="!f.pii" type="button" class="small" :data-copy="f.key" @click="copy(f.key)">플랫폼에 복사</button>
+        <button v-if="regen && !f.pii && ['user_text', 'llm_draft'].includes(f.source)" type="button" class="small" :data-regen="f.key"
+          :disabled="!!busyKey" @click="$emit('regen', f.key)">{{ busyKey === f.key ? '만드는 중…' : '다시 생성' }}</button>
+        <button v-if="!f.pii || fill[f.key]" type="button" class="small" :data-copy="f.key" @click="copy(f.key)">복사</button>
       </div>
       <p v-if="f.pii" class="muted">{{ text[f.key] }}</p>
       <textarea v-else v-model="text[f.key]" :data-draft="f.key" :rows="f.list ? Math.min(16, Math.max(3, text[f.key].split('\n').length)) : 3"

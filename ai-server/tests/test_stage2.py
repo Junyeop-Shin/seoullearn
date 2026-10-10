@@ -197,6 +197,21 @@ class HandoverTest(unittest.TestCase):
 class IeumdanRequestTest(unittest.TestCase):
     NOW = datetime(2026, 10, 12, 10, 0)   # 월요일
 
+    def test_default_now_is_korean_time(self):
+        from zoneinfo import ZoneInfo
+
+        seen = []
+
+        class Clock(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                seen.append(tz)
+                return datetime(2026, 10, 12, 8, 0, tzinfo=tz)
+
+        with unittest.mock.patch.object(ieumdan, "datetime", Clock):
+            ieumdan.build("장소 요청", region="강서구")
+        self.assertEqual(seen, [ZoneInfo("Asia/Seoul")])
+
     def test_schedule_change_three_day_rule(self):
         ok = ieumdan.build("일정 변경", current=datetime(2026, 10, 15, 19, 0), desired=datetime(2026, 10, 16, 19, 0), now=self.NOW)
         self.assertEqual(ok["warnings"], [])

@@ -44,13 +44,17 @@ def drop_unsupported(value, sources: str):
             if not bad:
                 kept.append(item)
         return kept, sorted(set(removed))
-    kept_s = []
-    for s in re.split(r"(?<=[.!?])\s+", str(value)):
-        bad = unsupported_numbers(s, sources)
-        removed += bad
-        if not bad:
-            kept_s.append(s)
-    return " ".join(kept_s).strip(), sorted(set(removed))
+    lines = []
+    for line in str(value).split("\n"):   # 줄 구성은 그대로 두고 줄 안에서 문장 단위로 본다
+        kept_s = []
+        for s in re.split(r"(?<=[.!?])[ \t]+", line):
+            bad = unsupported_numbers(s, sources)
+            removed += bad
+            if not bad:
+                kept_s.append(s)
+        if kept_s or not line.strip():
+            lines.append(" ".join(kept_s))
+    return "\n".join(lines).strip(), sorted(set(removed))
 
 
 def parse_time_range(text: str) -> tuple[int, int] | None:

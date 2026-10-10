@@ -2,12 +2,14 @@
 
 규칙으로 먼저 나누고, 규칙으로 못 나눈 줄만 LLM에 묻는다. 학습사이트에 접속하거나 긁어 오지 않는다.
 출력: [{no, title, unit, minutes}]  (no는 목차에 번호가 없으면 null)
+재생 시간만 적힌 줄이 되풀이되는 목차는 묶음 단위로 읽는다: 시간 줄 앞의 첫 줄이 강의 제목이고, 번호가 없으면 순서대로 번호를 붙인다(auto_no).
 """
 from __future__ import annotations
 
 import json
 import re
 
+from .. import guard, prompts
 from ..llm import ChatLLM, LLMUnavailableError
 
 _NOISE = re.compile(r"^(수강하기|맛보기|미리보기|강의\s*목차|목차|교재|다운로드|재생|완강|수강\s*중|NEW|HOT|\d+%|총\s*\d+강.*)$", re.I)
@@ -24,10 +26,34 @@ _MIN = [
     (re.compile(r"\(?\s*(\d{1,3})\s*분\s*\)?\s*$"), lambda m: int(m[1])),
 ]
 
-ASK = """학습사이트 강좌 목차에서 복사한 줄들이다. 각 줄이 강의 한 개인지 판단해 정리한다.
-- 강의이면 {"line": 줄 번호, "title": "강의 제목", "minutes": 분 또는 null}
-- 강의가 아니면(단원 이름, 메뉴, 광고 등) {"line": 줄 번호, "title": null}
-줄에 없는 내용을 만들지 않는다. JSON 배열 하나만 출력한다."""
+ASK = prompts.load("course_outline")
+# 재생 시간만 있는 줄: '- 48:53', '1:01:13'
+_DURATION_LINE = re.compile(r"^-?\s*(?:\d{1,2}:)?\d{1,3}:\d{2}$")
+_TAIL_MARK = re.compile(r"\s*[▶▷►]\s*\S*$")   # 'Hard Core.15ㅣ100 ▶완강'의 꼬리표
+
+
+def _parse_blocks(lines: list[str]) -> list[dict]:
+    """제목 줄(과 덧붙은 줄들) 뒤에 재생 시간 줄이 오는 목차. 강의 제목이 제각각이어도 시간 줄로 강의를 가른다."""
+    out: list[dict] = []
+    block: list[str] = []
+    for line in lines:
+        if not _DURATION_LINE.match(line):
+            block.append(line)
+            continue
+        titles = [x for x in block if not _NOISE.match(x)]
+        block = []
+        if not titles:
+            continue
+        title = _TAIL_MARK.sub("", titles[0]).strip() or titles[0]
+        minutes = _minutes(line.lstrip("- "))[1]
+        for pat in _LECTURE[:2]:   # '12강 제목'처럼 번호가 분명한 제목은 그 번호를 쓴다
+            m = pat.match(title)
+            if m:
+                out.append({"no": int(m.group(1)), "title": m.group(2).strip(), "unit": None, "minutes": minutes})
+                break
+        else:
+            out.append({"no": len(out) + 1, "title": title, "unit": None, "minutes": minutes, "auto_no": True})
+    return out
 
 
 def _minutes(title: str) -> tuple[str, int | None]:
@@ -42,6 +68,12 @@ def parse(text: str, llm: ChatLLM | None = None) -> dict:
     lectures: list[dict] = []
     pending: list[tuple[int, str, str | None]] = []  # (위치, 줄, 단원)
     unit: str | None = None
+    cleaned = [re.sub(r"\s+", " ", raw.replace("\t", " ")).strip() for raw in (text or "").splitlines()]
+    cleaned = [x for x in cleaned if x]
+    if sum(bool(_DURATION_LINE.match(x)) for x in cleaned) >= 3:
+        blocks = _parse_blocks(cleaned)
+        return {"lectures": blocks, "unparsed": [], "error": None,
+                "warnings": [] if blocks else ["강의 목록을 찾지 못했습니다. 강좌 페이지의 목차 부분을 복사해 붙여 넣어 주세요."]}
     for raw in (text or "").splitlines():
         line = re.sub(r"\s+", " ", raw.replace("\t", " ")).strip()
         if not line or _NOISE.match(line):
@@ -57,7 +89,7 @@ def parse(text: str, llm: ChatLLM | None = None) -> dict:
                 lectures.append({"no": int(m.group(1)), "title": title, "unit": unit, "minutes": minutes})
                 break
         else:
-            pending.append((len(lectures), line, unit))
+            pending.append((len(lectures), guard.check(line).text, unit))  # LLM에 보낼 수 있는 줄: 가려 둔다
 
     warnings: list[str] = []
     unparsed = [p[1] for p in pending]

@@ -121,7 +121,7 @@ docker compose up -d frontend ai-server     # backend, db도 함께 뜬다
 # http://localhost:3000 에서 멘토 계정을 만들고 시작한다
 ```
 
-화면 시연 순서는 `docs/demo_scenario.md`, 작성 시간 기록표는 `docs/time_measurement.md`, 포트폴리오용 RAG 결과는 `docs/rag_results.md`에 있다.
+가입하면 멘토 설정이 먼저 열린다. 화면 구성과 단계는 `docs/workflow.md`, 화면 시연 순서는 `docs/demo_scenario.md`, 작성 시간 기록표는 `docs/time_measurement.md`, 포트폴리오용 RAG 결과는 `docs/rag_results.md`에 있다.
 
 ## API 실행
 
@@ -163,19 +163,25 @@ docker compose run --rm ai-server python /project/scripts/compare_vector_backend
 | 경로 | 내용 | LLM |
 | --- | --- | --- |
 | `POST /drafts/activity_report` | 활동보고서 초안. 결석 회차 처리, 제출·증빙 안내 | 멘토가 쓴 사실을 문장으로 다듬기만 |
-| `POST /drafts/pre_contact` | 사전 연락 질문지와 문자 초안(90자 단위) | 쓰지 않음 |
-| `POST /drafts/course_outline` | 붙여 넣은 강의 목차 → 강 목록 | 규칙으로 못 읽은 줄만 |
-| `POST /drafts/weekly_plan` | 16회차 계획. 배분은 규칙 함수 | 회차별 멘토링 내용·상담 문장만 |
+| `POST /drafts/pre_contact` | 사전 연락 질문지와 문자 문구. 문구는 `templates/pre_contact.md`, `subject`를 주면 과목이 들어간다 (`call_time`은 화면에서 쓰지 않는다) | 쓰지 않음 |
+| `POST /drafts/course_outline` | 붙여 넣은 강의 목차 → 강 목록. 재생 시간 줄이 되풀이되는 목차는 시간 줄로 강의를 가르고, 번호가 없으면 순서대로 붙인다(`auto_no`) | 규칙으로 못 읽은 줄만 |
+| `POST /drafts/weekly_plan` | 주차별 계획(`sessions`: 16 또는 8). 배분은 규칙 함수. `per_week`(일주일에 몇 강씩) 또는 `target`(이번 회기에 들을 강 수)을 줄 수 있다 | 회차별 멘토링 내용 문장만 (상담 문장은 만들지 않는다) |
 | `POST /drafts/plan_initial` | 종합계획서① 초안 (플랫폼 입력용 문자 정리, 수정 불가 경고) | 학습목표·학생진단만 |
 | `POST /drafts/plan_file` | 종합계획서② 초안 (서식 항목 순서 텍스트) | 학습목표, 멘토 입력 다듬기 |
 | `POST /drafts/split_reports` | 플랫폼에서 복사한 활동보고서 여러 개를 회차별로 분리 | 쓰지 않음 |
 | `POST /drafts/completion_report` | 완료보고서 초안. 수행 리스트·통계는 규칙, 감성케어 칸은 멘토 입력만 | 멘토링 내용·성취도 |
 | `POST /drafts/handover_summary` | 멘토 교체 인계 요약. 허용 항목 네 가지만, 항목마다 출처 칸만 모아 따로 질의 | 항목별 요약 |
-| `POST /drafts/ieumdan_request` | 이음단 장소·일정 요청 메시지. 3일 전 규칙을 날짜 계산으로 확인 | 쓰지 않음 |
+| `POST /drafts/ieumdan_request` | 이음단 장소·일정 요청 메시지. 장소 요청 문구는 `templates/venue_request.md`. 3일 전 규칙을 날짜 계산으로 확인 | 쓰지 않음 |
 
 - 필드의 `source`에 따라 처리가 갈린다: `user`는 입력 그대로, `placeholder`는 `[멘티명]` 같은 자리표시, `derived`는 규칙 계산, `user_text`는 다듬기, `llm_draft`는 초안.
 - 개인정보 칸에 입력이 오면 버리고 경고한다. 5점 척도, 시간, 회차, 날짜 계산은 LLM에 맡기지 않는다.
 - LLM이 쓴 문장에 입력에 없는 숫자가 있으면 그 문장을 빼고 경고한다.
+- `extra.only`: LLM에 맡길 항목의 key 목록. 빈 목록이면 LLM을 부르지 않고 멘토가 적은 글을 그대로 정리한다(간단 모드). 한 항목만 넣으면 그 항목만 다시 만든다.
+- `extra.memo`: 멘토가 적은 글(필드 key별). `llm_draft` 칸이라도 메모가 있으면 초안을 새로 쓰지 않고 그 글만 다듬는다.
+- 다듬기와 초안은 따로 묻는다: 다듬기 항목에는 `[참고 입력]`을 주지 않고, 초안 항목에만 준다. 여러 줄이거나 줄 머리에 표시(`(1)`, `(과목역량)`, 시각)가 있는 글은 본문만 번호를 붙여 보내고 표시는 규칙으로 다시 붙인다. 양식 필드의 `slot_marks`는 초안을 자리마다 받아 붙일 표시다.
+- 다듬은 줄에 입력에 없는 숫자가 있거나 숫자·영문 낱말이 빠졌으면 그 줄은 멘토가 쓴 글로 되돌리고 `warnings`로 알린다. 종합계획서의 정서·가정·건강 문장은 LLM에 보내기 전에 뺀다.
+- 교과과정으로 채우기와 오프라인 일정·장소 문구는 서버를 쓰지 않는다 (`frontend/src/lib/curriculum.js`, `frontend/src/lib/schedule.js`). `extra.curriculum_lines`: 화면에서 만든 주차별 커리큘럼 줄. `extra.rounds`: 회기의 회차 수(종합계획서②의 기간 계산).
+- 프롬프트는 `prompts/`의 파일에서 읽는다. 입력에 아동 안전 신호가 있으면 LLM을 부르지 않고 운영사무국(즉시) 안내를 `warnings`로 돌려준다.
 - 응답: `draft`(필드별 값), `missing_questions`(되물을 항목), `warnings`, `reminders`(제출·증빙 안내), `pii_masked`.
 - 새 양식은 `forms/`에 JSON 파일을 추가하면 `/drafts/<form_id>`로 바로 쓸 수 있고, 화면의 '기타 서식'에도 바로 나온다. 양식별 특수 처리는 `hooks_*.py`의 훅으로 분리한다. 시간확대 신청 전 확인, 친화·성장활동 계획서·결과보고서는 JSON 파일만으로 추가했다.
 

@@ -5,6 +5,7 @@ import { reactive, ref } from 'vue'
 import { api } from '../api/client'
 import ReportSource from '../components/ReportSource.vue'
 import { copyText } from '../lib/copy'
+import { handoverText } from '../lib/reports'
 import { saveItem } from '../stores/vault'
 
 // 멘토 교체 인계 요약: 출석 패턴, 과제 수행, 학습 태도, 수강 강의·진도만 넘긴다.
@@ -31,7 +32,7 @@ async function build() {
 }
 
 function asText() {
-  return Object.entries(summary).filter(([, v]) => v.trim()).map(([k, v]) => `[${res.value.labels[k]}] ${v}`).join('\n')
+  return handoverText(summary)   // 허용된 네 항목만, 다음 멘토가 붙여 넣으면 칸별로 나뉘는 형식
 }
 
 async function copyAll() {
@@ -64,10 +65,11 @@ async function save() {
         <textarea v-model="summary[k]" :data-summary="k"></textarea>
       </label>
       <div class="row">
-        <button type="button" @click="copyAll">전체 복사</button>
+        <button type="button" class="primary" data-test="copy-handover" @click="copyAll">다음 멘토에게 보낼 글 복사</button>
         <button type="button" @click="save">보관함에 저장</button>
         <span>{{ status }}</span>
       </div>
+      <p class="notice">복사한 글을 이음단이나 운영사무국을 통해 다음 멘토에게 전달해 주세요. 다음 멘토가 사전 연락 화면에 붙여 넣어 두고 종합계획서를 쓸 때 참고합니다.</p>
       <div class="card"><ul><li v-for="r in res.reminders" :key="r">{{ r }}</li></ul></div>
     </template>
   </div>

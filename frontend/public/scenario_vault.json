@@ -1,0 +1,981 @@
+{
+ "format": "seoullearn-mentor-vault",
+ "version": 1,
+ "exportedAt": "2026-10-11T00:00:00.000Z",
+ "sample": true,
+ "mentor": {
+  "name": "이멘토",
+  "phone": "010-0000-0000",
+  "mentoringType": "시급형",
+  "university": "가상대학교",
+  "major": "수학교육과"
+ },
+ "items": [
+  {
+   "id": "scn-001",
+   "alias": "정가상",
+   "formId": "mentee_profile",
+   "title": "멘티 정보",
+   "sessionNo": null,
+   "savedAt": "2026-10-09T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "name": "정가상",
+    "grade": "고1",
+    "subject": "수학",
+    "subjectEtc": "",
+    "district": "성북구",
+    "mode": "온라인",
+    "duration": "60",
+    "course": "",
+    "start_datetime": "2026-11-02T17:00",
+    "venue": "",
+    "goal": "",
+    "level": "",
+    "weekday": "",
+    "regularSchedule": [
+     {
+      "weekday": "월",
+      "startTime": "17:00"
+     }
+    ],
+    "term": 1,
+    "currentRound": 1,
+    "stage": "PLAN",
+    "archived": false,
+    "lastHomework": null
+   }
+  },
+  {
+   "id": "scn-002",
+   "alias": "정가상",
+   "formId": "handover_summary",
+   "title": "인계 요약",
+   "sessionNo": null,
+   "savedAt": "2026-10-09T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "attendance_pattern": "대체로 정시에 출석함. 시험 기간에 일정 변경 요청이 두 번 있었음.",
+    "homework_pattern": "인강은 꾸준히 듣지만 문제 풀이 과제는 자주 덜 해 옴.",
+    "attitude": "집중 시간이 짧아 30분쯤 지나면 쉬는 시간을 한 번 주는 편이 좋았음.",
+    "course_progress": "메가스터디 시발점 수1, 12강까지 수강함.",
+    "text": "안녕하세요, 이전 멘토입니다. 인계 내용 정리해서 보내드립니다.\n[출석 패턴] 대체로 정시에 출석함. 시험 기간에 일정 변경 요청이 두 번 있었음.\n[과제 수행] 인강은 꾸준히 듣지만 문제 풀이 과제는 자주 덜 해 옴.\n[학업 수준] 지난 중간고사 수학 58점, 함수 단원 이해가 많이 부족함.\n[학습 태도] 집중 시간이 짧아 30분쯤 지나면 쉬는 시간을 한 번 주는 편이 좋았음.\n[상담 내용] 부모님과 진로 문제로 갈등이 있다고 여러 번 이야기함.\n[수강 강의와 진도] 메가스터디 시발점 수1, 12강까지 수강함."
+   }
+  },
+  {
+   "id": "scn-003",
+   "alias": "한가상",
+   "formId": "mentee_profile",
+   "title": "멘티 정보",
+   "sessionNo": null,
+   "savedAt": "2026-10-01T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "name": "한가상",
+    "grade": "중2",
+    "subject": "영어",
+    "subjectEtc": "",
+    "district": "관악구",
+    "mode": "온라인",
+    "duration": "60",
+    "course": "밀크T 중2 영어 문법 기본",
+    "start_datetime": "2026-10-06T19:00",
+    "venue": "",
+    "goal": "(1) 밀크T 중2 영어 문법 기본 완강\n(2) 2학기 기말고사 문법 문제 다 맞기",
+    "level": "(과목역량) 단어는 아는 편이나 문장 구조를 어려워함\n(학습습관 및 태도) 인강은 꾸준히 듣는 편임",
+    "weekday": "",
+    "regularSchedule": [
+     {
+      "weekday": "화",
+      "startTime": "19:00"
+     }
+    ],
+    "term": 1,
+    "currentRound": 1,
+    "stage": "PLAN",
+    "archived": false,
+    "lastHomework": null
+   }
+  },
+  {
+   "id": "scn-004",
+   "alias": "한가상",
+   "formId": "plan_initial",
+   "title": "종합계획서①",
+   "sessionNo": null,
+   "savedAt": "2026-10-02T12:00:00.000Z",
+   "inputs": {
+    "duration": "60",
+    "weekday": "화",
+    "start_datetime": "2026-10-06 19:00"
+   },
+   "extra": {
+    "memo": {
+     "learning_goal": "(1) 밀크T 중2 영어 문법 기본 완강\n(2) 2학기 기말고사 문법 문제 다 맞기",
+     "diagnosis": "(과목역량) 단어는 아는 편이나 문장 구조를 어려워함\n(학습습관 및 태도) 인강은 꾸준히 듣는 편임",
+     "structure": "19:00~19:10 온라인 강의 수강(필수) 확인 및 퀴즈\n19:10~19:30 개념학습\n19:30~19:40 개념 테스트\n19:40~19:50 오답 풀이\n19:50~20:00 상담 및 다음 회차 안내",
+     "rules": "멘토링 시간 준수하기\n일정 변경은 최소 3일 전에 논의하기\n인강은 계획대로 규칙적으로 수강하고 인증 사진 보내기\n과제는 답지를 보지 않고 스스로 풀기\n개념은 확실히 이해하고 오답 노트 반드시 작성하기"
+    },
+    "rows": [
+     {
+      "week": 1,
+      "date": "2026-10-06",
+      "time": "19:00",
+      "edited": false,
+      "content": "오리엔테이션, 현재 수준 진단",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 2,
+      "date": "2026-10-13",
+      "time": "19:00",
+      "edited": false,
+      "content": "to부정사 - 개념",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 3,
+      "date": "2026-10-20",
+      "time": "19:00",
+      "edited": false,
+      "content": "to부정사 - 문제 풀이",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 4,
+      "date": "2026-10-27",
+      "time": "19:00",
+      "edited": false,
+      "content": "동명사 - 개념",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 5,
+      "date": "2026-11-03",
+      "time": "19:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 6,
+      "date": "2026-11-10",
+      "time": "19:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 7,
+      "date": "2026-11-17",
+      "time": "19:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 8,
+      "date": "2026-11-24",
+      "time": "19:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 9,
+      "date": "2026-12-01",
+      "time": "19:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 10,
+      "date": "2026-12-08",
+      "time": "19:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 11,
+      "date": "2026-12-15",
+      "time": "19:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 12,
+      "date": "2026-12-22",
+      "time": "19:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 13,
+      "date": "2026-12-29",
+      "time": "19:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 14,
+      "date": "2027-01-05",
+      "time": "19:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 15,
+      "date": "2027-01-12",
+      "time": "19:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 16,
+      "date": "2027-01-19",
+      "time": "19:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     }
+    ]
+   },
+   "draft": {
+    "duration": "60",
+    "weekday": "화",
+    "start_datetime": "2026-10-06 19:00",
+    "learning_goal": "(1) 밀크T 중2 영어 문법 기본 완강\n(2) 2학기 기말고사 문법 문제 다 맞기",
+    "diagnosis": "(과목역량) 단어는 아는 편이나 문장 구조를 어려워함\n(학습습관 및 태도) 인강은 꾸준히 듣는 편임",
+    "structure": "19:00~19:10 온라인 강의 수강(필수) 확인 및 퀴즈\n19:10~19:30 개념학습\n19:30~19:40 개념 테스트\n19:40~19:50 오답 풀이\n19:50~20:00 상담 및 다음 회차 안내",
+    "rules": "멘토링 시간 준수하기\n일정 변경은 최소 3일 전에 논의하기\n인강은 계획대로 규칙적으로 수강하고 인증 사진 보내기\n과제는 답지를 보지 않고 스스로 풀기\n개념은 확실히 이해하고 오답 노트 반드시 작성하기",
+    "curriculum": [
+     "1주차(10/6 19:00) 오리엔테이션, 현재 수준 진단",
+     "2주차(10/13 19:00) to부정사 - 개념",
+     "3주차(10/20 19:00) to부정사 - 문제 풀이",
+     "4주차(10/27 19:00) 동명사 - 개념"
+    ]
+   }
+  },
+  {
+   "id": "scn-005",
+   "alias": "오가상",
+   "formId": "mentee_profile",
+   "title": "멘티 정보",
+   "sessionNo": null,
+   "savedAt": "2026-09-22T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "name": "오가상",
+    "grade": "중2",
+    "subject": "수학",
+    "subjectEtc": "",
+    "district": "노원구",
+    "mode": "온라인",
+    "duration": "60",
+    "course": "밀크T 중2 수학 개념 기본",
+    "start_datetime": "2026-09-28T17:00",
+    "venue": "",
+    "goal": "① 밀크T 중2 수학 개념 기본 완강\n② 2학기 중간고사 대비 1학기 내용 복습",
+    "level": "(과목역량) 계산은 빠르나 부호 실수가 잦음",
+    "weekday": "",
+    "regularSchedule": [
+     {
+      "weekday": "월",
+      "startTime": "17:00"
+     }
+    ],
+    "term": 1,
+    "currentRound": 3,
+    "stage": "ACTIVITY",
+    "archived": false,
+    "lastHomework": null
+   }
+  },
+  {
+   "id": "scn-006",
+   "alias": "오가상",
+   "formId": "plan_initial",
+   "title": "종합계획서①",
+   "sessionNo": null,
+   "savedAt": "2026-09-24T12:00:00.000Z",
+   "inputs": {
+    "duration": "60",
+    "weekday": "월",
+    "start_datetime": "2026-09-28 17:00"
+   },
+   "extra": {
+    "memo": {
+     "learning_goal": "(1) 밀크T 중2 수학 개념 기본 완강\n(2) 2학기 중간고사 대비 1학기 내용 복습",
+     "diagnosis": "(과목역량) 계산은 빠르나 부호 실수가 잦음",
+     "structure": "17:00~17:10 온라인 강의 수강(필수) 확인 및 퀴즈\n17:10~17:30 개념학습\n17:30~17:40 개념 테스트\n17:40~17:50 오답 풀이\n17:50~18:00 상담 및 다음 회차 안내",
+     "rules": "멘토링 시간 준수하기\n일정 변경은 최소 3일 전에 논의하기\n인강은 계획대로 규칙적으로 수강하고 인증 사진 보내기\n과제는 답지를 보지 않고 스스로 풀기\n개념은 확실히 이해하고 오답 노트 반드시 작성하기"
+    },
+    "rows": [
+     {
+      "week": 1,
+      "date": "2026-09-28",
+      "time": "17:00",
+      "edited": false,
+      "content": "오리엔테이션, 현재 수준 진단",
+      "online": "1~2강",
+      "mentoring": "오리엔테이션(OT), 유리수와 순환소수 개념",
+      "course": 0
+     },
+     {
+      "week": 2,
+      "date": "2026-10-05",
+      "time": "17:00",
+      "edited": false,
+      "content": "유리수와 순환소수",
+      "online": "3~4강",
+      "mentoring": "순환소수를 분수로 나타내기",
+      "course": 0
+     },
+     {
+      "week": 3,
+      "date": "2026-10-12",
+      "time": "17:00",
+      "edited": false,
+      "content": "식의 계산",
+      "online": "5~6강",
+      "mentoring": "지수법칙 개념과 문제 풀이",
+      "course": 0
+     },
+     {
+      "week": 4,
+      "date": "2026-10-19",
+      "time": "17:00",
+      "edited": false,
+      "content": "식의 계산",
+      "online": "7~8강",
+      "mentoring": "단항식의 곱셈과 나눗셈",
+      "course": 0
+     },
+     {
+      "week": 5,
+      "date": "2026-10-26",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 6,
+      "date": "2026-11-02",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 7,
+      "date": "2026-11-09",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 8,
+      "date": "2026-11-16",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 9,
+      "date": "2026-11-23",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 10,
+      "date": "2026-11-30",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 11,
+      "date": "2026-12-07",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 12,
+      "date": "2026-12-14",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 13,
+      "date": "2026-12-21",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 14,
+      "date": "2026-12-28",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 15,
+      "date": "2027-01-04",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 16,
+      "date": "2027-01-11",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     }
+    ]
+   },
+   "draft": {
+    "duration": "60",
+    "weekday": "월",
+    "start_datetime": "2026-09-28 17:00",
+    "learning_goal": "(1) 밀크T 중2 수학 개념 기본 완강\n(2) 2학기 중간고사 대비 1학기 내용 복습",
+    "diagnosis": "(과목역량) 계산은 빠르나 부호 실수가 잦음",
+    "structure": "17:00~17:10 온라인 강의 수강(필수) 확인 및 퀴즈\n17:10~17:30 개념학습\n17:30~17:40 개념 테스트\n17:40~17:50 오답 풀이\n17:50~18:00 상담 및 다음 회차 안내",
+    "rules": "멘토링 시간 준수하기\n일정 변경은 최소 3일 전에 논의하기\n인강은 계획대로 규칙적으로 수강하고 인증 사진 보내기\n과제는 답지를 보지 않고 스스로 풀기\n개념은 확실히 이해하고 오답 노트 반드시 작성하기",
+    "curriculum": [
+     "1주차(9/28 17:00) 오리엔테이션, 현재 수준 진단",
+     "2주차(10/5 17:00) 유리수와 순환소수",
+     "3주차(10/12 17:00) 식의 계산",
+     "4주차(10/19 17:00) 식의 계산"
+    ]
+   }
+  },
+  {
+   "id": "scn-007",
+   "alias": "오가상",
+   "formId": "plan_file",
+   "title": "종합계획서②",
+   "sessionNo": null,
+   "savedAt": "2026-09-30T12:00:00.000Z",
+   "inputs": {
+    "subject_time": "수학 / 밀크T 중2 수학 개념 기본(가상 강사) / 매주 월 17:00~18:00"
+   },
+   "extra": {
+    "courses": [
+     {
+      "platform": "밀크T",
+      "lecture": "중2 수학 개념 기본",
+      "instructor": "가상 강사",
+      "done": "",
+      "lectures": []
+     }
+    ],
+    "common": {
+     "subject": "수학",
+     "schedule": "매주 월 17:00~18:00"
+    },
+    "alloc": {
+     "mode": "weekly",
+     "perWeek": 2,
+     "target": ""
+    },
+    "value": {
+     "learning_goal": "① 밀크T 중2 수학 개념 기본 완강\n② 2학기 중간고사 대비 1학기 내용 복습",
+     "diagnosis": "(과목역량) 계산은 빠르나 부호 실수가 잦음",
+     "structure": "17:00~17:10 온라인 강의 수강(필수) 확인 및 퀴즈\n17:10~17:30 개념학습\n17:30~17:40 개념 테스트\n17:40~17:50 오답 풀이\n17:50~18:00 상담 및 다음 회차 안내",
+     "rules": "멘토링 시간 준수하기\n일정 변경은 최소 3일 전에 논의하기\n인강은 계획대로 규칙적으로 수강하고 인증 사진 보내기\n과제는 답지를 보지 않고 스스로 풀기\n개념은 확실히 이해하고 오답 노트 반드시 작성하기"
+    },
+    "changed": {
+     "learning_goal": false,
+     "diagnosis": false,
+     "structure": false,
+     "rules": false
+    },
+    "rows": [
+     {
+      "week": 1,
+      "date": "2026-09-28",
+      "time": "17:00",
+      "edited": false,
+      "content": "오리엔테이션, 현재 수준 진단",
+      "online": "1~2강",
+      "mentoring": "오리엔테이션(OT), 유리수와 순환소수 개념",
+      "course": 0
+     },
+     {
+      "week": 2,
+      "date": "2026-10-05",
+      "time": "17:00",
+      "edited": false,
+      "content": "유리수와 순환소수",
+      "online": "3~4강",
+      "mentoring": "순환소수를 분수로 나타내기",
+      "course": 0
+     },
+     {
+      "week": 3,
+      "date": "2026-10-12",
+      "time": "17:00",
+      "edited": false,
+      "content": "식의 계산",
+      "online": "5~6강",
+      "mentoring": "지수법칙 개념과 문제 풀이",
+      "course": 0
+     },
+     {
+      "week": 4,
+      "date": "2026-10-19",
+      "time": "17:00",
+      "edited": false,
+      "content": "식의 계산",
+      "online": "7~8강",
+      "mentoring": "단항식의 곱셈과 나눗셈",
+      "course": 0
+     },
+     {
+      "week": 5,
+      "date": "2026-10-26",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 6,
+      "date": "2026-11-02",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 7,
+      "date": "2026-11-09",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 8,
+      "date": "2026-11-16",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 9,
+      "date": "2026-11-23",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 10,
+      "date": "2026-11-30",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 11,
+      "date": "2026-12-07",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 12,
+      "date": "2026-12-14",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 13,
+      "date": "2026-12-21",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 14,
+      "date": "2026-12-28",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 15,
+      "date": "2027-01-04",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     },
+     {
+      "week": 16,
+      "date": "2027-01-11",
+      "time": "17:00",
+      "edited": false,
+      "content": "",
+      "online": "",
+      "mentoring": "",
+      "course": 0
+     }
+    ]
+   },
+   "draft": {
+    "period": "2026.09.28.~2027.01.11.",
+    "mentee": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "subject_time": "수학 / 밀크T 중2 수학 개념 기본(가상 강사) / 매주 월 17:00~18:00",
+    "learning_goal": [
+     "① 밀크T 중2 수학 개념 기본 완강",
+     "② 2학기 중간고사 대비 1학기 내용 복습"
+    ],
+    "diagnosis": [
+     "(과목역량) 계산은 빠르나 부호 실수가 잦음"
+    ],
+    "curriculum": [
+     "1주차(9/28 17:00)\n(온라인강의) 중2 수학 개념 기본(가상 강사), 1~2강\n(멘토링 내용) 오리엔테이션(OT), 유리수와 순환소수 개념",
+     "2주차(10/5 17:00)\n(온라인강의) 중2 수학 개념 기본(가상 강사), 3~4강\n(멘토링 내용) 순환소수를 분수로 나타내기",
+     "3주차(10/12 17:00)\n(온라인강의) 중2 수학 개념 기본(가상 강사), 5~6강\n(멘토링 내용) 지수법칙 개념과 문제 풀이",
+     "4주차(10/19 17:00)\n(온라인강의) 중2 수학 개념 기본(가상 강사), 7~8강\n(멘토링 내용) 단항식의 곱셈과 나눗셈"
+    ],
+    "structure": [
+     "17:00~17:10 온라인 강의 수강(필수) 확인 & 퀴즈",
+     "17:10~17:30 개념학습",
+     "17:30~17:40 개념 테스트",
+     "17:40~17:50 오답 풀이",
+     "17:50~18:00 상담 & 다음 회차 안내"
+    ],
+    "rules": [
+     "멘토링 시간 준수하기",
+     "일정 변경은 최소 3일 전에 논의하기",
+     "인강은 계획대로 규칙적으로 수강하고 인증 사진 보내기",
+     "과제는 답지를 보지 않고 스스로 풀기",
+     "개념은 확실히 이해하고 오답 노트 반드시 작성하기"
+    ]
+   }
+  },
+  {
+   "id": "scn-008",
+   "alias": "오가상",
+   "formId": "activity_report",
+   "title": "활동보고서 1회차",
+   "sessionNo": 1,
+   "savedAt": "2026-09-28T12:00:00.000Z",
+   "inputs": {
+    "status": "출석",
+    "session_date": "2026-09-28",
+    "session_no": "1",
+    "subject": "수학",
+    "course": "밀크T 중2 수학 개념 기본",
+    "actual_time": "17:02~18:03",
+    "scope": "1~2강 유리수와 순환소수",
+    "goal": "유리수와 순환소수 개념 이해",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "attendance": "정시 출석",
+    "lecture_progress": "",
+    "homework": "",
+    "session_content": "유리수와 순환소수의 뜻을 설명하고 예제를 함께 풂.",
+    "etc": "",
+    "requests": ""
+   },
+   "extra": {
+    "assignedHomework": {
+     "lecture": "3~4강",
+     "task": "3강 예제 풀기"
+    }
+   },
+   "draft": {
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "session_date": "2026-09-28",
+    "session_no": "1",
+    "subject": "수학",
+    "course": "밀크T 중2 수학 개념 기본",
+    "actual_time": "17:02~18:03",
+    "scope": "1~2강 유리수와 순환소수",
+    "goal": "유리수와 순환소수 개념 이해",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "attendance": "정시 출석",
+    "lecture_progress": "",
+    "homework": "",
+    "session_content": "유리수와 순환소수의 뜻을 설명하고 예제를 함께 풂.",
+    "etc": "",
+    "requests": ""
+   }
+  },
+  {
+   "id": "scn-009",
+   "alias": "오가상",
+   "formId": "activity_report",
+   "title": "활동보고서 2회차",
+   "sessionNo": 2,
+   "savedAt": "2026-10-05T12:00:00.000Z",
+   "inputs": {
+    "status": "출석",
+    "session_date": "2026-10-05",
+    "session_no": "2",
+    "subject": "수학",
+    "course": "밀크T 중2 수학 개념 기본",
+    "actual_time": "17:02~18:03",
+    "scope": "3~4강 순환소수를 분수로 나타내기",
+    "goal": "순환소수를 분수로 바꾸기",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "attendance": "정시 출석",
+    "lecture_progress": "지난 회차 인강: 다 들음",
+    "homework": "지난 회차 과제: 함",
+    "session_content": "순환소수를 분수로 나타내는 방법을 연습함. 예제는 혼자 풀었음.",
+    "etc": "",
+    "requests": ""
+   },
+   "extra": {
+    "assignedHomework": {
+     "lecture": "5~6강",
+     "task": "5강 예제 풀기"
+    }
+   },
+   "draft": {
+    "mentee_name": "[멘티명]",
+    "mentee_grade": "[멘티 학년]",
+    "mentor": "[멘토 성명·소속]",
+    "session_date": "2026-10-05",
+    "session_no": "2",
+    "subject": "수학",
+    "course": "밀크T 중2 수학 개념 기본",
+    "actual_time": "17:02~18:03",
+    "scope": "3~4강 순환소수를 분수로 나타내기",
+    "goal": "순환소수를 분수로 바꾸기",
+    "progress_scale": "잘함",
+    "understanding_scale": "보통",
+    "attendance": "정시 출석",
+    "lecture_progress": "지난 회차 인강: 다 들음",
+    "homework": "지난 회차 과제: 함",
+    "session_content": "순환소수를 분수로 나타내는 방법을 연습함. 예제는 혼자 풀었음.",
+    "etc": "",
+    "requests": ""
+   }
+  },
+  {
+   "id": "scn-010",
+   "alias": "이가상",
+   "formId": "mentee_profile",
+   "title": "멘티 정보",
+   "sessionNo": null,
+   "savedAt": "2026-10-08T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "name": "이가상",
+    "grade": "고1",
+    "subject": "수학",
+    "subjectEtc": "",
+    "district": "송파구",
+    "mode": "온라인",
+    "duration": "60",
+    "course": "메가스터디 시발점 수2",
+    "start_datetime": "2026-11-03T20:00",
+    "venue": "",
+    "goal": "",
+    "level": "",
+    "weekday": "",
+    "regularSchedule": [
+     {
+      "weekday": "화",
+      "startTime": "20:00"
+     }
+    ],
+    "term": 2,
+    "currentRound": 1,
+    "stage": "PLAN",
+    "archived": false,
+    "lastHomework": null
+   }
+  },
+  {
+   "id": "scn-011",
+   "alias": "이가상",
+   "formId": "term_summary",
+   "title": "1회기 요약",
+   "sessionNo": null,
+   "savedAt": "2026-10-08T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "term": 1,
+    "rounds": 16,
+    "course": "메가스터디 시발점 수1",
+    "goal": [
+     "① 메가스터디 시발점 수1 완강",
+     "② 기말고사 수학 3등급"
+    ],
+    "last_scope": "30강 수열의 합 총정리",
+    "next_homework": {
+     "lecture": "시발점 수2 1~2강",
+     "task": "수1 오답 노트 다시 풀기"
+    },
+    "next_course": "메가스터디 시발점 수2",
+    "content": [
+     "지수와 로그, 삼각함수, 수열 단원의 개념을 인강과 함께 정리하고 단원마다 오답 노트를 만듦."
+    ],
+    "achievement": [
+     "시발점 수1 30강을 모두 수강함. 오답 노트 작성은 후반부에 자리 잡음."
+    ]
+   }
+  },
+  {
+   "id": "scn-012",
+   "alias": "마가상",
+   "formId": "mentee_profile",
+   "title": "멘티 정보",
+   "sessionNo": null,
+   "savedAt": "2026-09-10T12:00:00.000Z",
+   "inputs": {},
+   "extra": {},
+   "draft": {
+    "name": "마가상",
+    "grade": "중3",
+    "subject": "영어",
+    "subjectEtc": "",
+    "district": "마포구",
+    "mode": "오프라인",
+    "duration": "60",
+    "course": "밀크T 중3 영어 문법",
+    "start_datetime": "2026-09-14T17:00",
+    "venue": "",
+    "goal": "",
+    "level": "",
+    "weekday": "",
+    "regularSchedule": [
+     {
+      "weekday": "월",
+      "startTime": "17:00"
+     }
+    ],
+    "term": 1,
+    "currentRound": 5,
+    "stage": "ACTIVITY",
+    "archived": false,
+    "lastHomework": null
+   }
+  }
+ ]
+}

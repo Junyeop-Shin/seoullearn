@@ -15,25 +15,14 @@ import re
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
 
-from .. import guard
+from .. import guard, prompts
 from ..config import settings
 from ..llm import ChatLLM, LLMUnavailableError
 from . import checks
 
 PLACEHOLDERS = {"mentee_name": "[멘티명]", "mentee_grade": "[멘티 학년]", "mentee": "[멘티 학년]", "mentor": "[멘토 성명·소속]"}
 
-SYSTEM = """너는 서울런 멘토가 양식을 채우도록 돕는다. [만들 항목]의 각 항목을 아래 규칙대로 쓴다.
-
-1. mode가 "polish"인 항목: input에 적힌 사실을 보고서 문장으로 다듬기만 한다. 내용을 보태거나 평가를 덧붙이지 않는다.
-2. mode가 "draft"인 항목: [참고 입력]과 guidance를 바탕으로 초안을 쓴다.
-3. 입력에 없는 사실(날짜, 점수, 등급, 진도, 강 번호, 진로, 상담 내용)을 만들지 않는다. 모르는 것은 쓰지 않는다.
-4. 멘티·멘토의 이름, 학교, 연락처는 쓰지 않는다. 필요하면 '멘티'라고 쓴다.
-5. 가정 형편, 가족 갈등, 정서 상담, 질병명은 쓰지 않는다.
-6. 문체는 '~함', '~했음' 같은 보고서 문체로 간결하게 쓴다. 항목 이름(label)을 문장에 되풀이하지 않는다.
-   input이 낱말이나 짧은 구절이면 문장으로 늘리지 말고 거의 그대로 둔다.
-7. type이 "list"인 항목은 문자열 배열로, 나머지는 문자열 하나로 쓴다. item_slots가 있으면 그 순서대로 한 항목씩 쓴다.
-
-반드시 [만들 항목]의 key를 그대로 쓴 JSON 객체 하나만 출력한다. 코드블록 표시는 쓰지 않는다."""
+SYSTEM = prompts.load("draft_fields")
 
 
 @lru_cache(maxsize=32)
@@ -52,6 +41,7 @@ class Context:
     warnings: list[str] = field(default_factory=list)
     reminders: list[str] = field(default_factory=list)
     pii: set[str] = field(default_factory=set)
+    safety: bool = False  # 입력에서 아동 안전 신호를 봤다
 
     def warn(self, msg: str):
         if msg not in self.warnings:
@@ -112,6 +102,7 @@ def _mask(value, ctx: Context):
     if isinstance(value, str):
         g = guard.check(value)
         ctx.pii.update(g.pii)
+        ctx.safety = ctx.safety or g.safety
         return g.text
     if isinstance(value, list):
         return [_mask(v, ctx) for v in value]
@@ -144,12 +135,27 @@ def _validate_user(f: dict, value, ctx: Context) -> None:
 
 def _sources_text(ctx: Context, f: dict) -> str:
     """지어내기 검사의 기준: 입력 전체 + 이 필드의 안내문(자리 이름의 번호 등)."""
-    return json.dumps([ctx.inputs, ctx.extra, f.get("label"), f.get("guidance"), f.get("item_slots"), f.get("item_format")],
+    return json.dumps([ctx.inputs, ctx.extra, f.get("label"), f.get("guidance"), f.get("item_slots"), f.get("slot_marks"), f.get("item_format")],
                       ensure_ascii=False)
 
 
-def _ask_llm(todo: list[dict], ctx: Context, llm: ChatLLM) -> tuple[dict, str | None]:
-    public = {k: v for k, v in ctx.extra.items() if not k.startswith("_")}
+# 줄 머리의 표시: (1), ①, (과목역량), 17:00~17:10. 다듬을 때는 떼어 두었다가 규칙으로 다시 붙인다 (AI가 형식을 바꾸지 못하게)
+_HEAD = re.compile(r"^(\s*(?:\(\d{1,2}\)|[①-⑳]|\([^)\n]{1,15}\)|\d{1,2}:\d{2}~\d{1,2}:\d{2})\s*)(.*)$")
+
+
+def _split_heads(value) -> list[tuple[str, str]] | None:
+    """다듬을 글을 줄마다 (머리 표시, 본문)으로 나눈다. 한 줄이고 머리 표시도 없으면 None (그대로 다듬는다)."""
+    lines = [str(x) for x in value] if isinstance(value, list) else str(value).split("\n")
+    pairs = []
+    for line in lines:
+        m = _HEAD.match(line)
+        pairs.append((m.group(1), m.group(2)) if m else ("", line))
+    return None if len(pairs) == 1 and not pairs[0][0] else pairs
+
+
+def _ask_llm(todo: list[dict], ctx: Context, llm: ChatLLM, reference: bool = True) -> tuple[dict, str | None]:
+    # 다듬기 항목만 물을 때는 참고 입력을 주지 않는다: 멘토가 쓴 글에 인계 내용 같은 다른 자료가 섞이지 않게
+    public = {k: v for k, v in ctx.extra.items() if not k.startswith("_")} if reference else {}
     user = (f"[양식]\n{ctx.form['title']}\n\n[참고 입력]\n{json.dumps(public, ensure_ascii=False)}\n\n"
             f"[만들 항목]\n{json.dumps(todo, ensure_ascii=False)}")
     try:
@@ -167,6 +173,59 @@ def _ask_llm(todo: list[dict], ctx: Context, llm: ChatLLM) -> tuple[dict, str | 
         return {}, f"{type(e).__name__}: {e}"
 
 
+def _lost_tokens(original: str, polished: str) -> list[str]:
+    """다듬은 글에서 빠진 숫자와 영문 낱말. 이런 말은 바꿔 쓸 일이 없으므로, 빠졌으면 내용이 빠진 것으로 본다."""
+    low = polished.lower()
+    return sorted({t for t in re.findall(r"\d+|[A-Za-z]{2,}", original) if t.lower() not in low})
+
+
+def _polish_item(key: str, label: str, f: dict, value, heads: dict) -> dict:
+    """다듬기 항목. 여러 줄이거나 줄 머리에 표시가 있으면 본문만 번호를 붙여 보내고, 표시는 나중에 규칙으로 다시 붙인다.
+    번호를 키로 주고받으면 AI가 줄을 합치거나 나눠도 줄마다 맞춰 볼 수 있다. 항목 틀(item_slots)은 주지 않는다."""
+    pairs = _split_heads(value)
+    if pairs is None:
+        return {"key": key, "label": label, "mode": "polish", "type": f.get("type", "text"), "guidance": f.get("guidance"), "input": value}
+    heads[key] = (value, pairs)
+    numbered = {str(n): body for n, (_, body) in enumerate(pairs, 1) if body.strip()}
+    return {"key": key, "label": label, "mode": "polish", "type": "lines", "input": numbered}
+
+
+def _join_heads(kept: tuple, out, label: str, ctx: Context, sources: str):
+    """다듬은 본문에 줄 머리 표시를 다시 붙인다.
+    AI가 돌려주지 않은 줄은 멘토가 쓴 글을 그대로 두고, 입력에 없는 숫자가 들어간 줄도 멘토가 쓴 글로 되돌린다.
+    빈 글로 돌려준 줄(개인정보뿐이던 줄)은 머리 표시째 뺀다. 형식을 알아볼 수 없으면 전체를 그대로 둔다."""
+    original, pairs = kept
+    numbers = [str(n) for n, (_, body) in enumerate(pairs, 1) if body.strip()]
+    if isinstance(out, list) and len(out) == len(numbers):   # 번호 없이 같은 개수의 목록으로 돌려준 경우: 차례대로 맞춘다
+        out = dict(zip(numbers, out))
+    if not isinstance(out, dict):
+        if not _empty(out):
+            ctx.warn(f"'{label}'은(는) AI가 줄 구성을 바꿔서, 다듬은 글을 쓰지 않고 적은 그대로 두었습니다.")
+        return original
+    lines, invented, lost = [], [], []
+    for n, (head, body) in enumerate(pairs, 1):
+        if not body.strip():
+            lines.append((head, body))
+            continue
+        new = out.get(str(n))
+        new = body if new is None else str(new).strip()   # 돌려주지 않은 줄은 적은 그대로
+        bad = checks.unsupported_numbers(new, sources)
+        if bad:
+            invented += bad
+            new = body
+        elif new and _lost_tokens(body, new):   # 내용이 빠진 줄도 적은 그대로 둔다 (빈 글로 돌아온 줄은 개인정보뿐이던 줄이라 뺀다)
+            lost += _lost_tokens(body, new)
+            new = body
+        if new:
+            lines.append((head, new))
+    if lost:
+        ctx.warn(f"'{label}'의 한 줄은 AI가 다듬으면서 일부 내용({', '.join(sorted(set(lost)))})을 빠뜨려, 그 줄은 적은 그대로 두었습니다.")
+    if invented:
+        ctx.warn(f"'{label}'의 다듬은 줄에 입력에 없는 숫자({', '.join(sorted(set(invented)))})가 들어가, 그 줄은 적은 그대로 두었습니다.")
+    joined = [head + body for head, body in lines]
+    return joined if isinstance(original, list) else "\n".join(joined)
+
+
 def draft(form_id: str, inputs: dict, llm: ChatLLM, extra: dict | None = None) -> DraftResult:
     """inputs: 필드 key별 입력. extra: 필드가 아닌 참고 입력."""
     form = load_form(form_id)
@@ -174,10 +233,18 @@ def draft(form_id: str, inputs: dict, llm: ChatLLM, extra: dict | None = None) -
     ctx = Context(form=form, inputs={}, extra={})
     ctx.inputs = _mask({k: v for k, v in (inputs or {}).items()}, ctx)
     ctx.extra = _mask(dict(extra or {}), ctx)
+    if ctx.safety:  # 아동 안전 신호: LLM을 부르지 않고 운영사무국(즉시) 안내만 돌려준다
+        return DraftResult(form_id=form_id, draft={}, warnings=[guard.SAFETY_DRAFT_NOTICE], pii_masked=sorted(ctx.pii))
+    # only: LLM에 맡길 항목의 key 목록. 있으면 나머지 항목은 LLM을 거치지 않고 멘토가 쓴 글(입력 또는 extra.memo)을 그대로 둔다.
+    # 빈 목록이면 LLM을 부르지 않는다 (간단 모드, 수정한 항목만 다시 만들기, 한 항목만 다시 만들기에 쓴다)
+    only = ctx.extra.pop("only", None)
+    only = set(map(str, only)) if isinstance(only, list) else None
+    memo = ctx.extra.get("memo") if isinstance(ctx.extra.get("memo"), dict) else {}
     hooks.prepare(ctx)
 
     result = DraftResult(form_id=form_id, draft={})
     todo: list[dict] = []
+    heads: dict[str, tuple] = {}   # 다듬기 항목의 (원래 값, 줄마다의 (머리 표시, 본문))
     by_key = {f["key"]: f for f in form["fields"]}
     for f in form["fields"]:
         key, label, source = f["key"], f["label"], f.get("source")
@@ -211,19 +278,49 @@ def draft(form_id: str, inputs: dict, llm: ChatLLM, extra: dict | None = None) -
                 if hooks.required(f, ctx):
                     result.missing_questions.append({"key": key, "label": label, "question": f"'{label}'에 쓸 내용을 알려 주세요."})
                 continue
-            todo.append({"key": key, "label": label, "mode": "polish", "type": f.get("type", "text"),
-                         "guidance": f.get("guidance"), "item_slots": f.get("item_slots"), "input": value})
+            if only is not None and key not in only:
+                result.draft[key] = value
+                continue
+            todo.append(_polish_item(key, label, f, value, heads))
             continue
         # llm_draft
-        todo.append({"key": key, "label": label, "mode": "draft", "type": f.get("type", "text"),
+        if only is not None and key not in only:
+            kept = memo.get(key) or ("" if _empty(value) else value)
+            result.draft[key] = [x.strip() for x in str(kept).split("\n") if x.strip()] if f.get("type") == "list" and isinstance(kept, str) else kept
+            continue
+        if not _empty(memo.get(key)):
+            # 멘토가 적은 글이 있으면 초안을 새로 쓰지 않고 그 글만 다듬는다 (참고 입력의 다른 내용을 섞지 않게)
+            todo.append(_polish_item(key, label, f, memo[key], heads))
+            continue
+        # slot_marks가 있는 항목은 자리마다 한 항목씩 목록으로 받고, 줄 머리 표시((1), (과목역량) 등)는 규칙으로 붙인다
+        todo.append({"key": key, "label": label, "mode": "draft", "type": "list" if f.get("slot_marks") else f.get("type", "text"),
                      "guidance": f.get("guidance"), "item_slots": f.get("item_slots"), "item_format": f.get("item_format")})
 
-    data, result.error = _ask_llm(todo, ctx, llm) if todo else ({}, None)
+    # 다듬기 항목과 초안 항목은 따로 묻는다: 다듬기에는 참고 입력을 주지 않는다
+    data, errors = {}, []
+    for mode, reference in (("polish", False), ("draft", True)):
+        group = [t for t in todo if t["mode"] == mode]
+        if group:
+            got, err = _ask_llm(group, ctx, llm, reference)
+            data.update(got)
+            if err:
+                errors.append(err)
+    result.error = "; ".join(errors) or None
     for item in todo:
         key, f = item["key"], by_key[item["key"]]
         out = data.get(key)
         is_list = f.get("type") == "list"
-        if _empty(out):
+        marks = f.get("slot_marks") if item["mode"] == "draft" else None
+        nothing_known = False
+        if marks and isinstance(out, list) and len(out) == len(marks):
+            lines = [f"{m} {str(x).strip()}" for m, x in zip(marks, out) if str(x or "").strip()]
+            nothing_known = not lines   # 근거가 없어 모든 자리를 비운 것은 실패가 아니다 (되묻지 않는다)
+            out = lines if is_list else "\n".join(lines)
+        if key in heads:
+            out = _join_heads(heads[key], out, f["label"], ctx, _sources_text(ctx, f))
+        elif nothing_known:
+            out = [] if is_list else ""
+        elif _empty(out):
             # LLM이 못 채웠으면: 다듬기 항목은 입력을 그대로, 초안 항목은 비우고 되묻는다
             out = item.get("input", [] if is_list else "")
             if item["mode"] == "draft":
@@ -232,18 +329,29 @@ def draft(form_id: str, inputs: dict, llm: ChatLLM, extra: dict | None = None) -
             out = [x.strip() for x in out.split("\n") if x.strip()]
         if not is_list and isinstance(out, list):
             out = " ".join(str(x) for x in out)
+        if item["mode"] == "polish" and key not in heads and isinstance(out, str) and isinstance(item.get("input"), str):
+            gone = _lost_tokens(item["input"], out)
+            if gone:   # 한 줄짜리 다듬기에서도 숫자·영문 낱말이 빠졌으면 적은 그대로 둔다
+                ctx.warn(f"'{f['label']}'은(는) AI가 다듬으면서 일부 내용({', '.join(gone)})을 빠뜨려, 적은 그대로 두었습니다.")
+                out = item["input"]
         out = _mask(out, ctx)  # LLM이 개인정보를 되살렸을 때를 대비해 한 번 더 가린다
         kept, removed = checks.drop_unsupported(out, _sources_text(ctx, f))
         if removed:
             ctx.warn(f"'{f['label']}'에 입력에 없는 숫자({', '.join(removed)})가 들어가 해당 문장을 뺐습니다. 내용을 확인해 주세요.")
             if _empty(kept) and item["mode"] == "polish":
-                kept = item["input"]  # 다듬은 글을 못 쓰면 멘토가 쓴 글을 그대로 둔다
+                kept = heads[key][0] if key in heads else item["input"]  # 다듬은 글을 못 쓰면 멘토가 쓴 글을 그대로 둔다
             out = kept
         result.draft[key] = out
 
     for chk in form.get("submission_checks", []):
         if chk.get("type") in ("reminder", "deadline"):
             ctx.remind(chk["rule"])
+    # 가린 개인정보의 자리표시([이름] 등)는 초안에 남기지 않는다 (AI를 쓰지 않은 항목도 같다)
+    for key, value in result.draft.items():
+        if isinstance(value, str):
+            result.draft[key] = guard.drop_marks(value)
+        elif isinstance(value, list):
+            result.draft[key] = [guard.drop_marks(x) if isinstance(x, str) else x for x in value]
     hooks.finish(ctx, result)
     result.warnings = ctx.warnings
     result.reminders = ctx.reminders

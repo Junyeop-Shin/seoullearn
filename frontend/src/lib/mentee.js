@@ -1,27 +1,79 @@
 // 멘티 정보: 한 번 적어 두면 보고서와 계획서에 다시 입력하지 않게 하는 자료. 이 브라우저 보관함에만 저장한다.
-// 이름, 학년, 학교, 연락처는 칸이 없다 (별칭으로만 구분한다).
+// 이름과 학년도 받지만 서버와 AI로는 보내지 않는다: 초안의 [멘티명] 같은 자리표시를 이 브라우저에서 채우는 데만 쓴다.
+// 학교, 연락처, 가정 사정은 칸이 없다.
+import { endTime, weekdayOf } from './schedule'
+import { withState } from './stage'
+
 export const PROFILE_FORM = 'mentee_profile'
 const CURRENT_KEY = 'seoullearn.currentMentee.v1'
+export const DISTRICTS = ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구',
+  '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구']
+export const SUBJECTS = ['국어', '영어', '수학', '사회', '과학', '기타']
 
 export const PROFILE_FIELDS = [
-  { key: 'subject', label: '멘토링 과목', control: 'text', example: '수학' },
-  { key: 'mode', label: '멘토링 유형', control: 'select', options: ['온라인', '오프라인'] },
+  { key: 'name', label: '멘티 이름', control: 'text', example: '김OO', help: '메뉴와 보고서의 멘티 성명 칸에 씁니다. 실명 대신 별칭이나 이니셜을 권합니다. 이 브라우저에만 저장됩니다.' },
+  { key: 'grade', label: '학년', control: 'text', example: '고1' },
+  { key: 'subject', label: '신청 과목', control: 'select', options: SUBJECTS },
+  { key: 'subjectEtc', label: '신청 과목 기타', control: 'text', example: '검정고시 수학', help: "과목이 '기타'이거나 덧붙일 말이 있을 때만 적습니다." },
+  { key: 'district', label: '자치구', control: 'select', options: DISTRICTS, help: '협약 장소와 이음단 채널을 찾는 기준입니다.' },
+  { key: 'mode', label: '멘토링 방식', control: 'select', options: ['온라인', '오프라인'], help: "오프라인이면 왼쪽 메뉴의 '오프라인 일정·장소'에서 장소와 일정을 이음단에 요청합니다." },
+  { key: 'duration', label: '회당 학습시간(분)', control: 'select', options: ['60', '120'], help: '기본은 60분입니다. 120분(시간확대)은 보통 고등 과정 멘티가 1회기를 마친 뒤 신청하고, 승인을 받아야 합니다.' },
   { key: 'course', label: '학습사이트와 수강 강좌', control: 'text', example: '메가스터디 수학의 시작, 시발점 - 수1', wide: true },
-  { key: 'duration', label: '멘토링 시간(분)', control: 'select', options: ['60', '120'], help: '120분은 시간확대 승인을 받은 그룹만 해당합니다.' },
-  { key: 'weekday', label: '학습 요일', control: 'select', options: ['월', '화', '수', '목', '금', '토', '일'] },
   { key: 'start_datetime', label: '1회차 일시', control: 'datetime-local', help: '회차 번호와 날짜를 자동으로 채우는 기준입니다.' },
-  { key: 'goal', label: '이번 회기 목표', control: 'textarea', help: '멘티가 말한 목표를 적어 주세요. 종합계획서 초안의 재료가 됩니다.', wide: true },
-  { key: 'level', label: '학습 상황', control: 'textarea', help: '멘토링에 필요한 범위에서만 적어 주세요 (예: 문학이 약하다고 함, 인강은 신청만 한 상태).', wide: true },
+  { key: 'venue', label: '멘토링 장소', control: 'text', help: "오프라인만 적습니다. '오프라인 일정·장소'에서 정한 장소가 여기에 저장됩니다." },
 ]
 
 export function emptyProfile() {
-  return Object.fromEntries(PROFILE_FIELDS.map((f) => [f.key, '']))
+  // goal(학습 목표)과 level(학생 진단)은 종합계획서에서 적는다. 멘티 설정에는 칸이 없다
+  return { ...Object.fromEntries(PROFILE_FIELDS.map((f) => [f.key, ''])), goal: '', level: '', weekday: '', regularSchedule: [], term: 1, currentRound: 1, stage: '',
+    archived: false, lastHomework: null }
+}
+
+/** 멘티의 상세 정보 한 줄: 고1 · 수학 · 성동구 · 오프라인. 적지 않은 항목은 뺀다. */
+export function menteeFacts(profile) {
+  const subject = profile?.subject === '기타' ? profile.subjectEtc || '기타' : profile?.subject
+  return [profile?.grade, subject, profile?.district, profile?.mode].filter((x) => x && String(x).trim()).join(' · ')
+}
+
+/** 메뉴에 보이는 이름: 김OO (고1, 수학, 성동구, 오프라인). 적지 않은 항목은 뺀다. */
+export function displayName(profile, alias = '') {
+  const name = (profile?.name || alias || '').trim()
+  const subject = profile?.subject === '기타' ? profile.subjectEtc || '기타' : profile?.subject
+  const facts = [profile?.grade, subject, profile?.district, profile?.mode].filter((x) => x && String(x).trim())
+  return facts.length ? `${name} (${facts.join(', ')})` : name
+}
+
+/** 정규 일정 [{weekday, startTime}]. 따로 적지 않았으면 1회차 일시의 요일과 시각을 쓴다. */
+export function regularSchedule(profile) {
+  const rows = (profile?.regularSchedule || []).filter((r) => r && r.weekday)
+  if (rows.length) return rows
+  const weekday = profile?.weekday || weekdayOf(profile?.start_datetime)
+  const t = /T(\d{2}:\d{2})/.exec(profile?.start_datetime || '')
+  return weekday ? [{ weekday, startTime: t ? t[1] : '' }] : []
+}
+
+/** '매주 수 19:00~20:00, 토 10:00~11:00' */
+export function scheduleText(profile) {
+  const rows = regularSchedule(profile)
+  if (!rows.length) return ''
+  return '매주 ' + rows.map((r) => `${r.weekday}${r.startTime ? ` ${r.startTime}~${endTime(r.startTime, profile.duration)}` : ''}`).join(', ')
+}
+
+/** 초안의 개인정보 칸(자리표시)에 이 브라우저에서 채울 값. 서버로는 보내지 않는다. 값이 없는 칸은 넣지 않는다. */
+export function fillValues(profile, mentor = {}) {
+  const affiliation = [mentor.university, mentor.major].filter(Boolean).join(' ')
+  const out = {
+    mentee_name: profile?.name, mentee_grade: profile?.grade,
+    mentee: [profile?.name, profile?.grade && `(${profile.grade})`].filter(Boolean).join(' '),
+    mentor: mentor.name ? `${mentor.name}${affiliation ? ` (${affiliation})` : ''}` : '', mentor_phone: mentor.phone,
+  }
+  return Object.fromEntries(Object.entries(out).filter(([, v]) => v && String(v).trim()))
 }
 
 /** 보관함 항목에서 가장 최근의 멘티 정보. 없으면 null. */
 export function profileFromVault(items) {
   const found = items.filter((x) => x.formId === PROFILE_FORM).sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))[0]
-  return found ? { ...emptyProfile(), ...found.draft, _id: found.id } : null
+  return found ? withState({ ...emptyProfile(), ...found.draft, _id: found.id }, items) : null
 }
 
 /** 다음에 쓸 활동보고서 회차: 저장된 회차 중 가장 큰 값 + 1. */
@@ -80,7 +132,7 @@ export function setCurrentAlias(alias) {
 
 export const TOTAL_SESSIONS = 16
 // 회기를 정리할 때 남기는 자료: 멘티 정보, 완료보고서, 인계 요약
-export const KEEP_AFTER_TERM = [PROFILE_FORM, 'completion_report', 'handover_summary']
+export const KEEP_AFTER_TERM = [PROFILE_FORM, 'completion_report', 'handover_summary', 'term_summary']
 
 /** 회차 목록: 1~16회차(저장한 회차가 더 크면 거기까지). 저장한 회차에는 날짜와 상태를 붙인다. */
 export function sessionRows(items, profile) {
@@ -111,17 +163,6 @@ export function docStatus(items) {
     completion_report: at(latest('completion_report')), handover_summary: at(latest('handover_summary')),
     reports: new Set(items.filter((x) => x.formId === 'activity_report').map((x) => Number(x.sessionNo ?? x.inputs?.session_no)).filter(Boolean)).size,
   }
-}
-
-/** 지금 할 일 한 줄. 일정 정보가 없으면 날짜 없이 순서만 안내한다. */
-export function nextStep(items, profile) {
-  const s = docStatus(items)
-  if (!profile || !profile.subject) return '기본 정보를 먼저 적어 주세요.'
-  if (!s.plan_initial) return '종합계획서①을 작성할 차례입니다 (매칭 후 7일 이내, 플랫폼 입력).'
-  if (s.reports >= 1 && !s.plan_file) return '종합계획서②를 작성해 1회차 활동보고서에 첨부할 차례입니다.'
-  if (s.reports < TOTAL_SESSIONS) return `${nextSessionNo(items)}회차 활동보고서를 작성할 차례입니다 (멘토링 후 7일 이내).`
-  if (!s.completion_report) return '완료보고서를 작성할 차례입니다.'
-  return '이번 회기 문서를 모두 작성했습니다. 플랫폼 제출과 승인을 확인한 뒤 회기 정리를 해 주세요.'
 }
 
 export const menteePath = (alias, rest = '') => `/mentees/${encodeURIComponent(alias)}${rest}`

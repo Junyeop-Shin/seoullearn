@@ -1,14 +1,24 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { PROFILE_FIELDS, getCurrentAlias, nextSessionNo, preContactFromProfile, profileFromVault, setCurrentAlias, subjectTimeText, suggestDate } from '../src/lib/mentee'
+import { PROFILE_FIELDS, displayName, fillValues, getCurrentAlias, nextSessionNo, preContactFromProfile, profileFromVault, setCurrentAlias, subjectTimeText, suggestDate } from '../src/lib/mentee'
 
 const item = (over) => ({ id: Math.random().toString(36), alias: '수학 고2 A', savedAt: '2026-10-01T00:00:00.000Z', inputs: {}, draft: {}, ...over })
 
 describe('멘티 정보', () => {
   beforeEach(() => localStorage.clear())
 
-  it('이름·학년·학교·연락처 칸이 없다', () => {
+  it('학교·연락처 칸은 없다 (이름과 학년은 이 브라우저에서만 쓴다)', () => {
     const text = PROFILE_FIELDS.map((f) => f.key + f.label).join(' ')
-    for (const banned of ['이름', '성명', '학년', '학교', '연락처', '전화', 'name', 'grade', 'school', 'phone']) expect(text).not.toContain(banned)
+    for (const banned of ['학교', '연락처', '전화', 'school', 'phone']) expect(text).not.toContain(banned)
+  })
+
+  it('메뉴 이름과 개인정보 칸에 채울 값을 만든다', () => {
+    const p = { name: '김OO', grade: '고1', subject: '수학', district: '성동구', mode: '오프라인' }
+    expect(displayName(p)).toBe('김OO (고1, 수학, 성동구, 오프라인)')
+    expect(displayName({ subject: '기타', subjectEtc: '검정고시' }, '멘티 1')).toBe('멘티 1 (검정고시)')
+    expect(displayName({}, '멘티 2')).toBe('멘티 2')
+    expect(fillValues(p, { name: '이멘토', university: '가상대', major: '수학교육', phone: '010-0000-0000' }))
+      .toEqual({ mentee_name: '김OO', mentee_grade: '고1', mentee: '김OO (고1)', mentor: '이멘토 (가상대 수학교육)', mentor_phone: '010-0000-0000' })
+    expect(fillValues({ name: '김OO' }, {})).toEqual({ mentee_name: '김OO', mentee: '김OO' })   // 없는 값은 자리표시로 남긴다
   })
 
   it('가장 최근에 저장한 정보를 돌려준다', () => {
@@ -16,7 +26,7 @@ describe('멘티 정보', () => {
     const old = item({ formId: 'mentee_profile', savedAt: '2026-10-01T00:00:00.000Z', draft: { subject: '국어' } })
     const now = item({ id: 'p2', formId: 'mentee_profile', savedAt: '2026-10-05T00:00:00.000Z', draft: { subject: '수학', weekday: '월' } })
     const p = profileFromVault([old, now, item({ formId: 'activity_report' })])
-    expect(p).toMatchObject({ subject: '수학', weekday: '월', course: '', _id: 'p2' })
+    expect(p).toMatchObject({ subject: '수학', weekday: '월', course: '', _id: 'p2', stage: 'PRE_CONTACT', currentRound: 1 })   // 회차 번호 없는 보고서는 세지 않는다
   })
 
   it('다음 회차는 저장된 회차 중 가장 큰 값 + 1', () => {
@@ -49,7 +59,7 @@ describe('멘티 정보', () => {
 })
 
 import 'fake-indexeddb/auto'
-import { KEEP_AFTER_TERM, docStatus, menteePath, nextStep, sessionRows } from '../src/lib/mentee'
+import { KEEP_AFTER_TERM, docStatus, menteePath, sessionRows } from '../src/lib/mentee'
 import { clearAll, exportAlias, importAll, listItems, removeAlias, saveItem } from '../src/stores/vault'
 
 describe('멘티 작업 공간', () => {
@@ -65,17 +75,8 @@ describe('멘티 작업 공간', () => {
     expect(sessionRows([report(18)], null)).toHaveLength(18)
   })
 
-  it('다음 할 일을 순서대로 안내한다', () => {
-    expect(nextStep([], null)).toContain('기본 정보')
-    expect(nextStep([], profile)).toContain('종합계획서①')
+  it('문서 저장 여부와 멘티 주소', () => {
     const plan = item({ formId: 'plan_initial' })
-    expect(nextStep([plan], profile)).toContain('1회차 활동보고서')
-    expect(nextStep([plan, report(1)], profile)).toContain('종합계획서②')
-    const file = item({ formId: 'plan_file' })
-    expect(nextStep([plan, file, report(1), report(2)], profile)).toContain('3회차 활동보고서')
-    const all = Array.from({ length: 16 }, (_, i) => report(i + 1))
-    expect(nextStep([plan, file, ...all], profile)).toContain('완료보고서')
-    expect(nextStep([plan, file, ...all, item({ formId: 'completion_report' })], profile)).toContain('회기 정리')
     expect(docStatus([plan, report(1), report(1), report(2)]).reports).toBe(2)   // 같은 회차를 두 번 저장해도 한 번으로 센다
     expect(menteePath('수학 고2 A', '/report/3')).toBe('/mentees/%EC%88%98%ED%95%99%20%EA%B3%A02%20A/report/3')
   })

@@ -71,20 +71,21 @@ class LLMUnavailableError(RuntimeError):
 
 
 class LangChainLLM:
-    def __init__(self, provider: str, model: str, temperature: float = 0.0, use_cache: bool = False):
+    def __init__(self, provider: str, model: str, temperature: float = 0.0, use_cache: bool = False, max_retries: int = 1):
         from langchain.chat_models import init_chat_model  # 지연 import: 오프라인 테스트에는 불필요
 
         self.name = f"{provider}:{model}"
         self.model = init_chat_model(model, model_provider=provider, temperature=temperature)
         self.throttle = _Throttle(settings.llm_rpm)
         self.cache = DiskCache(settings.cache_dir / "llm_cache.jsonl") if use_cache else None
+        self.max_retries = max_retries
 
     def complete(self, system: str, user: str) -> str:
         k = DiskCache.key(self.name, system, user)
         if self.cache and (hit := self.cache.get(k)) is not None:
             return hit
         delay = 10.0
-        for attempt in range(settings.llm_max_retries + 1):
+        for attempt in range(self.max_retries + 1):
             self.throttle.wait()
             try:
                 msg = self.model.invoke([("system", system), ("human", user)])
@@ -96,27 +97,28 @@ class LangChainLLM:
                 return text
             except Exception as e:  # 제공사별 예외 타입이 달라 문자열로 판별
                 msg = str(e)
-                retryable = any(s in msg for s in ("429", "RESOURCE_EXHAUSTED", "rate", "503", "UNAVAILABLE", "timeout"))
+                retryable = any(s in msg for s in ("429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "timeout"))
                 if not retryable:
                     raise
-                if attempt == settings.llm_max_retries:
+                if attempt == self.max_retries:
                     raise LLMUnavailableError(msg) from e
                 time.sleep(delay)
                 delay = min(delay * 2, 120)
         raise RuntimeError("unreachable")
 
 
-def get_chat_model(role: str = "answer", use_cache: bool = False) -> ChatLLM:
-    """use_cache는 평가 실행에서만 켠다 (get_eval_model). API 서버는 응답을 디스크에 남기면 안 되므로 항상 끈다."""
+def get_chat_model(role: str = "answer", use_cache: bool = False, max_retries: int = 1) -> ChatLLM:
+    """use_cache는 평가 실행에서만 켠다 (get_eval_model). API 서버는 응답을 디스크에 남기면 안 되므로 항상 끈다.
+    API 서버는 한 번만 다시 시도한다: 오래 기다리면 backend가 먼저 끊고(90초) 다른 사용자까지 줄을 선다."""
     if role == "judge":
-        return LangChainLLM(settings.judge_provider, settings.judge_model, use_cache=use_cache)
-    return LangChainLLM(settings.llm_provider, settings.llm_model, use_cache=use_cache)
+        return LangChainLLM(settings.judge_provider, settings.judge_model, use_cache=use_cache, max_retries=max_retries)
+    return LangChainLLM(settings.llm_provider, settings.llm_model, use_cache=use_cache, max_retries=max_retries)
 
 
 def get_eval_model(role: str = "answer") -> ChatLLM:
     """평가용 모델. 가상 데이터만 다루므로 응답을 .cache/llm_cache.jsonl에 저장해 다시 잴 때 호출을 아낀다.
     LLM_CACHE=off면 평가에서도 저장하지 않는다."""
-    return get_chat_model(role, use_cache=settings.llm_cache)
+    return get_chat_model(role, use_cache=settings.llm_cache, max_retries=settings.llm_max_retries)
 
 
 # ---------------------------------------------------------------- embeddings

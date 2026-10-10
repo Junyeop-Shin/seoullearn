@@ -39,3 +39,32 @@ def filter_text(text: str) -> tuple[str, list[str]]:
         else:
             kept.append(s)
     return ". ".join(k.rstrip(".") for k in kept), sorted(set(kinds))
+
+
+_HEAD = re.compile(r"^(\s*(?:\(\d\)|[①-⑳]|\([^)\n]{1,15}\)|\d{1,2}:\d{2}~\d{1,2}:\d{2})\s*)(.*)$")
+
+
+def drop_lines(text: str) -> tuple[str, list[str]]:
+    """줄 구성을 지키면서 정서·가정·건강 문장을 뺀다 (종합계획서처럼 항목별로 줄을 나눠 쓴 글에 쓴다).
+
+    줄 머리의 표시((1), (과목역량), 17:00~17:10)는 남기고, 내용이 다 빠진 줄은 줄째 뺀다. 건강 내용도 바꿔 쓰지 않고 뺀다.
+    걸러낼 것이 없는 줄은 글자 하나 바꾸지 않는다. (걸러낸 글, 걸러낸 종류 목록)"""
+    kinds: set[str] = set()
+    lines: list[str] = []
+    for line in (text or "").split("\n"):
+        m = _HEAD.match(line)
+        head, body = (m.group(1), m.group(2)) if m else ("", line)
+        sentences = split_sentences(body)
+        kept = []
+        for s in sentences:
+            if _HEALTH.search(s):
+                kinds.add("건강")
+            elif _EMOTION.search(s):
+                kinds.add("정서")
+            else:
+                kept.append(s)
+        if len(kept) == len(sentences):
+            lines.append(line)
+        elif kept:
+            lines.append(head + ". ".join(k.rstrip(".") for k in kept))
+    return "\n".join(lines), sorted(kinds)

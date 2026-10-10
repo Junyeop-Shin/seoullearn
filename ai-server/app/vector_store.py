@@ -37,7 +37,8 @@ class PgVectorStore:
             import psycopg  # 지연 import: file 방식과 오프라인 테스트에는 불필요
 
             connect = psycopg.connect
-        self.conn = connect(url, autocommit=True)
+        self._reconnect = lambda: connect(url, autocommit=True)
+        self.conn = self._reconnect()
         self.conn.execute(SCHEMA)
 
     def has_index(self, index_key: str) -> bool:
@@ -57,7 +58,11 @@ class PgVectorStore:
     def search(self, index_key: str, query: np.ndarray, k: int) -> list[tuple[str, float]]:
         """코사인 유사도가 높은 순서로 (chunk_id, 점수). 벡터는 정규화돼 있어 file 방식의 내적과 같은 값이다."""
         q = vector_literal(query)
-        rows = self.conn.execute(
-            f"SELECT chunk_id, 1 - (embedding <=> %s::vector) FROM {TABLE} WHERE index_key = %s"
-            " ORDER BY embedding <=> %s::vector, chunk_id LIMIT %s", (q, index_key, q, k)).fetchall()
+        sql = (f"SELECT chunk_id, 1 - (embedding <=> %s::vector) FROM {TABLE} WHERE index_key = %s"
+               " ORDER BY embedding <=> %s::vector, chunk_id LIMIT %s")
+        try:
+            rows = self.conn.execute(sql, (q, index_key, q, k)).fetchall()
+        except Exception:  # DB가 다시 뜨면 잡고 있던 연결이 끊긴다: 한 번만 새로 연결해 다시 묻는다
+            self.conn = self._reconnect()
+            rows = self.conn.execute(sql, (q, index_key, q, k)).fetchall()
         return [(r[0], float(r[1])) for r in rows]

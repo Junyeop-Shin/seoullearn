@@ -1,32 +1,39 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import MenteeHeader from '../components/MenteeHeader.vue'
-import { KEEP_AFTER_TERM, PROFILE_FIELDS, PROFILE_FORM, docStatus, emptyProfile, menteePath, nextStep, profileFromVault, sessionRows, setCurrentAlias } from '../lib/mentee'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import StageBar from '../components/StageBar.vue'
+import NavIcon from '../components/NavIcon.vue'
+import { KEEP_AFTER_TERM, PROFILE_FORM, menteePath, profileFromVault, setCurrentAlias } from '../lib/mentee'
+import { TERM_SUMMARY_FORM, termSummary } from '../lib/reports'
+import { flow, nextStage, nextTerm, prevStage, totalRounds } from '../lib/stage'
 import { toast } from '../lib/toast'
-import { downloadJson, exportAlias, listItems, removeAlias, saveItem } from '../stores/vault'
+import { listItems, removeAlias, saveItem } from '../stores/vault'
+import CompletionView from './CompletionView.vue'
+import ReportView from './ReportView.vue'
+import PlanningStage from './stages/PlanningStage.vue'
+import PreContactStage from './stages/PreContactStage.vue'
 
-// 멘티 작업 공간: 한 멘티의 기본 정보와 회기 문서(계획서, 회차별 보고서, 완료보고서, 인계 요약)를 한 화면에서 다룬다.
+// 멘티 화면: 멘티 한 명의 업무를 단계 순서대로 진행한다 (사전 연락 → 종합계획서 → 회차별 활동보고서 → 완료보고서). 위에는 단계 진행바, 가운데는 지금 단계의 화면,
+// 아래에는 [이전] [다음 단계]가 있다. 단계와 무관한 일(정보 수정, 지난 보고서, 자료 관리)은 이름 옆의 설정 버튼으로 가는 멘티 설정 화면에 있다.
+const STAGE_VIEW = { PRE_CONTACT: PreContactStage, PLAN: PlanningStage, ACTIVITY: ReportView, COMPLETION: CompletionView }
+const NEXT_LABEL = { PRE_CONTACT: '사전 연락 완료', PLAN: '종합계획서 작성 완료' }
 const route = useRoute()
-const router = useRouter()
 const alias = String(route.params.alias)
 const items = ref([])
-const profile = reactive(emptyProfile())
-const profileId = ref(undefined)
-const editing = ref(false)
+const loaded = ref(false)
+const viewing = ref('')
+const termMinutes = ref('60')
 const saved = computed(() => profileFromVault(items.value))
-const rows = computed(() => sessionRows(items.value, saved.value))
-const status = computed(() => docStatus(items.value))
-const next = computed(() => nextStep(items.value, saved.value))
-const to = (rest) => menteePath(alias, rest)
+const stages = computed(() => flow(saved.value))
+const viewKey = ref(0)
 
 async function refresh() {
   items.value = await listItems(alias)
+  loaded.value = true
   const p = saved.value
-  Object.assign(profile, emptyProfile(), p || {})
-  delete profile._id
-  profileId.value = p?._id
-  if (!p?.subject) editing.value = true
+  if (!p) return
+  termMinutes.value = String(p.duration || '60')
+  if (!flow(p).some((s) => s.id === viewing.value)) viewing.value = p.stage
 }
 
 onMounted(async () => {
@@ -34,104 +41,90 @@ onMounted(async () => {
   await refresh()
 })
 
-async function saveProfile() {
-  await saveItem({ id: profileId.value, alias, formId: PROFILE_FORM, title: '멘티 정보', draft: { ...profile } })
-  toast('기본 정보를 저장했습니다.')
-  editing.value = false
+/** 멘티 정보의 일부를 바꿔 저장한다. 단계 화면들이 함께 쓴다. */
+async function update(patch, message = '') {
+  const { _id, ...rest } = saved.value
+  await saveItem({ id: _id, alias, formId: PROFILE_FORM, title: '멘티 정보', draft: { ...rest, ...patch } })
+  if (message) toast(message)
   await refresh()
 }
 
-async function exportFile() {
-  const data = await exportAlias(alias)
-  downloadJson(data, `seoullearn-${alias.replace(/\s+/g, '_')}-${data.exportedAt.slice(0, 10)}.json`)
-  toast(`${data.items.length}건을 파일로 내보냈습니다.`)
+async function go(stage) {
+  await update({ stage })
+  viewing.value = stage
+  viewKey.value += 1
+  window.scrollTo({ top: 0 })
 }
 
-async function closeTerm() {
-  if (!window.confirm('회기 정리: 종합계획서와 회차별 활동보고서를 이 브라우저에서 지우고, 기본 정보·완료보고서·인계 요약만 남깁니다. 되돌릴 수 없습니다. 계속할까요?')) return
-  const n = await removeAlias(alias, KEEP_AFTER_TERM)
-  toast(`${n}건을 지웠습니다.`)
+// 단계 화면에서 저장한 뒤: 활동보고서는 다음 회차로 넘어갔으므로 화면을 새로 그린다
+async function afterSave() {
+  const before = saved.value?.stage
   await refresh()
+  viewKey.value += 1
+  if (saved.value.stage !== before) viewing.value = saved.value.stage
 }
 
-async function removeAll() {
-  if (!window.confirm(`'${alias}'의 모든 자료를 이 브라우저에서 지웁니다. 되돌릴 수 없습니다. 계속할까요?`)) return
-  await removeAlias(alias)
-  router.replace('/mentees')
+const nextCourse = ref('')   // 다음 회기에 들을 강좌: 다음 회기 종합계획서의 수강 목표와 멘티 정보의 강좌에 들어간다
+async function startNextTerm() {
+  if (!window.confirm('다음 회기를 시작합니다. 이번 회기의 종합계획서와 회차별 활동보고서를 이 브라우저에서 지우고, 멘티 정보·완료보고서·인계 요약과 이번 회기 요약만 남깁니다. 요약은 다음 회기 종합계획서를 이어서 쓸 때 참고로 씁니다. 제출한 보고서는 서울런 플랫폼에 남아 있습니다. 계속할까요?')) return
+  // 지난 회기의 계획서·활동보고서·완료보고서에서 요약을 추려 남긴다: 새 회기의 종합계획서를 이어서 쓰는 재료다
+  await saveItem({ alias, formId: TERM_SUMMARY_FORM, title: `${saved.value.term}회기 요약`, draft: termSummary(items.value, saved.value, nextCourse.value) })
+  await removeAlias(alias, KEEP_AFTER_TERM)
+  const { _id, ...rest } = saved.value
+  await saveItem({ id: _id, alias, formId: PROFILE_FORM, title: '멘티 정보', draft: { ...nextTerm(rest, termMinutes.value), course: nextCourse.value.trim() || rest.course || '' } })
+  await refresh()
+  viewing.value = saved.value.stage
+  viewKey.value += 1
+  toast(`${saved.value.term}회기를 시작했습니다.`)
 }
+
 </script>
 
 <template>
   <div class="shell">
-    <MenteeHeader :alias="alias" />
-    <h1>{{ alias }}</h1>
-    <p class="box ask" data-test="next-step">{{ next }}</p>
+    <template v-if="saved">
+      <header class="mentee-head" data-test="mentee-head">
+        <div class="row">
+          <h1 style="margin: 0">{{ saved.name || alias }}</h1><span style="flex: 1"></span>
+          <router-link :to="menteePath(alias, '/manage')"><button type="button" class="small icon" data-test="manage"><NavIcon name="settings" />멘티 설정</button></router-link>
+        </div>
+        <div class="row">
+          <span v-for="x in [saved.grade, saved.subject === '기타' ? saved.subjectEtc : saved.subject, saved.district, saved.mode]" v-show="x" :key="x" class="tag">{{ x }}</span>
+          <span class="tag strong" data-test="round">{{ saved.term }}회기 {{ saved.currentRound }}회차</span>
+          <span v-if="saved.archived" class="tag">종료한 멘티</span>
+        </div>
+      </header>
+      <StageBar :stages="stages" :current="saved.stage" :viewing="viewing" @view="viewing = $event; viewKey += 1" />
+      <p v-if="viewing !== saved.stage" class="box ask" data-test="viewing-other">
+        지금 단계는 '{{ stages.find((s) => s.id === saved.stage)?.label }}'입니다. 다른 단계의 화면을 보고 있습니다. 여기서 고친 내용도 저장됩니다.
+        <button type="button" class="small" @click="viewing = saved.stage; viewKey += 1">지금 단계로</button>
+      </p>
 
-    <h2>기본 정보</h2>
-    <div v-if="!editing" class="card" data-test="profile-view">
-      <div class="facts">
-        <template v-for="f in PROFILE_FIELDS" :key="f.key">
-          <div v-if="saved?.[f.key]"><span>{{ f.label }}</span>{{ f.key === 'start_datetime' ? saved[f.key].replace('T', ' ') : saved[f.key] }}</div>
-        </template>
-      </div>
-      <button type="button" class="small" style="margin-top: 10px" @click="editing = true">기본 정보 수정</button>
-    </div>
-    <form v-else class="card" @submit.prevent="saveProfile">
-      <p class="muted">한 번 적어 두면 보고서와 계획서에 자동으로 채워집니다. 이름, 학년, 학교, 연락처, 가정 사정은 적지 마세요.</p>
-      <div class="form-grid">
-        <label v-for="f in PROFILE_FIELDS" :key="f.key" class="field" :class="{ wide: f.wide }">
-          <span class="name">{{ f.label }}</span>
-          <select v-if="f.control === 'select'" v-model="profile[f.key]" :data-profile="f.key">
-            <option value="">선택해 주세요</option><option v-for="o in f.options" :key="o" :value="o">{{ o }}</option>
-          </select>
-          <textarea v-else-if="f.control === 'textarea'" v-model="profile[f.key]" rows="2" :data-profile="f.key"></textarea>
-          <input v-else v-model="profile[f.key]" :type="f.control" :placeholder="f.example ? `예: ${f.example}` : ''" :data-profile="f.key" />
-          <span v-if="f.help" class="notice">{{ f.help }}</span>
+      <h2>{{ stages.find((s) => s.id === viewing)?.label }}<template v-if="viewing === 'ACTIVITY'"> {{ saved.currentRound }}회차</template></h2>
+      <component :is="STAGE_VIEW[viewing]" :key="viewing + viewKey" :alias="alias" :profile="saved" :items="items" :update="update" embedded
+        :round="viewing === 'ACTIVITY' ? saved.currentRound : 0" @saved="afterSave" />
+
+      <div v-if="viewing === 'COMPLETION' && saved.stage === 'COMPLETION'" class="card" data-test="next-term">
+        <strong>다음 회기로 연장한다면</strong>
+        <p class="muted">완료보고서를 제출하고 승인을 확인한 뒤 눌러 주세요. 시간확대(120분)는 회기마다 다시 신청해야 하고 자동으로 이어지지 않습니다.</p>
+        <label class="field"><span class="name">다음 회기에 들을 강좌 <span class="tag">선택</span></span>
+          <input v-model="nextCourse" maxlength="60" :placeholder="`예: ${saved.course || '강좌 이름'} 다음 강좌. 적어 두면 다음 회기 종합계획서의 수강 목표에 넣어 드립니다`" data-test="next-course" />
         </label>
+        <div class="row">
+          <label class="row" style="gap: 6px">회당 학습시간 <select v-model="termMinutes" style="width: 110px"><option value="60">60분</option><option value="120">120분</option></select></label>
+          <button type="button" class="primary" @click="startNextTerm">{{ saved.term + 1 }}회기 시작</button>
+          <button type="button" @click="update({ archived: !saved.archived }, saved.archived ? '진행 중인 멘티로 되돌렸습니다.' : '종료한 멘티로 보관했습니다.')">{{ saved.archived ? '보관 해제' : '연장 없이 종료(보관)' }}</button>
+        </div>
       </div>
-      <div class="row"><button class="primary">기본 정보 저장</button><button v-if="saved?.subject" type="button" @click="editing = false">취소</button></div>
-    </form>
 
-    <h2>회기를 시작할 때</h2>
-    <div class="card doc-list">
-      <router-link :to="{ path: '/pre-contact', query: { mode: saved?.mode || undefined } }" class="doc"><strong>사전 연락 문자</strong><span class="muted">매칭 직후 보낼 문자 초안</span></router-link>
-      <router-link :to="to('/plan')" class="doc" data-test="doc-plan"><strong>종합계획서 ①·②</strong>
-        <span :class="status.plan_initial ? 'ok' : 'muted'">{{ status.plan_initial ? `① 저장함 (${status.plan_initial})` : '① 아직 없음' }}{{ status.plan_file ? ` · ② 저장함 (${status.plan_file})` : ' · ② 아직 없음' }}</span>
-      </router-link>
-      <router-link v-if="saved?.mode === '오프라인'" to="/ieumdan" class="doc"><strong>이음단 장소·일정 요청</strong><span class="muted">요청 메시지 만들기</span></router-link>
-    </div>
-
-    <h2>회차별 활동보고서 <span class="tag">{{ status.reports }} / {{ rows.length }}</span></h2>
-    <div class="card">
-      <div class="sessions" data-test="sessions">
-        <router-link v-for="r in rows" :key="r.no" :to="to(`/report/${r.no}`)" class="session" :class="{ done: r.saved }" :data-session="r.no">
-          <strong>{{ r.no }}회차</strong>
-          <span>{{ r.saved ? (r.status && r.status !== '출석' ? r.status : r.date || '저장함') : r.expected || '미작성' }}</span>
-        </router-link>
-      </div>
-      <p class="notice">색이 채워진 회차는 저장한 초안이 있습니다. 누르면 다시 열어 고칠 수 있습니다. 날짜는 1회차 일시로 계산한 예상 날짜입니다.</p>
-    </div>
-
-    <h2>회기를 마칠 때</h2>
-    <div class="card doc-list">
-      <router-link :to="to('/completion')" class="doc" data-test="doc-completion"><strong>완료보고서</strong>
-        <span :class="status.completion_report ? 'ok' : 'muted'">{{ status.completion_report ? `저장함 (${status.completion_report})` : `활동보고서 ${status.reports}건으로 작성` }}</span>
-      </router-link>
-      <router-link :to="to('/handover')" class="doc" data-test="doc-handover"><strong>인계 요약</strong>
-        <span :class="status.handover_summary ? 'ok' : 'muted'">{{ status.handover_summary ? `저장함 (${status.handover_summary})` : '멘토가 바뀔 때 다음 멘토에게 넘길 내용' }}</span>
-      </router-link>
-    </div>
-
-    <h2>자료 관리</h2>
-    <div class="card">
-      <p class="muted">이 멘티의 자료는 이 브라우저에만 있습니다. 브라우저 데이터를 지우거나 다른 기기에서 쓰려면 파일로 내보낸 뒤, 설정의 백업·복원에서 가져오세요.</p>
-      <div class="row">
-        <button type="button" @click="exportFile">이 멘티 자료 내보내기</button>
-        <button type="button" @click="closeTerm">회기 정리</button>
+      <div class="stage-nav row" data-test="stage-nav">
+        <button v-if="saved.stage !== stages[0].id" type="button" data-test="prev-stage" @click="go(prevStage(saved))">이전 단계</button>
         <span style="flex: 1"></span>
-        <button type="button" class="danger" @click="removeAll">이 멘티 자료 모두 지우기</button>
+        <button v-if="NEXT_LABEL[saved.stage]" type="button" class="primary" data-test="next-stage" @click="go(nextStage(saved))">{{ NEXT_LABEL[saved.stage] }} · 다음 단계</button>
+        <span v-else-if="saved.stage === 'ACTIVITY'" class="notice" style="margin: 0">활동보고서를 저장하면 다음 회차로 넘어갑니다 ({{ totalRounds(saved) }}회차까지).</span>
       </div>
-      <p class="notice">회기 정리는 종합계획서와 회차별 활동보고서를 지우고 기본 정보, 완료보고서, 인계 요약만 남깁니다. 제출한 보고서는 서울런 플랫폼에 남아 있습니다.</p>
-    </div>
+
+    </template>
+    <p v-else-if="loaded" class="card">등록되지 않은 멘티입니다. <router-link to="/mentees">내 멘티</router-link>에서 다시 골라 주세요.</p>
   </div>
 </template>

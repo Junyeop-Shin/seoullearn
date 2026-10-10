@@ -143,6 +143,202 @@ class EngineTest(unittest.TestCase):
         self.assertEqual(r.reminders, ["활동 3일 전까지 제출"])
 
 
+class DraftSafetyTest(unittest.TestCase):
+    def test_safety_signal_skips_llm_in_drafts(self):
+        from app import guard
+        from app.forms import handover
+
+        llm = EchoLLM()
+        inp = dict(session("M1", 1), memo="멘티가 아버지에게 맞았다고 함. 010-1234-5678")
+        r = forms.draft("activity_report", inp, llm)
+        self.assertEqual((r.draft, r.warnings, llm.calls), ({}, [guard.SAFETY_DRAFT_NOTICE], []))
+        r = forms.draft("activity_report", session("M1", 1), llm, {"memo": "집에서 자주 맞는다고 함"})
+        self.assertEqual((r.warnings, llm.calls), ([guard.SAFETY_DRAFT_NOTICE], []))
+        h = handover.build([{"session_content": "형한테 맞았다고 함"}], llm)
+        self.assertEqual((h["warnings"], llm.calls), ([guard.SAFETY_DRAFT_NOTICE], []))
+        self.assertTrue(all(v == "" for v in h["summary"].values()))
+
+    def test_bad_input_is_not_a_server_error(self):
+        from fastapi.testclient import TestClient
+
+        from app import main
+
+        with unittest.mock.patch.object(main, "_draft_llm", lambda: EchoLLM()):
+            c = TestClient(main.app)
+            self.assertEqual(c.post("/drafts/weekly_plan", json={"lectures": [{}]}).status_code, 422)
+            self.assertEqual(c.post("/drafts/plan_file", json={"inputs": {}, "extra": {"duration": "abc"}}).status_code, 200)
+
+
+class WorkflowSpecTest(unittest.TestCase):
+    """멘티 단계별 화면이 쓰는 입력: only(LLM에 맡길 항목), memo(멘토가 적은 글), curriculum_lines, 템플릿 문구."""
+
+    DECISIONS = {"duration": "60", "weekday": "월", "start_datetime": "2026-10-12 17:00"}
+
+    def test_simple_mode_uses_memo_without_llm(self):
+        llm = EchoLLM()
+        memo = {"learning_goal": "수1 완강", "diagnosis": "오답 정리를 미룸", "rules": "지각하면 미리 연락하기"}
+        r = forms.draft("plan_initial", self.DECISIONS, llm, {"only": [], "memo": memo, "curriculum_lines": ["1주차 지수", "2주차 로그"]})
+        self.assertEqual(llm.calls, [])                                   # 간단 모드: LLM을 부르지 않는다
+        self.assertEqual(r.draft["learning_goal"], "수1 완강")
+        self.assertEqual(r.draft["diagnosis"], "오답 정리를 미룸")
+        self.assertEqual(r.draft["rules"], "지각하면 미리 연락하기")       # 메모가 있으면 기본 예시를 쓰지 않는다
+        self.assertEqual(r.draft["structure"].split("\n")[0], "17:00~17:10 온라인 강의 수강(필수) 확인 및 퀴즈")   # 메모가 없는 칸은 규칙으로, 시각을 붙여 채운다
+        self.assertEqual(len(r.draft["structure"].split("\n")), 5)
+        self.assertEqual(r.draft["curriculum"], ["1주차 지수", "2주차 로그"])
+        self.assertFalse(any("기본 예시" in w or "1회차만" in w for w in r.warnings))
+
+    def test_itemized_diagnosis_keeps_lines(self):
+        memo = {"diagnosis": "(과목역량) 기본기는 갖춤\n(학습습관 및 태도) 인강 의존도가 높음", "learning_goal": "(1) 수1 완강\n(2) 1회독"}
+        r = forms.draft("plan_initial", self.DECISIONS, EchoLLM(), {"only": [], "memo": memo})
+        self.assertEqual(r.draft["diagnosis"].split("\n"), ["(과목역량) 기본기는 갖춤", "(학습습관 및 태도) 인강 의존도가 높음"])   # 멘토가 적은 진단에는 덧붙이지 않는다
+        self.assertEqual(r.draft["learning_goal"], "(1) 수1 완강\n(2) 1회독")
+        none = forms.draft("plan_initial", self.DECISIONS, EchoLLM(), {"only": []})
+        self.assertEqual(none.draft["diagnosis"], "1회차에 자세한 상담 예정")   # 아무것도 적지 않았을 때만 넣는다
+        # 120분이면 서식 예시의 배분을 두 배로
+        r = forms.draft("plan_initial", {**self.DECISIONS, "duration": "120"}, EchoLLM(), {"only": []})
+        self.assertEqual(r.draft["structure"].split("\n")[1], "17:20~18:00 개념학습")
+
+    def test_outline_with_duration_lines_and_free_titles(self):
+        from app.forms import outline
+
+        text = ("국어 학습 방법, 새기분 통합 OT\t\nOT\n\n-\t55:21\nHard Core.1ㅣ057\t\n통강 맛보기\n\n-\t48:53\nHard Core.1ㅣ058\t\n-\t48:27\n"
+                "Hard Core.15ㅣ100 ▶완강\t\n-\t1:01:13\n내 학생들을 위한 CAST_1 [올바른 공부법]\t\n-\t42:19\n내 학생들을 위한 CAST_4 [시험 대비 콘텐츠]\t\n-\t15:18\n")
+
+        class NoLLM:
+            def complete(self, system, user):
+                raise AssertionError("시간 줄로 가를 수 있는 목차는 LLM에 묻지 않는다")
+
+        r = outline.parse(text, NoLLM())
+        self.assertEqual([x["title"] for x in r["lectures"]], ["국어 학습 방법, 새기분 통합 OT", "Hard Core.1ㅣ057", "Hard Core.1ㅣ058", "Hard Core.15ㅣ100",
+                                                             "내 학생들을 위한 CAST_1 [올바른 공부법]", "내 학생들을 위한 CAST_4 [시험 대비 콘텐츠]"])
+        self.assertEqual([x["no"] for x in r["lectures"]], [1, 2, 3, 4, 5, 6])        # 번호가 없는 제목에는 순서대로 번호를 붙인다
+        self.assertTrue(all(x["auto_no"] for x in r["lectures"]))
+        self.assertEqual((r["lectures"][0]["minutes"], r["lectures"][3]["minutes"]), (55, 61))
+        self.assertEqual(r["unparsed"], [])
+        numbered = outline.parse("1강 지수\n- 40:10\n2강 로그\n- 38:00\n3강 삼각함수\n- 41:59\n")["lectures"]
+        self.assertEqual([(x["no"], x["title"], x.get("auto_no")) for x in numbered], [(1, "지수", None), (2, "로그", None), (3, "삼각함수", None)])
+
+    def test_allocate_by_weekly_count_or_target(self):
+        from app.forms import weekly_plan
+
+        lectures = [{"no": i, "title": f"제목{i}"} for i in range(1, 61)]
+        counts = lambda a: [len(s["lectures"]) for s in a["sessions"]]   # noqa: E731
+        weekly = weekly_plan.allocate(lectures, done=10, sessions=16, per_week=4)
+        self.assertEqual(counts(weekly)[:15], [4] * 12 + [2, 0, 0])                 # 일주일에 4강씩, 남은 50강이 떨어질 때까지
+        self.assertEqual(weekly["sessions"][0]["lectures"][0]["no"], 11)             # 이미 들은 강 다음부터
+        goal = weekly_plan.allocate(lectures, done=10, sessions=16, target=45)
+        self.assertEqual((sum(counts(goal)), goal["left"]), (45, 0))                 # 목표한 45강을 회기 안에 모두 나눈다
+        self.assertEqual(max(counts(goal)) - min(counts(goal)[:15]), 0)              # 고르게: 15개 진도 회차에 3강씩
+        self.assertEqual(goal["sessions"][14]["lectures"][-1]["no"], 55)
+        self.assertEqual(goal["warnings"], [])
+
+    def test_memo_is_polished_not_redrafted(self):
+        """멘토가 적은 글이 있으면 AI는 그 글만 다듬는다 (인계받은 내용 같은 참고 입력으로 새로 쓰지 않는다)."""
+        llm = EchoLLM()
+        memo = {"learning_goal": "(1) 수1 끝까지 다 듣는거\n(2) 기말 3등급", "diagnosis": "(학습습관 및 태도) 혼자 공부하는 시간이 거의 없는듯"}
+        r = forms.draft("plan_initial", self.DECISIONS, llm, {"memo": memo, "handover": {"attendance_pattern": "대체로 정시에 출석함"}})
+        self.assertEqual(len(llm.calls), 1)
+        self.assertIn("[참고 입력]\n{}", llm.calls[0])                       # 다듬기에는 참고 입력을 주지 않는다
+        self.assertNotIn("정시에 출석", llm.calls[0])
+        todo = {t["key"]: t for t in json.loads(llm.calls[0].split("[만들 항목]\n", 1)[1])}
+        self.assertEqual({k: v["mode"] for k, v in todo.items()}, {"learning_goal": "polish", "diagnosis": "polish"})
+        self.assertEqual(todo["learning_goal"]["input"], {"1": "수1 끝까지 다 듣는거", "2": "기말 3등급"})   # 줄 머리 표시는 떼고 본문만 번호를 붙여 보낸다
+        self.assertEqual((todo["diagnosis"]["type"], todo["diagnosis"]["input"]), ("lines", {"1": "혼자 공부하는 시간이 거의 없는듯"}))
+        self.assertNotIn("item_slots", todo["diagnosis"])                    # 다듬기에는 항목 틀을 주지 않는다 (빈 항목 줄을 만들지 않게)
+        self.assertEqual(r.draft["learning_goal"], memo["learning_goal"])   # 머리 표시와 줄 구성은 규칙으로 되돌린다
+        self.assertEqual(r.draft["diagnosis"], memo["diagnosis"])
+        # 적지 않은 칸만 참고 입력으로 초안을 쓴다: 다듬기와 초안을 따로 묻는다
+        llm2 = EchoLLM()
+        forms.draft("plan_initial", self.DECISIONS, llm2, {"memo": {"learning_goal": "(1) 완강"}, "handover": {"attendance_pattern": "대체로 정시에 출석함"}})
+        modes = [[t["mode"] for t in json.loads(c.split("[만들 항목]\n", 1)[1])] for c in llm2.calls]
+        self.assertEqual(modes, [["polish"], ["draft"]])
+        self.assertNotIn("정시에 출석", llm2.calls[0])
+        self.assertIn("정시에 출석", llm2.calls[1])
+
+    def test_drafted_slots_get_marks_by_rule(self):
+        """적은 글이 없어 AI가 초안을 쓸 때: 자리마다 한 항목씩 받아 줄 머리 표시를 규칙으로 붙이고, 근거가 없는 자리는 뺀다."""
+        reply = {"learning_goal": ["시발점 수1 이어서 수강", "", "", ""], "diagnosis": ["", "", "", ""]}
+        llm = EchoLLM(raw=json.dumps(reply, ensure_ascii=False))
+        r = forms.draft("plan_initial", self.DECISIONS, llm, {"handover": {"course_progress": "시발점 수1 12강까지 수강함"}})
+        todo = {t["key"]: t for t in json.loads(llm.calls[0].split("[만들 항목]\n", 1)[1])}
+        self.assertEqual((todo["learning_goal"]["type"], len(todo["learning_goal"]["item_slots"])), ("list", 4))
+        self.assertEqual(r.draft["learning_goal"], "(1) 시발점 수1 이어서 수강")
+        self.assertEqual(r.draft["diagnosis"], "1회차에 자세한 상담 예정")          # 아는 것이 없으면 지어내지 않고 이 문구만
+        self.assertEqual(r.missing_questions, [])                                   # 근거가 없어 비운 것은 되묻지 않는다
+        full = forms.draft("plan_initial", self.DECISIONS, EchoLLM(raw=json.dumps({"learning_goal": ["가", "나", "", ""], "diagnosis": ["", "", "", "정시에 출석함"]}, ensure_ascii=False)), {})
+        self.assertEqual(full.draft["learning_goal"], "(1) 가\n(2) 나")
+        self.assertEqual(full.draft["diagnosis"], "(학습습관 및 태도) 정시에 출석함\n1회차에 자세한 상담 예정")
+
+    def test_polish_keeps_line_heads_by_rule(self):
+        memo = {"learning_goal": "(1) 수1 끝까지 다 듣는거\n(2) 기말 3등급", "diagnosis": "(과목역량) 기본기는 있음\n(학습수준 및 희망진로) 김민지 학생 010-1234-5678"}
+
+        def run(reply):
+            return forms.draft("plan_initial", self.DECISIONS, EchoLLM(raw=json.dumps(reply, ensure_ascii=False)), {"memo": dict(memo)})
+
+        # AI는 번호별로 다듬은 본문만 돌려주고, 머리 표시는 규칙으로 다시 붙는다. 빈 글로 돌아온 줄은 줄째 빠진다
+        ok = run({"learning_goal": {"1": "수학1을 끝까지 수강함.", "2": "기말고사 3등급을 목표로 함."}, "diagnosis": {"1": "기본기는 갖춤.", "2": ""}})
+        self.assertEqual(ok.draft["learning_goal"], "(1) 수학1을 끝까지 수강함.\n(2) 기말고사 3등급을 목표로 함.")
+        self.assertEqual(ok.draft["diagnosis"], "(과목역량) 기본기는 갖춤.")
+        # 돌려주지 않은 줄은 멘토가 쓴 글을 그대로 둔다 (말없이 사라지지 않는다)
+        partial = run({"learning_goal": {"1": "수학1을 끝까지 수강함."}, "diagnosis": ["기본기는 갖춤.", "학생임."]})
+        self.assertEqual(partial.draft["learning_goal"], "(1) 수학1을 끝까지 수강함.\n(2) 기말 3등급")
+        self.assertEqual(partial.draft["diagnosis"].split("\n")[0], "(과목역량) 기본기는 갖춤.")   # 같은 개수의 목록은 차례대로 맞춘다
+        # 다듬으면서 내용을 빼먹은 줄(숫자나 영문 낱말이 사라진 줄)도 멘토가 쓴 글로 되돌린다
+        cut = forms.draft("plan_initial", self.DECISIONS, EchoLLM(raw=json.dumps({"learning_goal": {"1": "단어를 하루에 20개씩 외우기로 함"}}, ensure_ascii=False)),
+                          {"memo": {"learning_goal": "(2) 단어 하루에 20개씩 외우기로 함 문법은 to부정사부터", "diagnosis": "(과목역량) 기본기는 있음"}, "only": ["learning_goal"]})
+        self.assertEqual(cut.draft["learning_goal"], "(2) 단어 하루에 20개씩 외우기로 함 문법은 to부정사부터")
+        self.assertTrue(any("to" in w and "빠뜨려" in w for w in cut.warnings))
+        # 형식을 알아볼 수 없으면 다듬은 글을 쓰지 않고 전체를 그대로 둔다
+        merged = run({"learning_goal": "수학1을 끝까지 수강하고 기말고사 3등급을 목표로 함.", "diagnosis": {"1": "기본기는 갖춤.", "2": "학생임."}})
+        self.assertEqual(merged.draft["learning_goal"], memo["learning_goal"])
+        self.assertTrue(any("줄 구성을 바꿔서" in w for w in merged.warnings))
+        # 지어낸 숫자가 든 줄은 멘토가 쓴 글로 되돌리고, 나머지 줄과 줄바꿈은 남는다
+        invented = run({"learning_goal": {"1": "수학1을 끝까지 수강함.", "2": "기말고사 95점을 목표로 함."}, "diagnosis": {"1": "기본기는 갖춤.", "2": "학생임."}})
+        self.assertEqual(invented.draft["learning_goal"], "(1) 수학1을 끝까지 수강함.\n(2) 기말 3등급")
+        self.assertTrue(any("95" in w and "적은 그대로" in w for w in invented.warnings))
+        self.assertEqual(checks.drop_unsupported("(과목역량) 기본기는 갖춤.\n(학습습관 및 태도) 숙제를 해 옴.", "x")[0], "(과목역량) 기본기는 갖춤.\n(학습습관 및 태도) 숙제를 해 옴.")
+
+    def test_sensitive_lines_are_dropped_from_plans_before_llm(self):
+        llm = EchoLLM()
+        memo = {"diagnosis": "(과목역량) 기본기는 갖춤\n(학습습관 및 태도) 부모님이 이혼하셔서 많이 힘들어함. 그래도 숙제는 꼬박꼬박 해옴\n(입시준비) 독감으로 입원해 준비를 못 함"}
+        r = forms.draft("plan_initial", self.DECISIONS, llm, {"memo": memo})
+        self.assertEqual(r.draft["diagnosis"], "(과목역량) 기본기는 갖춤\n(학습습관 및 태도) 그래도 숙제는 꼬박꼬박 해옴")   # 걸린 문장만 빼고 줄 구성은 그대로
+        self.assertNotIn("이혼", llm.calls[0])
+        self.assertNotIn("독감", llm.calls[0])
+        self.assertTrue(any("정서·가정·건강" in w for w in r.warnings))
+        clean = forms.draft("plan_initial", self.DECISIONS, EchoLLM(), {"only": [], "memo": {"diagnosis": "(과목역량) 기본기는 갖춤. 계산 실수가 잦음."}})
+        self.assertEqual(clean.draft["diagnosis"], "(과목역량) 기본기는 갖춤. 계산 실수가 잦음.")   # 걸릴 것이 없으면 글자 하나 바꾸지 않는다
+        self.assertFalse(any("정서" in w for w in clean.warnings))
+        # 종합계획서②: 줄 단위 입력에서도 뺀다
+        f = forms.draft("plan_file", {"diagnosis": ["(과목역량) 계산 실수가 잦음", "(학습습관 및 태도) 엄마랑 다퉈서 속상해함"], "rules": ["시간 지키기"]}, EchoLLM(), {"only": []})
+        self.assertEqual(f.draft["diagnosis"], ["(과목역량) 계산 실수가 잦음"])
+
+    def test_only_limits_llm_to_changed_fields(self):
+        llm = EchoLLM()
+        inp = dict(session("M1", 1))
+        r = forms.draft("activity_report", inp, llm, {"only": ["homework"]})
+        todo = json.loads(llm.calls[0].split("[만들 항목]\n", 1)[1])
+        self.assertEqual([t["key"] for t in todo], ["homework"])          # 한 항목만 다시 만든다
+        self.assertEqual(r.draft["scope"], inp["scope"])                  # 나머지는 멘토가 쓴 그대로
+
+    def test_plan_file_period_follows_round_count(self):
+        r = forms.draft("plan_file", {}, EchoLLM(), {"only": [], "start_datetime": "2026-10-12 17:00", "rounds": 8})
+        self.assertEqual(r.draft["period"], "2026.10.12.~2026.11.30.")   # 8회차면 7주 뒤
+
+    def test_templates_fill_subject(self):
+        from app.forms import ieumdan, precontact
+
+        sms = precontact.build("오프라인", "19시", subject="수학")["sms"]["text"]
+        self.assertIn("서울런 수학 멘토", sms)
+        self.assertIn("[멘토 연락처]", sms)
+        self.assertNotIn("{", sms)
+        self.assertNotIn("  ", precontact.build("온라인")["sms"]["text"])   # 과목이 없어도 빈칸이 겹치지 않는다
+        msg = ieumdan.build("장소 요청", region="성동구", schedule="매주 수 19:00")["message"]
+        self.assertIn("희망 지역: 성동구", msg)
+        self.assertNotIn("{", msg)
+        self.assertFalse(any("직접 보관" in n for n in precontact.build("온라인")["notes"]))
+
+
 class ActivityReportTest(unittest.TestCase):
     def test_reminders_always_present(self):
         r = forms.draft("activity_report", session("M1", 1), EchoLLM())
@@ -316,6 +512,10 @@ class OutlineTest(unittest.TestCase):
         self.assertEqual(len(llm.calls), 1)
         self.assertEqual(len(outline.parse("1강 가\n2강 나", llm)["lectures"]), 2)
         self.assertEqual(len(llm.calls), 1)   # 다 읽었으면 LLM을 부르지 않는다
+        llm = LineLLM()
+        outline.parse("문의 010-1234-5678 김민수 학생", llm)   # 못 읽은 줄도 가려서 보낸다
+        self.assertNotIn("010-1234-5678", llm.calls[0])
+        self.assertNotIn("김민수", llm.calls[0])
 
     def test_llm_cannot_invent_titles(self):
         from app.forms import outline
@@ -435,7 +635,8 @@ class PlanDraftTest(unittest.TestCase):
         self.assertIn("1회차에 자세한 상담 예정", d["diagnosis"])
         self.assertEqual(len(d["curriculum"]), 16)
         self.assertTrue(d["curriculum"][0].startswith("1회차 (온라인 강의) 1강 문학 감상의 관점"))
-        self.assertIn("10분 온라인 강의 수강 확인", d["structure"])
+        self.assertIn("20:00~20:10 온라인 강의 수강(필수) 확인 및 퀴즈", d["structure"])
+        self.assertEqual(d["rules"].split("\n")[1], "일정 변경은 최소 3일 전에 논의하기")   # 서식 예시를 한 줄에 하나씩
         self.assertTrue(any("등록 후 수정할 수 없습니다" in x for x in r.reminders))
         self.assertEqual([w for w in r.warnings if "09:00~22:00" in w], [])   # 20:00 시작, 21:00 종료
         todo = json.loads(llm.calls[0].split("[만들 항목]\n", 1)[1])
@@ -488,7 +689,7 @@ class PlanDraftTest(unittest.TestCase):
         self.assertEqual((d["mentee"], d["mentor"]), ("[멘티 학년]", "[멘토 성명·소속]"))
         self.assertEqual(len(d["curriculum"]), 16)
         self.assertTrue(d["curriculum"][0].startswith("(온라인강의) 1회차: 1강 문학 감상의 관점"))
-        self.assertEqual(d["structure"][0], "20:00~20:10 온라인 강의 수강 확인 및 질의응답")
+        self.assertEqual(d["structure"][:2], ["20:00~20:10 온라인 강의 수강(필수) 확인 & 퀴즈", "20:10~20:30 개념학습"])
         self.assertEqual(d["structure"][-1][:11], "20:50~21:00")
         order = [l[2:] for l in r.text.splitlines() if l.startswith("■ ")]
         self.assertEqual(order, [f["label"] for f in engine.load_form("plan_file")["fields"]])   # 서식 항목 순서

@@ -7,11 +7,17 @@ import DraftResult from '../components/DraftResult.vue'
 import ReportSource from '../components/ReportSource.vue'
 import SchemaForm from '../components/SchemaForm.vue'
 import { emptyInputs, inputFields, toPayload } from '../lib/formFields'
+import { fillValues, profileFromVault } from '../lib/mentee'
 import { goalsFromVault } from '../lib/reports'
+import { loadSettings } from '../stores/settings'
 import { saveItem } from '../stores/vault'
 
 // 완료보고서: 활동보고서 16건 → 수행 리스트(자동), 멘토링 내용·성취도 초안. 감성케어 칸은 멘토가 쓴 것만 쓴다.
 const FORM_ID = 'completion_report'
+defineOptions({ inheritAttrs: false })   // 멘티 화면이 모든 단계에 같은 값을 넘긴다: 안 쓰는 값이 화면 요소에 붙지 않게 한다
+defineProps({ embedded: { type: Boolean, default: false } })
+const emit = defineEmits(['saved'])
+const fill = ref({})
 const form = ref(null)
 const fields = computed(() => (form.value ? inputFields(form.value) : []))
 const values = ref({})
@@ -35,6 +41,7 @@ onMounted(async () => {
 
 function loaded({ reports: r, items }) {
   reports.value = r
+  fill.value = fillValues(profileFromVault(items), loadSettings())
   const g = goalsFromVault(items)
   if (g.length) goals.value = g.join('\n')
 }
@@ -56,7 +63,8 @@ async function submit() {
 async function save() {
   try {
     await saveItem({ alias: alias.value, formId: FORM_ID, title: '완료보고서', inputs: toPayload(fields.value, values.value), draft: edited.value })
-    saved.value = '보관함에 저장했습니다.'
+    saved.value = '저장했습니다.'
+    emit('saved')
   } catch (e) {
     saved.value = e.message
   }
@@ -64,10 +72,12 @@ async function save() {
 </script>
 
 <template>
-  <div class="shell">
-    <MenteeHeader :alias="alias" title="완료보고서" />
-    <h1>완료보고서 작성</h1>
-    <p class="muted">16회차를 마친 뒤 작성합니다. 회차별 일자와 시간은 활동보고서에서 그대로 옮기고, 내용과 성취도는 기록에 있는 것만으로 초안을 씁니다.</p>
+  <div :class="{ shell: !embedded }">
+    <template v-if="!embedded">
+      <MenteeHeader :alias="alias" title="완료보고서" />
+      <h1>완료보고서 작성</h1>
+    </template>
+    <p class="muted">회기를 마친 뒤 작성합니다. 저장해 둔 활동보고서와 종합계획서를 불러와, 회차별 일자와 시간은 그대로 옮기고 내용과 성취도는 기록에 있는 것만으로 초안을 씁니다.</p>
     <div v-if="error" class="box error">{{ error }}</div>
     <h2>① 활동보고서</h2>
     <ReportSource :alias="alias" @loaded="loaded" />
@@ -82,8 +92,8 @@ async function save() {
     </form>
     <template v-if="result">
       <h2>초안</h2>
-      <DraftResult :form="form" :result="result" @change="edited = $event" />
-      <div class="row"><button type="button" @click="save">보관함에 저장</button><span>{{ saved }}</span></div>
+      <DraftResult :form="form" :result="result" :fill="fill" @change="edited = $event" />
+      <div class="row"><button type="button" class="primary" data-test="save" @click="save">저장</button><span>{{ saved }}</span></div>
     </template>
   </div>
 </template>

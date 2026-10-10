@@ -35,9 +35,51 @@ class GuardTest(unittest.TestCase):
         for q in ["한빛고 2학년 멘티예요", "누리초 다녀요", "가람중 시험 범위예요", "명지고 다니는 멘티예요", "서울공고 2학년이에요", "대원외고 멘티예요"]:
             self.assertIn("[학교명]", guard.check(q).text, q)
 
+    def test_marks_are_dropped_from_drafts(self):
+        text = "(과목역량) [이름] 학생은 [학교명] 2학년이고 [전화번호]로 연락함\n인강을 [학교명]에서 들음. [멘티명]은 그대로"
+        self.assertEqual(guard.drop_marks(text), "(과목역량) 학생은 2학년이고 연락함\n인강을 들음. [멘티명]은 그대로")
+
+    def test_student_is_not_masked_as_a_name(self):
+        g = guard.check("김민지 학생 어머님이 010-1234-5678로 상담 원하심")
+        self.assertEqual(g.text, "[이름] 학생 어머님이 [전화번호]로 상담 원하심")
+
     def test_safety(self):
         self.assertTrue(guard.check("멘티가 집에서 맞는다는 얘기를 했어요").safety)
         self.assertFalse(guard.check("시간 맞춰서 들어가면 되나요?").safety)
+        for s in ["멘티가 아버지에게 맞았습니다", "집에서 맞았어요", "아빠한테 맞아서 멍이 들었대요", "형한테 자주 맞는다고 함",
+                  "집에서 매를 맞는다고 해요", "친구에게 얻어맞았다고 함", "멘티가 가출했다고 합니다"]:
+            self.assertTrue(guard.check(s).safety, s)
+        # '옳다·어울리다'의 '맞다'는 신호가 아니다 (보고서와 질문에 흔한 표현)
+        for s in ["활동보고서는 7일 이내 제출이 맞아요?", "이음단에게 문의하는 게 맞아요?", "멘티에게 맞는 강좌 추천",
+                  "서울런에서 수준에 맞는 강의를 골랐음", "10문제 중 8개 맞았다고 함", "이 강좌가 멘티에게 잘 맞았습니다",
+                  "집에서 푼 문제는 다 맞았음", "시간이 맞아서 일정을 옮김"]:
+            self.assertFalse(guard.check(s).safety, s)
+
+    def test_pg_store_reconnects_once_after_db_restart(self):
+        import numpy as np
+
+        from app.vector_store import PgVectorStore
+
+        class Conn:
+            def __init__(self, dead=False):
+                self.dead = dead
+
+            def execute(self, sql, params=None):
+                if self.dead and params:
+                    raise ConnectionError("server closed the connection")
+                return self
+
+            def fetchall(self):
+                return [("c1", 0.9)]
+
+        made = []
+
+        def connect(url, autocommit):
+            made.append(Conn(dead=not made))   # 첫 연결만 끊긴 상태
+            return made[-1]
+
+        self.assertEqual(PgVectorStore("x", connect).search("k", np.zeros(2), 1), [("c1", 0.9)])
+        self.assertEqual(len(made), 2)
 
 
 class CorpusTest(unittest.TestCase):

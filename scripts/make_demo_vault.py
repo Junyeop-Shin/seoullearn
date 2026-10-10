@@ -21,18 +21,22 @@ from app.llm import get_eval_model  # noqa: E402
 SYN = settings.root / "synthetic"
 load = lambda name: json.loads((SYN / name).read_text(encoding="utf-8"))  # noqa: E731
 COURSES = {c["id"]: c for c in load("courses.json")["courses"]}
-# 별칭, 기본 정보. 이름·학년·학교·연락처는 넣지 않는다
+# 멘티 정보. 이름은 지어낸 이니셜이고 학교·연락처는 넣지 않는다. stage·currentRound는 화면의 단계 진행에 쓰인다
 MENTEES = {
-    "M1": {"alias": "수학 A (회기 마무리)", "sessions": "sessions_M1.json", "profile": {
+    "M1": {"alias": "김OO", "sessions": "sessions_M1.json", "profile": {
+        "grade": "고2", "district": "관악구", "stage": "COMPLETION", "currentRound": 16,
         "subject": "수학", "mode": "온라인", "duration": "60", "weekday": "월", "start_datetime": "2026-03-09T17:00",
         "goal": "시발점 수1 완강, 기말고사 수학 3등급, 오답노트 습관", "level": "인강 의존도가 높고 오답 정리를 미루는 편"}},
-    "M2": {"alias": "영어 B (멘토 교체 예정)", "sessions": "sessions_M2.json", "profile": {
+    "M2": {"alias": "이OO", "sessions": "sessions_M2.json", "profile": {
+        "grade": "중2", "district": "마포구", "stage": "ACTIVITY", "currentRound": 9, "venue": "(가상) 마포 청소년센터 스터디룸",
         "subject": "영어", "mode": "오프라인", "duration": "60", "weekday": "수", "start_datetime": "2026-03-11T19:00",
         "goal": "문법 기본 다지기, 단어 암기 습관", "level": "문법 인강은 꾸준히 듣고 단어 과제를 자주 덜 해 옴"}},
-    "M3": {"alias": "국어 C (매칭 직후)", "sessions": None, "profile": {
+    "M3": {"alias": "박OO", "sessions": None, "profile": {
+        "grade": "고1", "district": "성북구", "stage": "PRE_CONTACT", "currentRound": 1,
         "subject": "국어", "mode": "온라인", "duration": "60", "weekday": "월", "start_datetime": "2026-10-12T20:00",
         "goal": "문학 감 잡기, 인강 끝까지 듣기", "level": "문학이 특히 약하다고 함. 강좌는 신청만 하고 아직 안 들음"}},
-    "M4": {"alias": "수학 D (결석이 있는 회기)", "sessions": "sessions_M4.json", "profile": {
+    "M4": {"alias": "최OO", "sessions": "sessions_M4.json", "profile": {
+        "grade": "19세", "district": "송파구", "stage": "ACTIVITY", "currentRound": 7, "venue": "(가상) 송파 청소년센터 스터디룸",
         "subject": "수학", "mode": "오프라인", "duration": "60", "weekday": "토", "start_datetime": "2026-08-29T10:00",
         "goal": "다음 검정고시 합격", "level": "아르바이트로 지각과 결석이 있었음"}},
 }
@@ -54,6 +58,8 @@ def main():
         alias, course = cfg["alias"], COURSES[info[mid]["course_id"]]
         course_name = f"{course['site']} {course['title']}"
         profile = {**cfg["profile"], "course": course_name}
+        profile.update({"name": alias, "term": 1, "venue": profile.get("venue", ""), "archived": False,
+                        "regularSchedule": [{"weekday": profile["weekday"], "startTime": profile["start_datetime"][11:16]}]})
         start = date.fromisoformat(profile["start_datetime"][:10])
         items.append(item(alias, "mentee_profile", "멘티 정보", start - timedelta(days=5), profile))
         lectures = [{"no": u["no"], "title": u["title"], "unit": None, "minutes": None} for u in course["units"]]
@@ -62,11 +68,13 @@ def main():
             continue   # 매칭 직후: 기본 정보만 있다
         sessions = load(cfg["sessions"])["sessions"]
         # 종합계획서①
-        plan = weekly_plan.write_lines(weekly_plan.allocate(course["units"], start_date=start), llm, {"과목": profile["subject"], "목표": profile["goal"]})
+        plan = weekly_plan.write_lines(weekly_plan.allocate(course["units"], start_date=start), llm)
+        rows = [{"week": s["no"], "date": s.get("date") or "", "content": s.get("line", ""), "online": s.get("online", ""),
+                 "mentoring": s.get("mentoring", ""), "counsel": s.get("counsel", "")} for s in plan["sessions"]]
         decisions = {"duration": profile["duration"], "weekday": profile["weekday"], "start_datetime": profile["start_datetime"].replace("T", " ")}
         pre = {"subject_confirm": f"{profile['subject']}, {profile['mode']}", "site_course": course_name, "goal": profile["goal"], "level": profile["level"]}
         r = forms.draft("plan_initial", decisions, llm, {"pre_contact": pre, "weekly_plan": plan["sessions"], "mode": profile["mode"]})
-        items.append(item(alias, "plan_initial", "종합계획서①", start - timedelta(days=2), r.draft, decisions, {"weekly_plan": plan["sessions"]}))
+        items.append(item(alias, "plan_initial", "종합계획서①", start - timedelta(days=2), r.draft, decisions, {"weekly_plan": plan["sessions"], "rows": rows}))
         print(f"{mid} 종합계획서① error={r.error}", flush=True)
         for s in sessions:
             inp = {"session_date": s["date"], "session_no": str(s["session_no"]), "subject": profile["subject"], "course": course_name,

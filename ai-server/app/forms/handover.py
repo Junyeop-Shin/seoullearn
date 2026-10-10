@@ -10,21 +10,12 @@ import json
 import os
 import re
 
-from .. import guard
+from .. import guard, prompts
 from ..llm import ChatLLM, LLMUnavailableError
 from . import checks, sensitive
 from .engine import load_form
 
-SYSTEM = """이전 멘토의 활동보고서 기록에서 다음 멘토에게 넘길 '{label}' 한 가지만 요약한다.
-
-규칙:
-1. [기록]에 있는 내용만 쓴다. 기록에 없는 사실, 횟수, 날짜를 만들지 않는다.
-2. {guidance}
-3. 학업 수준(성적, 등급, 점수, 이해도, 잘한다·못한다, 어려워한다는 평가)은 쓰지 않는다.
-4. 정서·가정·교우 관계, 멘토의 개인 사정, 이름·학교·연락처는 쓰지 않는다.
-5. 보고서 문체로 한두 문장.
-
-JSON 한 개만 출력한다: {{"summary": "..."}}"""
+SYSTEM = prompts.load("handover_summary")
 
 # 2차 검사: 요약에 남아 있으면 안 되는 표현 (학업 수준, 정서·개인 사정)
 _ACADEMIC = re.compile(r"성적|등급|점수|\d+\s*점|중간고사|기말고사|모의고사|시험\s*(?:결과|점수|성적)|이해도|이해력|이해가\s*(?:빠|느|부족|낮|높)|"
@@ -100,10 +91,17 @@ def build(reports: list[dict], llm: ChatLLM) -> dict:
     warnings: list[str] = []
     errors: list[str] = []
     pii: set[str] = set()
+    safety = False
     for r in reports:
         for v in r.values():
             if isinstance(v, str):
-                pii.update(guard.check(v).pii)
+                g = guard.check(v)
+                pii.update(g.pii)
+                safety = safety or g.safety
+    if safety:  # 아동 안전 신호: LLM을 부르지 않고 운영사무국(즉시) 안내만 돌려준다
+        items = _allow_items()
+        return {"summary": {i["key"]: "" for i in items}, "labels": {i["key"]: i["label"] for i in items},
+                "warnings": [guard.SAFETY_DRAFT_NOTICE], "pii_masked": sorted(pii), "errors": []}
     if not reports:
         warnings.append("활동보고서가 없습니다. 보관함에서 불러오거나 플랫폼의 보고서를 붙여 넣어 주세요.")
     for item in _allow_items():
