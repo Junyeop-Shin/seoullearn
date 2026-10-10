@@ -191,6 +191,24 @@ def course_outline(req: OutlineRequest):
     return res
 
 
+class OutlineImageRequest(BaseModel):
+    image: str = Field(..., min_length=30, max_length=forms.outline.MAX_IMAGE_CHARS)   # data:image/...;base64,...
+
+
+@app.post("/drafts/course_outline_image")
+def course_outline_image(req: OutlineImageRequest):
+    try:
+        res = forms.outline.read_image(req.image, _draft_llm())
+    except LLMUnavailableError:
+        res = {"text": "", "lines": 0, "error": "지금은 AI를 쓸 수 없습니다. 잠시 후 다시 시도하거나 목록을 복사해 붙여 넣어 주세요."}
+    except Exception as e:   # 이미지를 받지 못하는 모델 등: 제공사마다 예외가 달라 종류만 남긴다
+        log.warning("draft form=course_outline_image failed=%s", type(e).__name__)
+        res = {"text": "", "lines": 0, "error": "이미지를 읽지 못했습니다. 지금 모델이 이미지를 받지 못할 수 있습니다. 강의 목록을 복사해 붙여 넣어 주세요."}
+    # 이미지도 읽은 글도 남기지 않는다. 크기와 줄 수만 남긴다
+    log.info("draft form=course_outline_image size=%d lines=%d error=%s", len(req.image), res["lines"], bool(res["error"]))
+    return res
+
+
 @app.post("/drafts/weekly_plan")
 def weekly_plan(req: WeeklyPlanRequest):
     if any(not isinstance(x.get("title"), str) for x in req.lectures):

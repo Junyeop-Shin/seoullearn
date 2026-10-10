@@ -46,6 +46,7 @@ services:
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       # 협약 장소 지도. 장소 목록 파일과 카카오맵 JavaScript 키 (브라우저에 노출되는 공개 키)
       PLACES_FILE: /data/places.json
+      TEMPLATES_DIR: /templates
       KAKAO_MAP_JS_KEY: ${KAKAO_MAP_JS_KEY:-}
       # frontend(nginx)가 넘겨주는 접속 주소를 쓴다 (로그인 실패 제한이 사용자별로 걸리게)
       SERVER_FORWARD_HEADERS_STRATEGY: native
@@ -56,6 +57,8 @@ services:
       - ./forms:/forms:ro
       # 지금은 가상 장소다. 실제 협약 장소 목록을 받으면 이 파일만 바꾼다
       - ./synthetic/places.json:/data/places.json:ro
+      # 종합활동계획서 서식 파일(docx, hwpx). 저장소에 올리지 않는 자료라 이 폴더에 따로 둔다. 없으면 서식 파일로 내보내기를 쓰지 못한다
+      - ./data/templates/2026:/templates:ro
     depends_on:
       db:
         condition: service_healthy

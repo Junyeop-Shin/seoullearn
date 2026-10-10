@@ -168,6 +168,7 @@ docker compose run --rm ai-server python /project/scripts/compare_vector_backend
 | `POST /drafts/weekly_plan` | 주차별 계획(`sessions`: 16 또는 8). 배분은 규칙 함수. `per_week`(일주일에 몇 강씩) 또는 `target`(이번 회기에 들을 강 수)을 줄 수 있다 | 회차별 멘토링 내용 문장만 (상담 문장은 만들지 않는다) |
 | `POST /drafts/plan_initial` | 종합계획서① 초안 (플랫폼 입력용 문자 정리, 수정 불가 경고) | 학습목표·학생진단만 |
 | `POST /drafts/plan_file` | 종합계획서② 초안 (서식 항목 순서 텍스트) | 학습목표, 멘토 입력 다듬기 |
+| `POST /drafts/course_outline_image` | 강의 목록 이미지 한 장(`image`: data URL, 약 0.9MB 이하)에서 강의 줄을 옮겨 적는다. 돌려주는 값 `{text, lines, error}` | 이미지 읽기 |
 | `POST /drafts/split_reports` | 플랫폼에서 복사한 활동보고서 여러 개를 회차별로 분리 | 쓰지 않음 |
 | `POST /drafts/completion_report` | 완료보고서 초안. 수행 리스트·통계는 규칙, 감성케어 칸은 멘토 입력만 | 멘토링 내용·성취도 |
 | `POST /drafts/handover_summary` | 멘토 교체 인계 요약. 허용 항목 네 가지만, 항목마다 출처 칸만 모아 따로 질의 | 항목별 요약 |

@@ -706,6 +706,32 @@ class PlanDraftTest(unittest.TestCase):
         self.assertNotIn("대체로 정시 출석", llm_new.calls[0])
         self.assertIn("대체로 정시 출석", llm_ho.calls[0])
 
+    def test_outline_image_is_transcribed_masked_and_checked(self):
+        from app.forms import outline
+
+        class Vision:
+            def __init__(self, raw):
+                self.raw, self.calls = raw, []
+
+            def read_image(self, system, user, data_url):
+                self.calls.append((system, user, len(data_url)))
+                return self.raw
+
+        png = "data:image/png;base64," + "A" * 40
+        llm = Vision('{"lines": ["1강 지수의 뜻 32:10", " ", "2강 지수법칙 28:45", "김민지 학생 010-1234-5678"]}')
+        res = outline.read_image(png, llm)
+        self.assertEqual(res["text"], "1강 지수의 뜻 32:10\n2강 지수법칙 28:45\n학생")   # 이름과 전화번호는 가려서 뺀다
+        self.assertEqual((res["lines"], res["error"]), (3, ""))
+        self.assertIn("지어내지 않는다", llm.calls[0][0])
+        # 읽은 글은 기존 목차 읽기에 그대로 들어간다
+        self.assertEqual([x["title"] for x in outline.parse("1강 지수의 뜻 32:10\n2강 지수법칙 28:45", None)["lectures"]][:1], ["지수의 뜻"])
+        # 형식이 깨진 응답, 목록이 없는 이미지, 이미지가 아닌 값은 오류로 알린다 (LLM을 부르지 않거나 조용히 넘기지 않는다)
+        self.assertIn("읽지 못했습니다", outline.read_image(png, Vision("죄송합니다"))["error"])
+        self.assertIn("찾지 못했습니다", outline.read_image(png, Vision('{"lines": []}'))["error"])
+        bad = Vision("{}")
+        self.assertIn("다시 올려", outline.read_image("data:text/html;base64,AAAA", bad)["error"])
+        self.assertEqual(bad.calls, [])
+
     def test_dedicated_endpoints(self):
         from fastapi.testclient import TestClient
 
@@ -717,6 +743,11 @@ class PlanDraftTest(unittest.TestCase):
             self.assertEqual((r.status_code, r.json()["mode"]), (200, "오프라인"))
             r = c.post("/drafts/course_outline", json={"text": "1강 가나다\n2강 라마바"})
             self.assertEqual(len(r.json()["lectures"]), 2)
+            # 이미지에서 강의 목록 읽기: 이미지를 못 받는 모델이면 붙여 넣기를 안내한다
+            png = "data:image/png;base64," + "A" * 40
+            r = c.post("/drafts/course_outline_image", json={"image": png})
+            self.assertEqual(r.status_code, 200)
+            self.assertIn("이미지를 읽지 못합니다", r.json()["error"])
             lectures = [{"no": i, "title": f"{i}강 제목"} for i in range(1, 21)]
             r = c.post("/drafts/weekly_plan", json={"lectures": lectures, "done": 4, "pace": "보통", "start_date": "2026-10-12",
                                                     "exams": [{"start": "2026-12-07", "end": "2026-12-11"}]})

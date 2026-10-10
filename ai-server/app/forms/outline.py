@@ -126,3 +126,29 @@ def parse(text: str, llm: ChatLLM | None = None) -> dict:
     if not out:
         warnings.append("강의 목록을 찾지 못했습니다. 강좌 페이지의 목차 부분을 복사해 붙여 넣어 주세요.")
     return {"lectures": out, "unparsed": unparsed, "warnings": warnings, "error": error}
+
+
+MAX_IMAGE_CHARS = 950_000   # data URL 글자 수. 화면이 줄여서 보내고, 앞단(nginx)의 요청 한도 1MB 안쪽이다
+_IMAGE = re.compile(r"^data:image/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$")
+
+
+def read_image(data_url: str, llm) -> dict:
+    """강의 목록을 찍은 이미지 한 장 → 보이는 강의 줄들의 글. 멘토가 확인하고 고친 뒤 parse()에 넣는다.
+    이미지는 가드로 가릴 수 없으므로, 돌아온 글은 가드를 한 번 거친다. 이미지도 글도 저장하지 않는다.
+    돌려주는 값: {text, lines(줄 수), error}"""
+    if not _IMAGE.match(data_url) or len(data_url) > MAX_IMAGE_CHARS:
+        return {"text": "", "lines": 0, "error": "이미지를 읽지 못했습니다. JPG, PNG 이미지를 다시 올려 주세요."}
+    reader = getattr(llm, "read_image", None)
+    if reader is None:
+        return {"text": "", "lines": 0, "error": "지금 설정된 AI 모델은 이미지를 읽지 못합니다. 강의 목록을 복사해 붙여 넣어 주세요."}
+    raw = reader(prompts.load("course_outline_image"), "이 이미지의 강의 목록을 옮겨 적어 주세요.", data_url)
+    m = re.search(r"\{.*\}", raw, re.S)
+    try:
+        lines = json.loads(m.group(0))["lines"] if m else None
+    except (ValueError, KeyError, TypeError):
+        lines = None
+    if not isinstance(lines, list):
+        return {"text": "", "lines": 0, "error": "이미지에서 강의 목록을 읽지 못했습니다. 다시 시도하거나 목록을 복사해 붙여 넣어 주세요."}   # 형식 오류는 조용히 넘기지 않는다
+    kept = [guard.drop_marks(guard.check(str(x)).text).strip() for x in lines if str(x).strip()]
+    kept = [x for x in kept if x]
+    return {"text": "\n".join(kept), "lines": len(kept), "error": "" if kept else "이미지에서 강의 목록을 찾지 못했습니다. 강의 목록이 보이게 찍은 이미지를 올려 주세요."}

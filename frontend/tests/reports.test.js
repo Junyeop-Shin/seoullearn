@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COURSE_ALIAS, COURSE_FORM, coursesFromVault, draftValueText, goalsFromVault, handoverFromVault, reportsFromVault } from '../src/lib/reports'
+import { draftValueText, goalsFromVault, handoverFromVault, reportsFromVault } from '../src/lib/reports'
 
 const item = (over) => ({ id: Math.random().toString(36), alias: '수학 고2 A', formId: 'activity_report', savedAt: '2026-10-01T00:00:00.000Z', inputs: {}, draft: {}, ...over })
 
@@ -26,18 +26,8 @@ describe('보관함 → 완료보고서·인계 요약 입력', () => {
     expect(goalsFromVault([])).toEqual([])
   })
 
-  it('저장한 강좌를 이름순으로, 같은 이름은 최신 것만 돌려준다', () => {
+  it('강의 목록을 한 줄씩 글로 바꾼다', () => {
     const lectures = [{ no: 1, title: '문학 감상의 관점' }, { no: 2, title: '시적 화자와 정서' }]
-    const items = [
-      item({ alias: COURSE_ALIAS, formId: COURSE_FORM, title: '국어 문학 개념', savedAt: '2026-10-01T00:00:00.000Z', draft: { lectures: lectures.slice(0, 1) } }),
-      item({ alias: COURSE_ALIAS, formId: COURSE_FORM, title: '국어 문학 개념', savedAt: '2026-10-05T00:00:00.000Z', draft: { lectures } }),
-      item({ alias: COURSE_ALIAS, formId: COURSE_FORM, title: '가나다 강좌', draft: { lectures } }),
-      item({ alias: COURSE_ALIAS, formId: COURSE_FORM, title: '빈 강좌', draft: { lectures: [] } }),
-      item({ formId: 'activity_report', title: '활동보고서 1회차' }),
-    ]
-    const courses = coursesFromVault(items)
-    expect(courses.map((c) => c.title)).toEqual(['가나다 강좌', '국어 문학 개념'])
-    expect(courses[1].lectures).toHaveLength(2)
     expect(draftValueText(lectures)).toBe('1강 문학 감상의 관점\n2강 시적 화자와 정서')
     expect(draftValueText([{ no: null, title: '오리엔테이션' }])).toBe('오리엔테이션')
     expect(draftValueText(['a', 'b'])).toBe('a\nb')

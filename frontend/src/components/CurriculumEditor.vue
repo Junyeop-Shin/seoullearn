@@ -41,7 +41,7 @@ function setWhen(i, key, value) {
 <template>
   <div data-test="curriculum">
     <table class="curriculum">
-      <tr><th>주차</th><th>일시</th><th v-if="full">온라인 강의 (몇 강)</th><th>{{ full ? '멘토링 내용' : '학습 내용' }}</th><th v-if="copyable"></th></tr>
+      <tr><th>주차</th><th>일시</th><th v-if="full">온라인 강의</th><th>{{ full ? '멘토링 내용' : '학습 내용' }}</th><th v-if="copyable"></th></tr>
       <tr v-for="(r, i) in modelValue" :key="r.week">
         <td>{{ r.week }}</td>
         <td class="when">
@@ -52,7 +52,7 @@ function setWhen(i, key, value) {
           <select v-if="courses.length > 1" :value="r.course || 0" :aria-label="`${r.week}주차 강좌`" @change="set(i, 'course', Number($event.target.value))">
             <option v-for="(c, ci) in courses" :key="ci" :value="ci">{{ c.lecture || `강좌 ${ci + 1}` }}</option>
           </select>
-          <input :value="r.online" :data-online="r.week" :placeholder="`예: ${2 * i + 1}~${2 * i + 2}강`" @input="set(i, 'online', $event.target.value)" />
+          <input :value="r.online" :data-online="r.week" :placeholder="`예: 강의 제목 (${2 * i + 1}~${2 * i + 2}강)`" @input="set(i, 'online', $event.target.value)" />
         </td>
         <td>
           <input v-if="full" :value="r.mentoring" :data-mentoring="r.week" @input="set(i, 'mentoring', $event.target.value)" />

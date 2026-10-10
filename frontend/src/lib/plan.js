@@ -48,16 +48,16 @@ export function toCircled(text) {
   }).join('\n')
 }
 
-/** 주차별 계획의 강 번호 → '3~4강'. 번호가 없으면 빈 글. */
+/** 주차별 계획의 강의들 → '3~4강'. 목차에서 몇 번째 강인지(order)로 센다. order가 없는 예전 자료는 제목의 번호(no)로. 없으면 빈 글. */
 export function lectureRange(lectures) {
-  const nos = (lectures || []).map((x) => Number(x.no)).filter((n) => Number.isFinite(n) && n > 0)
+  const nos = (lectures || []).map((x) => Number(x.order ?? x.no)).filter((n) => Number.isFinite(n) && n > 0)
   if (!nos.length) return ''
   const a = Math.min(...nos), b = Math.max(...nos)
   return a === b ? `${a}강` : `${a}~${b}강`
 }
 
-/** 배분 결과 한 주차의 강의들 → 온라인 강의 칸의 글. 강좌별로 묶는다.
- * 번호가 있는 목차는 '3~4강', 제목이 제각각인 목차는 '제목, 제목 (3~4강)'. 둘째 강좌부터는 강좌 이름을 앞에 붙인다.
+/** 배분 결과 한 주차의 강의들 → 온라인 강의 칸의 글: '강의 제목, 강의 제목 (3~4강)'. 괄호 안은 목차에서 몇 번째 강인지다.
+ * 강좌별로 묶고, 둘째 강좌부터는 강좌 이름을 앞에 붙인다.
  * 돌려주는 값: {online, course(그 주차의 첫 강좌 번호)} */
 export function onlineText(lectures, courses, nameOf) {
   const groups = []
@@ -68,7 +68,7 @@ export function onlineText(lectures, courses, nameOf) {
   }
   const texts = groups.map((g, gi) => {
     const range = lectureRange(g.items)
-    const body = g.items.some((l) => l.auto_no) ? `${g.items.map((l) => l.title).join(', ')}${range ? ` (${range})` : ''}` : range || g.items.map((l) => l.title).join(', ')
+    const body = `${g.items.map((l) => l.title).join(', ')}${range ? ` (${range})` : ''}`
     return gi === 0 ? body : `${nameOf(courses[g.ci])}, ${body}`
   })
   return { online: texts.join(' / '), course: groups[0]?.ci ?? 0 }

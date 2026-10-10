@@ -33,7 +33,7 @@
 | `completion_report` | 지난 회기 요약의 재료, 보관용 | `draft` 전체 |
 | `term_summary` | 다음 회기 종합계획서①의 참고와 AI 재료 | `draft`: `term`, `rounds`, `course`, `goal`, `last_scope`, `next_homework`, `content`, `achievement`, `next_course`(다음 회기에 들을 강좌, 선택). 다음 회기를 시작할 때 만든다. 감성케어 칸은 넣지 않는다 |
 | `mentee_profile` | 왼쪽 메뉴, 단계 진행, 모든 화면의 자동 입력 | `draft`: `name`, `grade`, `subject`, `subjectEtc`, `district`, `mode`, `duration`, `course`, `start_datetime`, `regularSchedule`(`[{weekday, startTime}]`), `venue`, `goal`, `level`, `term`, `currentRound`, `stage`, `archived`, `lastHomework`. 연락처·학교 칸은 없다. `stage`가 없는 예전 자료는 저장된 문서로 단계를 짐작한다 (`lib/stage.js`의 `withState`) |
-| `course_outline` | 종합계획서의 강의 목차 (내 강좌) | `title`(강좌 이름), `draft.lectures` (`[{no, title, unit, minutes}]`). `alias`는 항상 `내 강좌` |
+| `course_outline` | (2026-10-11부터 만들지 않음. 예전 자료만 남아 있다) 종합계획서의 강의 목차 (내 강좌) | `title`(강좌 이름), `draft.lectures` (`[{no, title, unit, minutes}]`). `alias`는 항상 `내 강좌` |
 
 읽는 코드는 `frontend/src/lib/reports.js`에 있다 (`reportsFromVault`, `goalsFromVault`, `handoverFromVault`, `curriculumRow`, `previousHomework`).
 

@@ -38,11 +38,11 @@ def profile(name: str, grade: str, subject: str, district: str, mode: str, start
     return p
 
 
-def rows(start: str, contents: list[tuple[str, str, str]]) -> list[dict]:
-    """커리큘럼 표 16주. contents: 주차별 (학습 내용, 온라인 강의, 멘토링 내용)"""
+def rows(start: str, contents: list[tuple[str, str, str]], n: int = 16) -> list[dict]:
+    """커리큘럼 표 n주. contents: 주차별 (학습 내용, 온라인 강의, 멘토링 내용)"""
     d0, hh = date.fromisoformat(start[:10]), start[11:16]
     out = []
-    for i in range(16):
+    for i in range(n):
         c, o, m = contents[i] if i < len(contents) else ("", "", "")
         out.append({"week": i + 1, "date": (d0 + timedelta(days=7 * i)).isoformat(), "time": hh, "edited": False, "content": c, "online": o, "mentoring": m, "course": 0})
     return out
@@ -105,6 +105,45 @@ add("이가상", "term_summary", "1회기 요약", "2026-10-08", {
     "term": 1, "rounds": 16, "course": "메가스터디 시발점 수1", "goal": ["① 메가스터디 시발점 수1 완강", "② 기말고사 수학 3등급"], "last_scope": "30강 수열의 합 총정리",
     "next_homework": {"lecture": "시발점 수2 1~2강", "task": "수1 오답 노트 다시 풀기"}, "next_course": "메가스터디 시발점 수2",
     "content": ["지수와 로그, 삼각함수, 수열 단원의 개념을 인강과 함께 정리하고 단원마다 오답 노트를 만듦."], "achievement": ["시발점 수1 30강을 모두 수강함. 오답 노트 작성은 후반부에 자리 잡음."]})
+
+# 6. 서가상(60분, 16주)·팔가상(120분, 8주): 종합계획서②를 끝까지 적어 저장해 둠. 멘티를 열면 ② 탭이 뜨고, 바로 '서식 파일로 내보내기'를 눌러 볼 수 있다
+UNITS16 = ["지수", "지수", "로그", "로그", "상용로그", "지수함수", "지수함수의 활용", "로그함수", "로그함수의 활용", "일반각과 호도법", "삼각함수의 뜻", "삼각함수의 그래프", "삼각방정식과 부등식", "사인법칙과 코사인법칙", "등차수열과 등비수열", "수열의 합"]
+UNITS8 = ["다항식의 연산", "나머지정리와 인수분해", "복소수", "이차방정식", "이차방정식과 이차함수", "여러 가지 방정식", "연립부등식", "이차부등식"]
+
+
+def plan_file(alias: str, grade: str, start: str, minutes: int, course: dict, goal: list[str], diag: list[str], units: list[str]) -> None:
+    n = len(units)
+    hour = int(start[11:13])
+    wd = "일월화수목금토"[(date.fromisoformat(start[:10]).weekday() + 1) % 7]
+    schedule = f"매주({wd}) {hour}:00~{hour + minutes // 60}:00"
+    add(alias, "mentee_profile", "멘티 정보", "2026-10-05", profile(alias, grade, "수학", "강남구", "온라인", start, "PLAN", duration=str(minutes), course=f"{course['platform']} {course['lecture']}", goal="\n".join(goal)))
+    weeks = [(u, f"{2 * i + 1}~{2 * i + 2}강", ("오리엔테이션(OT), " if i == 0 else "") + f"{u} 개념학습 및 확인 테스트") for i, u in enumerate(units)]
+    plain = "\n".join(g.replace("①", "(1)").replace("②", "(2)").replace("③", "(3)").replace("④", "(4)") for g in goal)
+    r = plan_initial(alias, start, plain, "\n".join(diag), weeks, "2026-10-06")[:n]
+    # 120분이면 서식 예시의 시간 배분을 두 배로
+    u = minutes // 6
+    marks = [0, u, 3 * u, 4 * u, 5 * u, 6 * u]
+    clock = lambda m: f"{hour + m // 60}:{m % 60:02d}"
+    names = ["온라인 강의 수강(필수) 확인 & 퀴즈", "개념학습", "개념 테스트", "오답 풀이", "상담 및 다음 회차 안내"]
+    structure = [f"{clock(marks[i])}~{clock(marks[i + 1])} {names[i]}" for i in range(5)]
+    name = f"{course['lecture']}({course['instructor']})"
+    subject_time = f"수학 / {course['platform']} {name} / {schedule}"
+    cells = [f"{x['week']}주차({int(x['date'][5:7])}/{int(x['date'][8:10])} {x['time']})\n(온라인강의) {name}, {x['online']}\n(멘토링 내용) {x['mentoring']}" for x in r]
+    last = date.fromisoformat(r[-1]["date"])
+    draft = {"period": f"{start[:10].replace('-', '.')}.~{last.isoformat().replace('-', '.')}.", "mentee": "[멘티 학년]", "mentor": "[멘토 성명·소속]", "subject_time": subject_time,
+             "learning_goal": goal, "diagnosis": diag, "curriculum": cells, "structure": structure, "rules": RULES}
+    value = {"learning_goal": "\n".join(goal), "diagnosis": "\n".join(diag), "structure": "\n".join(structure), "rules": "\n".join(RULES)}
+    add(alias, "plan_file", "종합계획서②", "2026-10-08", draft, {"subject_time": subject_time},
+        {"courses": [{**course, "lectures": [], "done": ""}], "common": {"subject": "수학", "schedule": schedule}, "alloc": {"mode": "weekly", "perWeek": 2, "target": ""},
+         "value": value, "defaults": {"structure": value["structure"]}, "rows": r})
+
+
+plan_file("서가상", "고2", "2026-10-12T17:00", 60, {"platform": "메가스터디", "lecture": "수학의 시작, 시발점 - 대수", "instructor": "가상 강사"},
+          ["① 메가스터디 수학의 시작, 시발점 - 대수 완강", "② 대수 1회독 완료, 기말고사 수학 3등급", "③ 매일 학습플래너 작성하기, 인강은 하루에 2강씩 규칙적으로 듣기", "④ 목표 대학 입시 정보 찾아보기"],
+          ["(과목역량) 수학의 기본기는 갖추고 있으나 고득점 문제의 해결 능력은 낮음", "(학습수준 및 희망진로) 내신은 평균 4등급이며 희망 전공은 경찰행정학과", "(입시준비) 대학별 입학 전형과 입시 정보가 거의 없음", "(학습습관 및 태도) 학원과 인강 의존도가 높고 자율학습 수준은 낮은 편임"], UNITS16)
+plan_file("팔가상", "고1", "2026-10-14T18:00", 120, {"platform": "이투스", "lecture": "공통수학1 개념 완성", "instructor": "가상 강사"},
+          ["① 이투스 공통수학1 개념 완성 완강", "② 공통수학1 교과서 문제 1회독", "③ 오답 노트를 회차마다 작성하기"],
+          ["(과목역량) 계산은 정확하나 서술형 풀이 과정을 자주 건너뜀", "(학습습관 및 태도) 과제는 꾸준히 해 오는 편이며 질문이 많음"], UNITS8)
 
 # 5. 마가상: 오프라인 멘티. 오프라인 일정·장소 화면 확인용
 add("마가상", "mentee_profile", "멘티 정보", "2026-09-10", profile("마가상", "중3", "영어", "마포구", "오프라인", "2026-09-14T17:00", "ACTIVITY", currentRound=5, course="밀크T 중3 영어 문법"))

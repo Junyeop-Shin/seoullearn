@@ -212,6 +212,18 @@ class BackendApiTests {
                 .andExpect(jsonPath("$.length()").value(1));   // 공개 키 하나뿐이다. 다른 설정은 내보내지 않는다
     }
 
+    // ------------------------------------------------------------ 서식 파일
+    @Test
+    void planTemplateNeedsLoginAndFallsBackWhenMissing() throws Exception {
+        mvc.perform(get("/api/templates/plan").param("format", "docx")).andExpect(status().isUnauthorized());
+        MockHttpSession session = mentor("mentor_t1");
+        mvc.perform(get("/api/templates/plan").param("format", "docx").session(session)).andExpect(status().isOk())
+                .andExpect(content().bytes("fake-docx".getBytes()));
+        // 그 형식의 서식이 서버에 없으면 404: 화면이 내보내지 못한다고 알린다
+        mvc.perform(get("/api/templates/plan").param("format", "hwpx").session(session)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/templates/plan").param("format", "../x").session(session)).andExpect(status().isBadRequest());
+    }
+
     // ------------------------------------------------------------ AI 서버 중계
     @Test
     void proxyForwardsBodyAndReturnsResponseAsIs() throws Exception {

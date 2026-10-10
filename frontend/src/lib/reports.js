@@ -34,22 +34,8 @@ export function handoverFromVault(items) {
   return items.filter((x) => x.formId === 'handover_summary').sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))[0]?.draft ?? null
 }
 
-// 내 강좌: 한 번 정리한 강의 목차를 보관함에 두고 다음 회기나 다른 멘티 때 다시 쓴다. 멘티별 자료가 아니라서 별칭을 고정한다.
+// 내 강좌: 예전에 강의 목차를 저장해 두던 별칭. 이제 저장하지 않지만(2026-10-11), 보관함에 남아 있는 예전 자료가 멘티 목록에 섞이지 않게 거른다.
 export const COURSE_ALIAS = '내 강좌'
-export const COURSE_FORM = 'course_outline'
-
-/** 보관함의 강좌 목록 (이름순). 같은 이름이 여러 번 저장돼 있으면 가장 늦게 저장한 것만. */
-export function coursesFromVault(items) {
-  const latest = new Map()
-  for (const x of items) {
-    if (x.formId !== COURSE_FORM || !Array.isArray(x.draft?.lectures) || !x.draft.lectures.length) continue
-    const prev = latest.get(x.title)
-    if (!prev || prev.savedAt < x.savedAt) latest.set(x.title, x)
-  }
-  return [...latest.values()]
-    .map((x) => ({ id: x.id, title: x.title, lectures: x.draft.lectures, savedAt: x.savedAt }))
-    .sort((a, b) => a.title.localeCompare(b.title, 'ko'))
-}
 
 /** 보관함 화면에 보여 줄 초안 한 칸의 글. 강의 목록은 '1강 제목'으로 풀어 쓴다. */
 export function draftValueText(value) {

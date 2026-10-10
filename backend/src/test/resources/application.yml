@@ -17,6 +17,7 @@ server:
 app:
   forms-dir: ../forms
   places-file: ../synthetic/places.json
+  templates-dir: src/test/resources/templates
   kakao-map-js-key: test-js-key
   ai-server:
     url: http://localhost:1

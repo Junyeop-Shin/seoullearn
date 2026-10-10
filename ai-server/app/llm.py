@@ -107,6 +107,21 @@ class LangChainLLM:
         raise RuntimeError("unreachable")
 
 
+    def read_image(self, system: str, user: str, data_url: str) -> str:
+        """이미지 한 장과 함께 묻는다. 응답은 어디에도 저장하지 않는다 (캐시를 쓰지 않는다).
+        이미지를 받지 못하는 모델이면 제공사가 내는 예외가 그대로 올라간다."""
+        from langchain_core.messages import HumanMessage, SystemMessage  # 지연 import: 오프라인 테스트에는 불필요
+
+        self.throttle.wait()
+        try:
+            msg = self.model.invoke([SystemMessage(system), HumanMessage(content=[{"type": "text", "text": user}, {"type": "image_url", "image_url": {"url": data_url}}])])
+        except Exception as e:
+            if any(s in str(e) for s in ("429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "timeout")):
+                raise LLMUnavailableError(str(e)) from e
+            raise
+        return msg.content if isinstance(msg.content, str) else "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in msg.content)
+
+
 def get_chat_model(role: str = "answer", use_cache: bool = False, max_retries: int = 1) -> ChatLLM:
     """use_cache는 평가 실행에서만 켠다 (get_eval_model). API 서버는 응답을 디스크에 남기면 안 되므로 항상 끈다.
     API 서버는 한 번만 다시 시도한다: 오래 기다리면 backend가 먼저 끊고(90초) 다른 사용자까지 줄을 선다."""

@@ -6,7 +6,9 @@ import StageBar from '../src/components/StageBar.vue'
 import { regularSchedule, scheduleText } from '../src/lib/mentee'
 import { courseName, curriculumCell, curriculumLines, curriculumRow, handoverForDraft, handoverNote, handoverText, parseHandoverText, plannedRow, previousHomework, termSummary, termSummaryText } from '../src/lib/reports'
 import { dateLine, endTime, fillNames, monthDates, monthlyText, nextMonth, scheduleDue, thisMonth, weeklyDates } from '../src/lib/schedule'
+import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import curriculum from '../public/data/curriculum.json'
+import { fillPlanFile, mentorCode, planFileName } from '../src/lib/planFile'
 import { CURRICULUM_SUBJECTS, GRADES, FIRST_WEEK, LAST_WEEK, findUnits, genericHints, gradeKey, hasExams, spreadUnits, weekFrame } from '../src/lib/curriculum'
 import { DIAG_SLOTS, GOAL_SLOTS, composeSlots, lectureRange, onlineText, parseSlots, platformSafe, toCircled, changedLines, freshLines, mergeLines } from '../src/lib/plan'
 import { PROFILE_FIELDS, menteeFacts } from '../src/lib/mentee'
@@ -198,12 +200,14 @@ describe('종합계획서의 항목 형식', () => {
   it('배분한 강의를 온라인 강의 칸의 글로 쓴다', () => {
     const courses = [{ lecture: '새기분', instructor: '가상 강사' }, { lecture: '문학 개념', instructor: '' }]
     // 번호가 있는 목차는 몇 강인지만
-    expect(onlineText([{ no: 3, title: '로그' }, { no: 4, title: '삼각함수' }], courses, courseName)).toEqual({ online: '3~4강', course: 0 })
+    // 강의 제목 뒤에 목차에서 몇 번째 강인지를 괄호로. 제목에 적힌 번호가 아니라 순서(order)다
+    expect(onlineText([{ no: 3, title: '로그' }, { no: 4, title: '삼각함수' }], courses, courseName)).toEqual({ online: '로그, 삼각함수 (3~4강)', course: 0 })
+    expect(onlineText([{ no: 1, title: '지수', order: 1 }, { no: 1, title: '지수2', order: 2 }], courses, courseName).online).toBe('지수, 지수2 (1~2강)')
     // 제목이 제각각인 목차는 제목 뒤에 몇 강인지 괄호로
     expect(onlineText([{ no: 2, title: 'Hard Core.1ㅣ057', auto_no: true }, { no: 3, title: 'Hard Core.1ㅣ058', auto_no: true }], courses, courseName).online)
       .toBe('Hard Core.1ㅣ057, Hard Core.1ㅣ058 (2~3강)')
     // 한 주에 강좌가 바뀌면 둘째 강좌는 이름을 붙인다
-    expect(onlineText([{ no: 30, title: 'a', course: 0 }, { no: 1, title: 'b', course: 1 }], courses, courseName)).toEqual({ online: '30강 / 문학 개념, 1강', course: 0 })
+    expect(onlineText([{ no: 30, title: 'a', course: 0 }, { no: 1, title: 'b', course: 1 }], courses, courseName)).toEqual({ online: 'a (30강) / 문학 개념, b (1강)', course: 0 })
     expect(onlineText([], courses, courseName)).toEqual({ online: '', course: 0 })
     // 주차마다 그 주의 강좌 이름이 붙는다
     expect(curriculumCell({ course: 1, online: '1~2강', mentoring: '시의 화자' }, courses)).toBe('(온라인강의) 문학 개념, 1~2강\n(멘토링 내용) 시의 화자')
@@ -258,6 +262,75 @@ describe('표현 다듬기는 고친 줄만 보낸다', () => {
   it('지난 회기 요약에 다음 회기 강좌를 남긴다', () => {
     expect(termSummary([], { term: 1, course: '가 강좌' }, ' 나 강좌 ').next_course).toBe('나 강좌')
     expect(termSummaryText({ term: 1, rounds: 0, next_course: '나 강좌' })).toContain('이번 회기에 들을 강좌: 나 강좌')
+  })
+})
+
+describe('종합계획서②를 서식 파일에 채운다 (브라우저 안에서만)', () => {
+  const data = (n) => ({ period: '2026.11.02.~2027.02.15.', mentee: '김가상 (고1)', mentor: '이멘토 (가상대)', subject_time: '수학 / 가 강좌 / 매주 월', course: '가 강좌',
+    goal: ['① 완강', '② 3등급'], diagnosis: ['(과목역량) 기본 & 응용 <확인>'], structure: ['17:00~17:10 확인'], rules: ['시간 지키기'],
+    weeks: Array.from({ length: n }, (_, i) => [`(온라인강의) 가 강좌, ${i + 1}강`, `(멘토링 내용) ${i + 1}주차`]) })
+  // 서식과 같은 뼈대의 작은 파일: 제목, 기간, 멘티·멘토, 과목, 목표, 진단, 커리큘럼 3줄(세로로 합친 칸), 구성, 규칙
+  const WP = (t, color = '0000FF') => `<w:p><w:pPr><w:jc w:val="left"/></w:pPr><w:r><w:rPr><w:color w:val="${color}"/></w:rPr><w:t>${t}</w:t></w:r></w:p>`
+  const WC = (t, extra = '') => `<w:tc><w:tcPr>${extra}</w:tcPr>${t ? WP(t) : '<w:p/>'}</w:tc>`
+  const docx = () => {
+    const row = (label, ...cells) => `<w:tr>${WC(label)}${cells.map((c) => WC(c)).join('')}</w:tr>`
+    const cur = [0, 1, 2].map((i) => `<w:tr>${WC(i ? '' : '커리큘럼', i ? '<w:vMerge/>' : '<w:vMerge w:val="restart"/>')}${WC(`예시 ${i}`)}</w:tr>`).join('')
+    const body = row('멘토링 종합 계획서 작성예시') + row('멘토링기간', 'YYYY') + row('멘 티', '이○○', '멘 토', '김○○') + row('멘토링 과목 및 시간', '예시') + row('멘티 학습목표', '예시')
+      + row('학생진단', '예시') + cur + row('멘토링 구성', '예시') + row('활동규칙', '예시')
+    return zipSync({ 'word/document.xml': strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:tbl>${body}</w:tbl></w:body></w:document>`) })
+  }
+  const hwpx = () => {
+    const HC = (t, row, col, span = 1) => `<hp:tc><hp:subList><hp:p id="0"><hp:run charPrIDRef="${col ? 15 : 14}"><hp:t>${t}</hp:t></hp:run><hp:linesegarray><hp:lineseg textpos="0"/></hp:linesegarray></hp:p></hp:subList><hp:cellAddr colAddr="${col}" rowAddr="${row}"/><hp:cellSpan colSpan="1" rowSpan="${span}"/><hp:cellSz width="10" height="100"/></hp:tc>`
+    const labels = ['멘토링 종합 계획서 작성예시', '멘토링기간', '멘 티', '멘토링 과목 및 시간', '멘티학습목표', '멘티진단']
+    let body = labels.map((l, r) => `<hp:tr>${HC(l, r, 0)}${r === 2 ? HC('이○○', r, 1) + HC('멘 토', r, 2) + HC('김○○', r, 3) : r ? HC('예시', r, 1) : ''}</hp:tr>`).join('')
+    body += `<hp:tr>${HC('커리큘럼', 6, 0, 3)}${HC('예시', 6, 1)}</hp:tr><hp:tr>${HC('예시', 7, 1)}</hp:tr><hp:tr>${HC('예시', 8, 1)}</hp:tr>`
+    body += `<hp:tr>${HC('멘토링 구성', 9, 0)}${HC('예시', 9, 1)}</hp:tr><hp:tr>${HC('활동규칙', 10, 0)}${HC('예시', 10, 1)}</hp:tr>`
+    const ns = 'xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph" xmlns:hs="http://www.hancom.co.kr/hwpml/2011/section"'
+    return zipSync({ mimetype: strToU8('application/hwp+zip'),
+      'Contents/header.xml': strToU8('<hh:charPr id="14" height="1000" textColor="#000000"/><hh:charPr id="15" height="1000" textColor="#0000FF"/>'),
+      'Contents/section0.xml': strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes" ?><hs:sec ${ns}><hp:p id="1"><hp:run charPrIDRef="14"><hp:tbl rowCnt="11"><hp:sz width="10" height="1100"/>${body}</hp:tbl></hp:run></hp:p></hs:sec>`),
+      'Preview/PrvText.txt': strToU8('예시 글') })
+  }
+
+  it('docx: 칸 이름으로 찾아 채우고, 예시의 파란 글자를 검게, 남는 커리큘럼 줄은 지운다', () => {
+    const xml = strFromU8(unzipSync(fillPlanFile(docx(), data(2)))['word/document.xml'])
+    expect(xml.startsWith('<?xml')).toBe(true)
+    const texts = [...xml.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map((m) => m[1])
+    expect(texts).toEqual(['「서울런 멘토단」 멘토링 종합 계획서', '멘토링기간', '2026.11.02.~2027.02.15.', '멘 티', '김가상 (고1)', '멘 토', '이멘토 (가상대)', '멘토링 과목 및 시간', '수학 / 가 강좌 / 매주 월',
+      '멘티 학습목표', '① 완강', '② 3등급', '학생진단', '(과목역량) 기본 &amp; 응용 &lt;확인&gt;', '커리큘럼', '가 강좌', '(온라인강의) 가 강좌, 1강', '(멘토링 내용) 1주차', '(온라인강의) 가 강좌, 2강', '(멘토링 내용) 2주차',
+      '멘토링 구성', '17:00~17:10 확인', '활동규칙', '시간 지키기'])
+    expect(xml.match(/<w:tr>/g)).toHaveLength(10)   // 커리큘럼 3줄 가운데 한 줄을 지웠다
+    expect(xml).not.toContain('예시')
+    // 채운 글은 검은색, 손대지 않은 칸 이름은 그대로
+    expect(xml).toContain('<w:color w:val="000000"/></w:rPr><w:t xml:space="preserve">① 완강</w:t>')
+  })
+
+  it('hwpx: 채우고, 줄을 지우면 줄 번호·줄 수·합친 칸을 맞추고, mimetype을 맨 앞에 압축 없이 둔다', () => {
+    const out = fillPlanFile(hwpx(), data(2))
+    const files = unzipSync(out)
+    expect(Object.keys(files)[0]).toBe('mimetype')
+    expect(strFromU8(out.slice(30, 38))).toBe('mimetype')   // 압축하지 않은 첫 항목
+    expect(strFromU8(files['Preview/PrvText.txt'])).toBe('')
+    const xml = strFromU8(files['Contents/section0.xml'])
+    expect(xml).toContain('rowCnt="10"')
+    expect(xml).toContain('rowSpan="2"')
+    expect([...xml.matchAll(/<hp:tr>.*?rowAddr="(\d+)"/g)].map((m) => m[1])).toEqual(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
+    expect(xml).toContain('<hp:run charPrIDRef="14"><hp:t>(멘토링 내용) 2주차</hp:t></hp:run></hp:p>')   // 검은 글자 모양, 줄 배치 정보 없음
+    expect(xml).toContain('<hp:t>(과목역량) 기본 &amp; 응용 &lt;확인&gt;</hp:t>')
+    expect(xml).not.toContain('예시')
+    expect(xml).toContain('<hp:sz width="10" height="1000"/>')   // 지운 줄의 높이만큼 줄인다
+  })
+
+  it('다른 파일은 까닭을 알려 주고, 파일 이름은 서식 규칙을 따른다', () => {
+    expect(() => fillPlanFile(strToU8('hwp 같은 다른 형식'), data(1))).toThrow('hwp 파일은 채울 수 없습니다')
+    expect(() => fillPlanFile(zipSync({ 'a.txt': strToU8('x') }), data(1))).toThrow('docx 또는 hwpx')
+    expect(() => fillPlanFile(zipSync({ 'word/document.xml': strToU8('<w:document xmlns:w="w"><w:tbl><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl></w:document>') }), data(1))).toThrow('종합활동계획서 서식이 아닌')
+    expect(planFileName('서식.hwpx', { code: 'M12', term: 2, mentee: '김가상' })).toBe('[M12]2회기_종합활동계획서_김가상.hwpx')
+    expect(planFileName('서식.docx', {})).toBe('[멘토코드]1회기_종합활동계획서_멘티이름.docx')
+    // 멘토코드는 이름 + 전화번호 뒤 네 자리
+    expect(mentorCode('이멘토', '010-1234-5678')).toBe('이멘토5678')
+    expect(mentorCode('이멘토', '')).toBe('')
+    expect(mentorCode('', '010-1234-5678')).toBe('')
   })
 })
 

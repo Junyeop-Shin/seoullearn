@@ -61,6 +61,11 @@ export const api = {
   signup: (username, password) => request('POST', '/api/auth/signup', { username, password }),
   logout: () => request('POST', '/api/auth/logout'),
   places: () => request('GET', '/api/places'),
+  /** 종합활동계획서 서식 파일(docx, hwpx)의 bytes. 서버에 없으면 null. */
+  planTemplate: async (format) => {
+    const res = await fetch(`/api/templates/plan?format=${format}`, { credentials: 'same-origin' })
+    return res.ok ? new Uint8Array(await res.arrayBuffer()) : null
+  },
   config: () => request('GET', '/api/config'),
   forms: () => request('GET', '/api/forms'),
   form: (id) => request('GET', `/api/forms/${id}`),
@@ -70,6 +75,7 @@ export const api = {
   preContact: (mode, callTime, answers, subject = '') =>
     request('POST', '/api/drafts/pre_contact', { mode, call_time: callTime || null, answers: answers || null, subject }),
   courseOutline: (text) => request('POST', '/api/drafts/course_outline', { text }),
+  courseOutlineImage: (image) => request('POST', '/api/drafts/course_outline_image', { image }),
   weeklyPlan: (payload) => request('POST', '/api/drafts/weekly_plan', payload),
   allowance: (payload) => request('POST', '/api/tools/allowance', payload),
   splitReports: (text) => request('POST', '/api/drafts/split_reports', { text }),
