@@ -6,7 +6,7 @@ import MenteeHeader from '../components/MenteeHeader.vue'
 import ReportSource from '../components/ReportSource.vue'
 import { copyText } from '../lib/copy'
 import { profileFromVault } from '../lib/mentee'
-import { TERM_SUMMARY_FORM, goalsFromVault, latestOf } from '../lib/reports'
+import { TERM_SUMMARY_FORM, activitiesFromVault, goalsFromVault, latestOf } from '../lib/reports'
 import { toast } from '../lib/toast'
 import { saveItem } from '../stores/vault'
 
@@ -29,7 +29,7 @@ const busy = ref(false)
 const error = ref('')
 const notes = ref([])
 const reports = ref([])   // 초안의 재료가 되는 활동보고서
-let goals = [], duration = '', savedId
+let goals = [], activities = [], duration = '', savedId
 
 // 초안의 항목은 서식의 작성 예시처럼 줄마다 '- '를 붙인다
 const asText = (v) => (Array.isArray(v) ? v.map((x) => `- ${String(x).replace(/^[-·•]\s*/, '')}`).join('\n') : String(v || ''))
@@ -39,6 +39,7 @@ const rowsOf = (t) => Math.max(5, t.split('\n').reduce((n, line) => n + Math.max
 async function loaded({ reports: r, items }) {
   reports.value = r
   goals = goalsFromVault(items)
+  activities = activitiesFromVault(items)   // 친화·성장활동 기록도 초안의 참고 자료다
   duration = profileFromVault(items)?.duration || duration
   if (ready.value) return   // 붙여 넣어 회차를 더했을 때는 적어 둔 글을 그대로 둔다 (다시 만들려면 버튼을 누른다)
   // 이번 회기에 저장해 둔 완료보고서가 있으면 그것을 연다 (지난 회기 것은 회기 요약보다 먼저 저장된 것이다)
@@ -55,7 +56,7 @@ async function draft() {
   error.value = ''
   busy.value = true
   try {
-    const res = await api.draft(FORM_ID, {}, { reports: reports.value, plan_goal: goals, duration })
+    const res = await api.draft(FORM_ID, {}, { reports: reports.value, plan_goal: goals, activities, duration })
     // 아동 안전 신호가 있으면 서버가 초안을 만들지 않고 운영사무국 안내만 돌려준다
     if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '초안을 만들지 못했습니다.')
     for (const b of BOXES) text[b.key] = asText(res.draft[b.key])

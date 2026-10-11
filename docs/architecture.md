@@ -113,12 +113,12 @@
 ai-server/    FastAPI AI 서버 (app/: 가드, RAG, 라우터, 양식 엔진 / evaluation/: 평가 실행기 / tests/)
 backend/      Spring Boot 업무 백엔드
 frontend/     Vue 3 화면
-data/         RAG 원본 문서 (manual 18개, notice 11개), 용어집
+data/         RAG 원본 문서 (manual 18개, notice 12개), 용어집
 forms/        양식 스키마 (양식 하나 = JSON 파일 하나)
 eval/         평가셋과 리포트
 synthetic/    가상 멘티·회차 기록·강좌·장소 (개발과 평가는 이것만 쓴다)
 scripts/      데이터 검증, 유출 검사, 재측정, 브라우저 점검
 prompts/      양식 초안 프롬프트
-templates/    서버가 쓰는 문구 템플릿 (사전 연락, 이음단 장소 요청)
+templates/    서버가 쓰는 문구 템플릿 (사전 연락)
 docs/         개발 지침, 업무 흐름(workflow.md), 아키텍처, 데모 시나리오, 결과 문서, 제안서
 ```

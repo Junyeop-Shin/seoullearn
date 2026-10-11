@@ -17,7 +17,8 @@ watch(() => route.path, () => (open.value = false))
 // 멘티 한 명이 메뉴 하나다. 멘티 아래에는 단계와 무관한 도구만 둔다
 const GROUPS = [
   { title: '도구', items: [{ to: '/', label: '매뉴얼 질문', icon: 'chat' }, { to: '/ieumdan', label: '이음단 연락처', icon: 'phone' },
-    { to: '/places', label: '협약 장소', icon: 'pin' }, { to: '/allowance', label: '활동비 계산', icon: 'calc' }, { to: '/forms', label: '기타 서식', icon: 'folder' }] },
+    { to: '/places', label: '협약 장소', icon: 'pin' }, { to: '/allowance', label: '활동비 계산', icon: 'calc' },
+    { to: '/bonding', label: '친화·성장활동', icon: 'folder' }, { to: '/extension', label: '시간확대 요건 확인', icon: 'calendar' }] },
   { title: '설정', items: [{ to: '/settings', label: '멘토 설정', icon: 'settings' }, { to: '/vault', label: '백업·복원', icon: 'archive' }] },
 ]
 

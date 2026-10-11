@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
-import DraftResult from '../src/components/DraftResult.vue'
 import StageBar from '../src/components/StageBar.vue'
 import { DISTRICTS, regularSchedule, scheduleText } from '../src/lib/mentee'
 import { courseName, curriculumCell, curriculumLines, curriculumRow, handoverForDraft, handoverNote, handoverText, parseHandoverText, plannedRow, previousHomework, termSummary, termSummaryText, plannedWeek } from '../src/lib/reports'
@@ -174,18 +173,6 @@ describe('계획서와 보고서 연결', () => {
     expect(previousHomework([], 7, { lastHomework: { lecture: '11강', task: '' } })).toEqual({ lecture: '11강', task: '' })   // 진행 중 등록
   })
 
-  it('초안의 개인정보 칸은 이 브라우저의 값으로 보여 주되, 저장하는 초안에는 자리표시를 그대로 둔다', async () => {
-    const form = { fields: [{ key: 'mentee_name', label: '멘티 성명', source: 'placeholder', pii: true }, { key: 'homework', label: '과제', source: 'user_text' },
-      { key: 'session_no', label: '회차', source: 'user' }] }
-    const result = { draft: { mentee_name: '[멘티명]', homework: '과제를 일부 수행함', session_no: '3' }, missing_questions: [], warnings: [], reminders: [], pii_masked: [] }
-    const w = mount(DraftResult, { props: { form, result, fill: { mentee_name: '김OO' } } })
-    expect(w.text()).toContain('김OO')
-    expect(w.findAll('.card')[0].text()).not.toContain('[멘티명]')
-    expect(w.find('[data-copy="mentee_name"]').exists()).toBe(true)
-    await w.find('[data-draft="homework"]').setValue('과제를 절반만 수행함')
-    // 글을 고쳐도 이름 칸에는 실제 이름이 아니라 자리표시가 저장된다 (내보내기 파일에 이름이 들어가지 않게)
-    expect(w.emitted('change').at(-1)[0]).toEqual({ mentee_name: '[멘티명]', homework: '과제를 절반만 수행함', session_no: '3' })
-  })
 })
 
 describe('종합계획서의 항목 형식', () => {
@@ -572,3 +559,19 @@ describe('인증사진 이름 바꿔 압축하기', () => {
   })
 })
 
+import { activitiesFromVault } from '../src/lib/reports'
+import { namedZip } from '../src/lib/photos'
+
+describe('친화·성장활동 기록', () => {
+  it('완료보고서에는 실제로 적어 둔 활동만, 적은 칸만 넘긴다', () => {
+    const items = [{ formId: 'bonding_activity', draft: { type: '성장활동', date: '2026-11-14', goal: '전공 탐색', content: '캠퍼스 방문 계획', actual: '캠퍼스와 학과 건물을 둘러봄', mentor_note: '', mentee_note: '학과가 궁금해짐' } },
+      { formId: 'bonding_activity', draft: { type: '친화활동', date: '', content: '', actual: '' } }]
+    expect(activitiesFromVault(items)).toEqual([{ 유형: '성장활동', 일자: '2026-11-14', '활동 목표': '전공 탐색', '활동 내용': '캠퍼스와 학과 건물을 둘러봄', '멘티 소감': '학과가 궁금해짐' }])
+    expect(activitiesFromVault([])).toEqual([])
+  })
+  it('증빙사진은 정해 준 이름으로 압축한다', async () => {
+    const file = (n) => new File([new Uint8Array([1])], n)
+    const out = unzipSync(await namedZip([['활동 시작 인증 사진', file('a.JPG')], ['활동 내용 확인 사진 (1)', file('b.png')], ['활동 내용 확인 사진 (2)', file('c.jpg')], ['활동 종료 인증 사진', file('d.jpg')]]))
+    expect(Object.keys(out)).toEqual(['활동 시작 인증 사진.jpg', '활동 내용 확인 사진 (1).png', '활동 내용 확인 사진 (2).jpg', '활동 종료 인증 사진.jpg'])
+  })
+})

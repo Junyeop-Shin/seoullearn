@@ -24,7 +24,8 @@ Vue 3 화면. 모든 요청은 같은 출처의 `/api`(backend)로만 보낸다.
 | `/ieumdan` | 이음단 연락처 | 자치구별 이음단 카카오톡 채널 바로가기. 내 멘티의 자치구를 위에 보여 준다 |
 | `/places` | 협약 장소 | 자치구별 장소 목록과 카카오맵 (지금은 임시로 넣은 스터디카페. 실제 협약 장소 아님) |
 | `/allowance` | 활동비 계산 | 시간당 금액, 한 달 추정 합계, 달마다의 가산금 구간 |
-| `/forms`, `/forms/:formId` | 기타 서식 | 전용 화면이 없는 양식. `forms/`에 JSON을 추가하면 바로 나온다 |
+| `/bonding` | 친화·성장활동 | 구글폼 바로가기, 신청·결과보고서에 적은 내용 적어 두기, 증빙사진 이름 바꿔 압축 (AI 미사용) |
+| `/extension` | 시간확대 요건 확인 | 멘티가 시간확대를 신청할 수 있는지 네 가지 요건 확인, 이음단 채널 바로가기 |
 | `/settings` | 멘토 설정 | 이름, 연락처, 멘토링 유형, 대학교·전공 |
 | `/vault` | 백업·복원 | 전체 자료 내보내기·가져오기·삭제 |
 | `/admin/unanswered` | 답 못 한 질문 (관리자) | 목록, CSV 내보내기, 삭제 |
@@ -47,7 +48,6 @@ src/components/StageBar.vue      단계 진행바
 src/components/CopyBlock.vue     붙여 넣을 글 한 덩어리와 복사 버튼
 src/components/CurriculumEditor.vue   주차별 커리큘럼 표와 추천
 src/components/DraftResult.vue   초안 결과: 되물을 질문, 경고, 필드별 수정·복사·다시 생성, 이름 칸 채우기
-src/components/SchemaForm.vue    스키마로 입력 칸을 자동으로 그린다 (기타 서식, 완료보고서)
 src/components/AnswerCard.vue    답변 카드
 src/templates/monthly_schedule.md     이음단에 보내는 일정·장소 문구 (이름이 들어가 브라우저에서 만든다)
 public/data/curriculum.json           학년·학기·과목별 교육과정 단원 (교과과정으로 채우기의 자료. 출처는 파일의 sources)

@@ -70,6 +70,14 @@ class CompletionReportHooks(Hooks):
         if reports:
             ctx.extra["회차별 기록"] = facts
             ctx.extra["통계"] = stats(reports)
+        # 친화·성장활동 기록(멘토가 적어 둔 것)도 참고 자료다. 정서·가정·건강 내용은 같은 규칙으로 뺀다
+        acts = []
+        for a in ctx.extra.pop("activities", None) or []:
+            row = {k: sensitive.filter_text(str(v))[0] for k, v in a.items() if str(v).strip()} if isinstance(a, dict) else {}
+            if any(row.values()):
+                acts.append({k: v for k, v in row.items() if v})
+        if acts:
+            ctx.extra["친화·성장활동"] = acts
         goals = ctx.extra.pop("plan_goal", None)
         ctx.extra["_goals"] = [str(g).strip() for g in goals if str(g).strip()] if isinstance(goals, list) else []
         if ctx.extra["_goals"]:

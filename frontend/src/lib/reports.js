@@ -147,6 +147,16 @@ export function handoverForDraft(draft) {
   return Object.keys(out).length ? out : null
 }
 
+// ---- 친화·성장활동 기록: 신청과 결과보고서에 적은 내용을 적어 둔 것 (유형마다 회기에 한 번)
+export const BONDING_FORM = 'bonding_activity'
+export const BONDING_TYPES = ['친화활동', '성장활동']
+/** 완료보고서 초안의 참고 자료로 넘길 활동 기록. 실제로 한 활동(일자가 있고 내용을 적은 것)만. */
+export function activitiesFromVault(items) {
+  return BONDING_TYPES.map((t) => items.find((x) => x.formId === BONDING_FORM && x.draft?.type === t)?.draft)
+    .filter((d) => d && (d.actual || d.content || '').trim())
+    .map((d) => Object.fromEntries([['유형', d.type], ['일자', d.date], ['활동 목표', d.goal], ['활동 내용', d.actual || d.content], ['멘토 소감', d.mentor_note], ['멘티 소감', d.mentee_note]].filter(([, v]) => (v || '').trim())))
+}
+
 // ---- 지난 회기 요약: 다음 회기를 시작할 때 지난 회기의 계획서·활동보고서·완료보고서에서 추려 남긴다 (나머지는 지운다).
 // 새 회기의 종합계획서를 쓸 때 참고로 보여 주고, AI로 초안을 채울 때 이어지게 쓰는 재료로 넘긴다. 감성케어·정서 내용은 넣지 않는다.
 export const TERM_SUMMARY_FORM = 'term_summary'

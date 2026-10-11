@@ -87,6 +87,11 @@ class CompletionReportTest(unittest.TestCase):
         self.assertTrue({"learning_goal", "extension_mentor", "extension_mentee"} <= keys)
         self.assertTrue(any("3건" in w and "16회차" in w for w in r.warnings))
         # 시간확대(120분)는 한 회기가 8회차다: 8건이면 다 마친 것이고, 안내도 8회차로 나온다
+        # 친화·성장활동 기록은 참고 입력으로 넘어가고, 정서 내용은 빠진다
+        llm = EchoLLM()
+        forms.draft("completion_report", {}, llm, {"reports": sessions("M1")[:3], "activities": [{"유형": "성장활동", "활동 내용": "캠퍼스와 학과 건물을 둘러봄", "멘티 소감": "부모님이랑 다퉈서 속상했다고 함"}]})
+        self.assertIn("캠퍼스와 학과 건물을 둘러봄", llm.calls[0][1])
+        self.assertNotIn("속상", llm.calls[0][1])
         long = forms.draft("completion_report", {}, EchoLLM(), {"reports": sessions("M1")[:8], "duration": "120"})
         self.assertFalse(any("마친 뒤 작성" in w for w in long.warnings))
         self.assertTrue(any("8회차 활동보고서가 승인된 직후" in x for x in long.reminders))

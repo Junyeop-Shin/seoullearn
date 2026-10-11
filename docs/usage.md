@@ -183,7 +183,7 @@ docker compose run --rm ai-server python /project/scripts/compare_vector_backend
 - 교과과정으로 채우기와 오프라인 일정·장소 문구는 서버를 쓰지 않는다 (`frontend/src/lib/curriculum.js`, `frontend/src/lib/schedule.js`). `extra.curriculum_lines`: 화면에서 만든 주차별 커리큘럼 줄. `extra.rounds`: 회기의 회차 수(종합계획서②의 기간 계산).
 - 프롬프트는 `prompts/`의 파일에서 읽는다. 입력에 아동 안전 신호가 있으면 LLM을 부르지 않고 운영사무국(즉시) 안내를 `warnings`로 돌려준다.
 - 응답: `draft`(필드별 값), `missing_questions`(되물을 항목), `warnings`, `reminders`(제출·증빙 안내), `pii_masked`.
-- 새 양식은 `forms/`에 JSON 파일을 추가하면 `/drafts/<form_id>`로 바로 쓸 수 있고, 화면의 '기타 서식'에도 바로 나온다. 양식별 특수 처리는 `hooks_*.py`의 훅으로 분리한다. 시간확대 신청 전 확인, 친화·성장활동 계획서·결과보고서는 JSON 파일만으로 추가했다.
+- 새 양식은 `forms/`에 JSON 파일을 추가하면 `/drafts/<form_id>`로 바로 쓸 수 있다(화면의 '기타 서식'은 2026-10-11에 없앴다). 양식별 특수 처리는 `hooks_*.py`의 훅으로 분리한다. 시간확대 신청 전 확인, 친화·성장활동 계획서·결과보고서는 JSON 파일만으로 추가했다.
 
 ```bash
 docker compose run --rm ai-server python -m evaluation.report_eval [--judge]   # 초안 평가 (eval/report_eval/cases.json)

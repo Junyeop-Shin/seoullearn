@@ -109,7 +109,7 @@ async function startNextTerm() {
 
       <div v-if="viewing === 'COMPLETION' && saved.stage === 'COMPLETION'" class="card" data-test="next-term">
         <strong>다음 회기로 연장한다면</strong>
-        <p class="muted">완료보고서를 제출하고 승인을 확인한 뒤 눌러 주세요. 시간확대(120분)는 회기마다 다시 신청해야 하고 자동으로 이어지지 않습니다.</p>
+        <p class="muted">완료보고서를 제출하고 승인을 확인한 뒤 눌러 주세요. 시간확대(120분)는 회기마다 멘티가 다시 신청해야 합니다. <router-link :to="{ path: '/extension', query: { mentee: alias } }">시간확대 요건 확인</router-link>에서 신청할 수 있는지 볼 수 있고, 승인되지 않았으면 <router-link :to="menteePath(alias, '/manage')">멘티 설정</router-link>에서 회당 학습시간을 60분으로 바꿔 주세요.</p>
         <label class="field"><span class="name">다음 회기에 들을 강좌 <span class="tag">선택</span></span>
           <input v-model="nextCourse" maxlength="60" :placeholder="`예: ${saved.course || '강좌 이름'} 다음 강좌. 적어 두면 다음 회기 종합계획서의 수강 목표에 넣어 드립니다`" data-test="next-course" />
         </label>

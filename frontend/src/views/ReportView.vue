@@ -9,7 +9,7 @@ import { absentText, applyLines, boxText, contentAuto, fromLines, halvesOf, prog
 import { plannedRow, plannedWeek, previousHomework } from '../lib/reports'
 import { endTime } from '../lib/schedule'
 import { afterReport } from '../lib/stage'
-import { photoBase, photoZip } from '../lib/photos'
+import { downloadZip, photoBase, photoZip } from '../lib/photos'
 import { toast } from '../lib/toast'
 import { listItems, saveItem } from '../stores/vault'
 
@@ -173,12 +173,7 @@ function setPhoto(key, file) {
 }
 async function downloadPhotos() {
   const files = photoSlots.value.map(([k]) => photos[k]).filter(Boolean)
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(new Blob([await photoZip(photoName.value, files)], { type: 'application/zip' }))
-  a.download = `${photoName.value}.zip`
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
-  toast(`${a.download} 파일을 내려받았습니다.`)
+  toast(`${downloadZip(await photoZip(photoName.value, files), photoName.value)} 파일을 내려받았습니다.`)
 }
 
 const save = () => run('save', async () => {
