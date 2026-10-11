@@ -6,7 +6,7 @@ import { copyText } from '../../lib/copy'
 import { toText } from '../../lib/formFields'
 import { displayName } from '../../lib/mentee'
 import { CURRICULUM_SUBJECTS, GRADES, SEMESTERS, findUnits, genericHints, gradeKey, hasExams, loadCurriculum, spreadUnits } from '../../lib/curriculum'
-import { DIAG_SLOTS, GOAL_SLOTS, changedLines, composeSlots, freshLines, mergeLines, parseSlots, platformSafe } from '../../lib/plan'
+import { DIAG_SLOTS, GOAL_SLOTS, changedLines, composeSlots, parseSlots, platformSafe } from '../../lib/plan'
 import { curriculumLines, handoverForDraft, handoverFromVault, handoverNote, latestOf, termSummaryFromVault, termSummaryText } from '../../lib/reports'
 import { WEEKDAYS, weekdayOf } from '../../lib/schedule'
 import { totalRounds } from '../../lib/stage'
@@ -33,8 +33,7 @@ const notes = ref([])
 const busy = ref('')
 const error = ref('')
 const filled = ref('')
-const defaults = {}   // 규칙으로 만든 기본안 (멘토링 구성, 활동규칙). 고치지 않았으면 AI로 다듬지 않는다
-const polished = {}   // 마지막으로 AI가 다듬어 준 글. 그 뒤로 고치지 않은 줄은 다시 다듬지 않는다 (누를 때마다 문장이 조금씩 달라지지 않게)
+const defaults = {}   // 규칙으로 만든 기본안 (멘토링 구성, 활동규칙). 고치지 않았으면 서버에 보내지 않는다
 const rounds = computed(() => totalRounds(props.profile))
 const subject = computed(() => [props.profile.subject, props.profile.subjectEtc].filter(Boolean).join(' / '))
 // 참고 자료는 두 경우를 나눠 다룬다.
@@ -51,7 +50,6 @@ const SOURCE = {
 }
 // AI가 바꾼 내용: 무엇이 새로 들어갔고 무엇이 어떻게 고쳐졌는지 보여 주고, 되돌릴 수 있게 한다
 const changes = ref(null)   // {mode, items: [{label, before, after}], undo: 되돌릴 값}
-const LABELS = { learning_goal: '학습목표', diagnosis: '학생진단', structure: '멘토링 구성', rules: '활동규칙' }
 // 플랫폼은 특수문자에서 오류가 날 수 있어 학습목표의 머리말은 (1)~(4)로 쓴다
 const goalText = computed(() => composeSlots(GOAL_SLOTS, goal.parts, goal.rest, true))
 const diagText = computed(() => composeSlots(DIAG_SLOTS, diag.parts, diag.rest))
@@ -162,57 +160,34 @@ function fillGeneral() {
 
 const memo = () => ({ learning_goal: goalText.value, diagnosis: diagText.value, structure: text.structure, rules: text.rules })
 
-// mode: save(저장, AI 미사용) | fill(비워 둔 목표·진단의 초안을 참고 자료로 쓴다) | polish(적어 둔 글의 표현만 다듬는다)
+// mode: save(저장, AI 미사용) | fill(비워 둔 목표·진단의 초안을 참고 자료로 쓴다)
 async function draft(mode) {
-  const polish = mode !== 'save'
-  // 기본안을 그대로 둔 칸은 보내지 않는다: 서버가 같은 기본안을 다시 넣고, AI가 고쳐 쓰지 않는다
+  const fill = mode === 'fill'
+  // 기본안을 그대로 둔 칸은 보내지 않는다: 서버가 같은 기본안을 다시 넣는다
   const given = Object.fromEntries(Object.entries(memo()).filter(([k, v]) => v.trim() && v.trim() !== (defaults[k] || '').trim()))
   const extra = { mode: props.profile.mode || '온라인', memo: given, curriculum_lines: curriculumLines(rows.value),
     pre_contact: { subject_confirm: [subject.value, props.profile.mode].filter(Boolean).join(', '), site_course: props.profile.course || '' } }
-  // 참고 자료는 초안 채우기에서만, 해당하는 한 가지만 넘긴다 (표현 다듬기에는 넘기지 않는다)
-  if (mode === 'fill' && source === 'handover') extra.handover = handoverForDraft(handoverDraft)   // 인계받은 글 가운데 허용된 네 항목만
-  if (mode === 'fill' && source === 'previous') extra.previous_term = previous
+  // 참고 자료는 초안 채우기에서만, 해당하는 한 가지만 넘긴다
+  if (fill && source === 'handover') extra.handover = handoverForDraft(handoverDraft)   // 인계받은 글 가운데 허용된 네 항목만
+  if (fill && source === 'previous') extra.previous_term = previous
   const snap = snapshot()
   const before = memo()
-  const fresh = {}   // 표현 다듬기: 칸마다 새로 다듬을 줄
-  if (!polish) extra.only = []           // 저장만 할 때는 AI를 부르지 않는다
-  else if (mode === 'fill') extra.only = ['learning_goal', 'diagnosis'].filter((k) => !before[k].trim())   // 초안 채우기: 비워 둔 목표·진단만
-  else {
-    // 표현 다듬기: 마지막으로 다듬은 뒤에 고친 줄만 보낸다. 기본안 그대로인 줄과 이미 다듬은 줄은 보내지 않는다
-    for (const k of Object.keys(before)) {
-      const lines = freshLines(before[k], polished[k], defaults[k])
-      if (lines.length) fresh[k] = lines
-    }
-    extra.only = Object.keys(fresh)
-    extra.memo = { ...given, ...Object.fromEntries(extra.only.map((k) => [k, fresh[k].join('\n')])) }
-  }
-  if (polish && !extra.only.length) return null
+  // 저장은 AI를 부르지 않는다. 초안 채우기는 비워 둔 목표·진단만 채운다
+  extra.only = fill ? ['learning_goal', 'diagnosis'].filter((k) => !before[k].trim()) : []
+  if (fill && !extra.only.length) return null
   const res = await api.draft(FORM_ID, inputs(), extra)
   // 아동 안전 신호가 있으면 서버가 초안을 만들지 않고 운영사무국 안내만 돌려준다: 그 안내를 보여 주고 저장하지 않는다
   if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '초안을 만들지 못했습니다.')
   const out = Object.fromEntries(Object.keys(before).map((k) => [k, toText(res.draft[k])]))
-  const kept = []
-  if (mode === 'polish') {
-    // 다듬어 돌아온 줄을 원래 글의 그 자리에 넣는다. 보내지 않은 줄과 칸은 적어 둔 그대로다
-    for (const k of Object.keys(before)) {
-      const merged = fresh[k] ? mergeLines(before[k], fresh[k], out[k]) : before[k]
-      if (merged === null) kept.push(`${LABELS[k]} 칸은 다듬은 글의 줄 수가 달라 적어 둔 그대로 두었습니다. 빠진 내용이 없는지 확인해 주세요.`)
-      out[k] = merged ?? before[k]
-    }
-  }
-  // 서버가 정리한 글(특수문자 정리, 다듬은 문장)을 같은 칸에 다시 넣는다
-  const lost = [...kept, ...applyText(goal, GOAL_SLOTS, out.learning_goal, '학습목표', true), ...applyText(diag, DIAG_SLOTS, out.diagnosis, '학생진단', false)]
+  // 서버가 정리한 글(특수문자 정리, 채운 초안)을 같은 칸에 다시 넣는다
+  const lost = [...applyText(goal, GOAL_SLOTS, out.learning_goal, '학습목표', true), ...applyText(diag, DIAG_SLOTS, out.diagnosis, '학생진단', false)]
   for (const k of ['structure', 'rules']) if (out[k].trim()) text[k] = out[k]
-  if (polish) {
-    const after = memo()
-    for (const k of extra.only) polished[k] = after[k].trim()
-    // 무엇이 새로 들어갔고 무엇이 고쳐졌는지 남긴다
-    const now = snapshot()
-    const items = now.flatMap(([label, after], i) => changedLines(snap[i][1], after).map(([b, a]) => ({ label, before: b, after: a })))
-    changes.value = items.length ? { mode, items, undo: { goal: [...snap.slice(0, 4).map((x) => x[1])], diag: [...snap.slice(4, 8).map((x) => x[1])], structure: snap[8][1], rules: snap[9][1] } } : null
+  if (fill) {
+    // 무엇이 새로 들어갔는지 남긴다
+    const items = snapshot().flatMap(([label, after], i) => changedLines(snap[i][1], after).map(([b, a]) => ({ label, before: b, after: a })))
+    changes.value = items.length ? { items, undo: { goal: [...snap.slice(0, 4).map((x) => x[1])], diag: [...snap.slice(4, 8).map((x) => x[1])], structure: snap[8][1], rules: snap[9][1] } } : null
   }
-  // AI의 답을 읽지 못한 것을 '바꿀 표현이 없었습니다'로 넘기지 않는다
-  notes.value = [...(mode === 'polish' && res.error ? ['AI의 답을 읽지 못해 적어 둔 글을 그대로 두었습니다. 한 번 더 눌러 주세요.'] : []), ...lost, ...(res.pii_masked.length ? [`AI에 보내기 전에 가린 정보: ${res.pii_masked.join(', ')}`] : []), ...res.missing_questions.map((q) => q.question), ...res.warnings, ...res.reminders]
+  notes.value = [...lost, ...(res.pii_masked.length ? [`AI에 보내기 전에 가린 정보: ${res.pii_masked.join(', ')}`] : []), ...res.missing_questions.map((q) => q.question), ...res.warnings, ...res.reminders]
   return res
 }
 
@@ -240,7 +215,6 @@ function undoChanges() {
   goal.parts = [...u.goal]
   diag.parts = [...u.diag]
   Object.assign(text, { structure: u.structure, rules: u.rules })
-  for (const k of Object.keys(polished)) delete polished[k]
   changes.value = null
   toast('AI가 바꾸기 전으로 되돌렸습니다.')
 }
@@ -250,12 +224,6 @@ const canFill = !!source
 const fill = () => run('fill', async () => {
   const res = await draft('fill')
   toast(res ? (changes.value ? '초안을 채웠습니다. 새로 들어간 내용을 확인하고 고쳐 주세요.' : '참고 자료에서 채울 내용을 찾지 못했습니다.') : '학습목표와 학생진단에 이미 적은 내용이 있어 채우지 않았습니다.')
-})
-
-const polish = () => run('polish', async () => {
-  // 적어 둔 칸의 표현만 다듬는다 (비워 둔 칸은 건드리지 않는다)
-  const res = await draft('polish')
-  toast(res ? (changes.value ? '표현을 다듬었습니다. 바뀐 내용을 확인하고 저장해 주세요.' : '다듬어 보았지만 바꿀 표현이 없었습니다.') : '새로 다듬을 내용이 없습니다. 이미 다듬었거나 기본안 그대로입니다.')
 })
 
 const save = () => run('save', async () => {
@@ -304,7 +272,7 @@ const copy = (label, value) => copyText(platformSafe(value), label)
         <p class="notice">{{ SOURCE[source].text }} 이미 적은 칸은 건드리지 않습니다. 채운 뒤 멘티와 이야기한 내용에 맞게 고쳐 주세요.</p>
         <button type="button" :disabled="!!busy || !start" data-test="fill" @click="fill">{{ busy === 'fill' ? '채우는 중…' : SOURCE[source].button }}</button>
       </div>
-      <div v-if="changes && changes.mode === 'fill'" class="box ask changes" data-test="changes">
+      <div v-if="changes" class="box ask changes" data-test="changes">
         <div class="row"><strong class="grow">AI가 새로 채운 내용 {{ changes.items.length }}곳</strong><button type="button" class="small" data-test="undo" @click="undoChanges">되돌리기</button></div>
         <ul><li v-for="(c, i) in changes.items" :key="i"><b>{{ c.label }}</b><ins>{{ c.after }}</ins></li></ul>
         <p class="notice">멘티가 말한 내용이 아니라 참고 자료로 쓴 초안입니다. 멘티와 이야기한 내용에 맞게 고쳐 주세요.</p>
@@ -356,15 +324,9 @@ const copy = (label, value) => copyText(platformSafe(value), label)
         <CurriculumEditor v-model="rows" :rounds="rounds" :start="start" :hints="hints" />
       </div>
 
-      <div v-if="changes && changes.mode === 'polish'" class="box ask changes" data-test="changes">
-        <div class="row"><strong class="grow">AI가 표현을 다듬은 곳 {{ changes.items.length }}곳</strong><button type="button" class="small" data-test="undo" @click="undoChanges">되돌리기</button></div>
-        <ul><li v-for="(c, i) in changes.items" :key="i"><b>{{ c.label }}</b><del v-if="c.before.trim()">{{ c.before }}</del><ins>{{ c.after || '(비워짐)' }}</ins></li></ul>
-      </div>
       <div v-if="notes.length" class="box warn" data-test="notes"><ul><li v-for="n in notes" :key="n">{{ n }}</li></ul></div>
       <div class="row">
         <button type="button" class="primary" :disabled="!!busy || !start" data-test="save" @click="save">{{ busy === 'save' ? '저장하는 중…' : '저장' }}</button>
-        <button type="button" :disabled="!!busy || !start" data-test="polish" @click="polish">{{ busy === 'polish' ? '다듬는 중…' : 'AI로 표현 다듬기' }}</button>
-        <span class="notice">표현 다듬기는 새로 적거나 고친 줄만 다듬고, 바뀐 곳을 보여 드립니다.</span>
       </div>
     </fieldset>
   </div>

@@ -1,6 +1,6 @@
-"""AI 다듬기 확인용 멘티 자료를 만든다 (docs/ai_polish_check.md의 시나리오를 바로 따라 할 수 있게).
+"""확인용 멘티 자료를 만든다 (단계마다 바로 눌러 볼 수 있는 지점에 맞춘 지어낸 멘티들).
 
-지어낸 멘티 다섯 명을 시나리오가 시작하는 지점에 맞춰 둔다. LLM을 부르지 않고, 실제 인물 정보는 없다.
+지어낸 멘티들을 단계마다 확인할 지점에 맞춰 둔다. LLM을 부르지 않고, 실제 인물 정보는 없다.
 결과: frontend/public/scenario_vault.json (내 멘티 화면의 '확인용 멘티 불러오기'가 읽는다)
 
   python scripts/make_scenario_vault.py
@@ -89,14 +89,22 @@ add("오가상", "plan_file", "종합계획서②", "2026-09-30", {
      "alloc": {"mode": "weekly", "perWeek": 2, "target": ""}, "value": {"learning_goal": "① 밀크T 중2 수학 개념 기본 완강\n② 2학기 중간고사 대비 1학기 내용 복습", "diagnosis": "(과목역량) 계산은 빠르나 부호 실수가 잦음",
                                                                       "structure": "\n".join(x.format(17, 18) for x in STRUCTURE), "rules": "\n".join(RULES)},
      "changed": {"learning_goal": False, "diagnosis": False, "structure": False, "rules": False}, "rows": r3})
-for no, (day, scope, goal, content, hw) in enumerate([
-        ("2026-09-28", "1~2강 유리수와 순환소수", "유리수와 순환소수 개념 이해", "유리수와 순환소수의 뜻을 설명하고 예제를 함께 풂.", {"lecture": "3~4강", "task": "3강 예제 풀기"}),
-        ("2026-10-05", "3~4강 순환소수를 분수로 나타내기", "순환소수를 분수로 바꾸기", "순환소수를 분수로 나타내는 방법을 연습함. 예제는 혼자 풀었음.", {"lecture": "5~6강", "task": "5강 예제 풀기"})], 1):
-    inp = {"status": "출석", "session_date": day, "session_no": str(no), "subject": "수학", "course": "밀크T 중2 수학 개념 기본", "actual_time": "17:02~18:03", "scope": scope, "goal": goal,
-           "progress_scale": "잘함", "understanding_scale": "보통", "attendance": "정시 출석", "lecture_progress": "지난 회차 인강: 다 들음" if no > 1 else "", "homework": "지난 회차 과제: 함" if no > 1 else "",
-           "session_content": content, "etc": "", "requests": ""}
+# 지금 화면이 저장하는 모양이다: 다음 회차까지 낸 과제는 학습 이해도에 '과제: …' 줄로 적고, 인강은 다음 회차에 종합계획서②의 그 주차 강의에서 불러온다
+LEC3 = "밀크T, 중2 수학 개념 기본(가상 강사)"
+for no, (day, scope, goal, content, task) in enumerate([
+        ("2026-09-28", "1~2강 유리수와 순환소수", "유리수와 순환소수 개념 이해", "유리수와 순환소수의 뜻을 설명하고 예제를 함께 풂.", "개념원리 중2 RPM 10~15p 풀기"),
+        ("2026-10-05", "3~4강 순환소수를 분수로 나타내기", "순환소수를 분수로 바꾸기", "순환소수를 분수로 나타내는 방법을 연습함. 예제는 혼자 풀었음.", "개념원리 중2 RPM 16~23p 풀기")], 1):
+    att = "출결: 정시 출석 (17:02~18:03)"
+    lec = f"인강: {LEC3} {2 * no - 1}~{2 * no}강 수강함"
+    hw = "과제: 개념원리 중2 RPM 10~15p 풀기 - 수행함" if no > 1 else ""
+    progress = "\n".join(x for x in (att, lec, hw) if x)
+    understanding = f"{content}\n과제: {task}"
+    inp = {"status": "출석", "session_date": day, "session_no": str(no), "subject": "수학", "course": "밀크T 중2 수학 개념 기본", "actual_time": "17:02~18:03",
+           "scope": f"학습범위: {scope}\n학습목표: {goal}", "attendance": "정시 출석 (17:02~18:03)", "lecture_progress": lec, "homework": hw, "progress_note": progress,
+           "session_content": understanding, "etc": "", "requests": ""}
     add("오가상", "activity_report", f"활동보고서 {no}회차", day, {"mentee_name": "[멘티명]", "mentee_grade": "[멘티 학년]", "mentor": "[멘토 성명·소속]", **{k: v for k, v in inp.items() if k != "status"}},
-        inp, {"assignedHomework": hw}, no)
+        inp, {"quick": {"status": "출석", "date": day, "time": "17:02~18:03", "lectureDone": "함", "taskDone": "함" if no > 1 else ""},
+              "sheet": {"content": inp["scope"], "progress": [progress], "understanding": [understanding], "etc": "", "requests": ""}, "auto": [att, lec, hw]}, no)
 
 # 4. 이가상: 1회기를 마치고 2회기를 시작함. 지난 회기 요약이 있다 (시나리오 11)
 add("이가상", "mentee_profile", "멘티 정보", "2026-10-08", profile("이가상", "고1", "수학", "송파구", "온라인", "2026-11-03T20:00", "PLAN", term=2, course="메가스터디 시발점 수2",
@@ -144,6 +152,42 @@ plan_file("서가상", "고2", "2026-10-12T17:00", 60, {"platform": "메가스�
 plan_file("팔가상", "고1", "2026-10-14T18:00", 120, {"platform": "이투스", "lecture": "공통수학1 개념 완성", "instructor": "가상 강사"},
           ["① 이투스 공통수학1 개념 완성 완강", "② 공통수학1 교과서 문제 1회독", "③ 오답 노트를 회차마다 작성하기"],
           ["(과목역량) 계산은 정확하나 서술형 풀이 과정을 자주 건너뜀", "(학습습관 및 태도) 과제는 꾸준히 해 오는 편이며 질문이 많음"], UNITS8)
+
+# 7. 완가상: 한 회기(16회차)를 모두 마치고 완료보고서를 쓸 차례. 멘티를 열면 완료보고서 단계가 뜨고, 저장해 둔 활동보고서 16건으로 초안을 만들어 볼 수 있다
+START7 = "2026-06-08T17:00"
+COURSE7 = {"platform": "메가스터디", "lecture": "수학의 시작, 시발점 - 대수", "instructor": "가상 강사"}
+plan_file("완가상", "고2", START7, 60, COURSE7,
+          ["① 메가스터디 수학의 시작, 시발점 - 대수 완강", "② 대수 1회독 완료, 2학기 중간고사 수학 3등급", "③ 인강은 하루에 한 강씩 규칙적으로 듣고 오답 노트 쓰기"],
+          ["(과목역량) 개념은 이해하나 계산 실수가 잦음", "(학습습관 및 태도) 인강은 꾸준히 듣지만 문제 풀이 과제를 미루는 편임"], UNITS16)
+add("완가상", "mentee_profile", "멘티 정보", "2026-10-10", profile("완가상", "고2", "수학", "은평구", "온라인", START7, "COMPLETION", currentRound=16, course="메가스터디 수학의 시작, 시발점 - 대수"))
+LEC7 = "메가스터디, 수학의 시작, 시발점 - 대수(가상 강사)"
+NOTES7 = ["개념 설명을 잘 따라옴", "예제는 혼자 풀었으나 응용 문제에서 막힘", "계산 실수가 줄어듦", "오답 노트를 처음으로 써 옴", "서술형 풀이 과정을 끝까지 적는 연습을 함", "질문이 늘고 스스로 풀이를 설명함"]
+# 완료보고서의 '멘토링 내용'(학습 외 습관·태도, 진로·진학 탐색)은 활동보고서에 그런 기록이 있어야 초안이 나온다
+HABITS7 = {2: "학습 플래너를 쓰기로 하고 일주일 계획을 함께 세움", 5: "플래너를 사흘 이상 꾸준히 씀. 인강 듣는 시간을 저녁 8시로 정함", 8: "희망 전공(경찰행정학과)의 입학 전형을 함께 찾아봄",
+           13: "수업 전에 지난 회차 필기를 다시 읽어 오는 습관이 자리 잡음", 15: "목표 대학 두 곳의 수시 전형 일정을 정리해 봄"}
+for no in range(1, 17):
+    day = (date.fromisoformat(START7[:10]) + timedelta(days=7 * (no - 1))).isoformat()
+    unit, task = UNITS16[no - 1], f"개념원리 대수 RPM {10 * no}~{10 * no + 8}p 풀기"
+    status = "지각" if no == 7 else "무단결석" if no == 11 else "출석"
+    if status == "무단결석":
+        inp = {"status": status, "session_date": day, "session_no": str(no), "subject": "수학", "course": "메가스터디 수학의 시작, 시발점 - 대수", "actual_time": "17:00~17:30",
+               "scope": "", "attendance": status, "session_content": "멘티 무단결석으로 멘토링을 진행하지 못함.", "etc": "", "requests": ""}
+        sheet = {"content": "멘티 무단결석으로 멘토링을 진행하지 못함.", "progress": [""], "understanding": [""], "etc": "", "requests": ""}
+        extra = {"quick": {"status": status, "date": day, "time": "17:00~17:30", "lectureDone": "", "taskDone": ""}, "sheet": sheet, "auto": ["", "", ""]}
+    else:
+        when = "17:12~18:13" if status == "지각" else "17:01~18:03"
+        att = f"출결: {'지각' if status == '지각' else '정시 출석'} ({when})"
+        lec = f"인강: {LEC7} {2 * no - 1}~{2 * no}강 수강함"
+        done = no % 4 != 0   # 네 번에 한 번은 과제를 못 해 옴
+        hw = "" if no in (1, 12) else f"과제: 개념원리 대수 RPM {10 * (no - 1)}~{10 * (no - 1) + 8}p 풀기 - {'수행함' if done else '수행하지 않음'}"   # 1회차와 결석 다음 회차에는 낸 과제가 없다
+        progress = "\n".join(x for x in (att, lec, hw) if x)
+        understanding = f"{unit} 개념을 설명하고 확인 문제를 함께 풂\n{NOTES7[no % len(NOTES7)]}" + (f"\n{HABITS7[no]}" if no in HABITS7 else "") + (f"\n과제: {task}" if no not in (10, 16) else "")
+        scope = f"학습범위: 수학의 시작, 시발점 - 대수(가상 강사), {2 * no - 1}~{2 * no}강\n학습목표: {unit} 개념학습 및 확인 테스트"
+        inp = {"status": status, "session_date": day, "session_no": str(no), "subject": "수학", "course": "메가스터디 수학의 시작, 시발점 - 대수", "actual_time": when, "scope": scope,
+               "attendance": att[4:], "lecture_progress": lec, "homework": hw, "progress_note": progress, "session_content": understanding, "etc": "", "requests": ""}
+        extra = {"quick": {"status": status, "date": day, "time": when, "lectureDone": "함", "taskDone": ("함" if done else "안 함") if hw else ""},
+                 "sheet": {"content": scope, "progress": [progress], "understanding": [understanding], "etc": "", "requests": ""}, "auto": [att, lec, hw]}
+    add("완가상", "activity_report", f"활동보고서 {no}회차", day, {"mentee_name": "[멘티명]", "mentee_grade": "[멘티 학년]", "mentor": "[멘토 성명·소속]", **{k: v for k, v in inp.items() if k != "status"}}, inp, extra, no)
 
 # 5. 마가상: 오프라인 멘티. 오프라인 일정·장소 화면 확인용
 add("마가상", "mentee_profile", "멘티 정보", "2026-09-10", profile("마가상", "중3", "영어", "마포구", "오프라인", "2026-09-14T17:00", "ACTIVITY", currentRound=5, course="밀크T 중3 영어 문법"))

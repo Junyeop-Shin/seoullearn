@@ -37,7 +37,9 @@ def stats(reports: list[dict]) -> dict:
     """출결·성실성 통계. 숫자는 여기서 세고 LLM은 문장만 쓴다."""
     status = Counter((r.get("status") or "출석") for r in reports)
     scale = Counter(r["progress_scale"] for r in reports if r.get("progress_scale"))
-    return {"전체 회차 수": len(reports), "출결": dict(status), "학습진도(성실성) 평가 분포": dict(scale)}
+    done = Counter("수행하지 않음" if "수행하지 않" in str(r.get("homework")) else "수행함" for r in reports if "수행" in str(r.get("homework") or ""))
+    last = next((str(r["lecture_progress"]) for r in reversed(reports) if str(r.get("lecture_progress") or "").strip()), "")   # 완강 여부를 가늠할 마지막 수강 기록
+    return {"전체 회차 수": len(reports), "출결": dict(status), "과제": dict(done), "마지막 인강 기록": last, "학습진도(성실성) 평가 분포": dict(scale)}
 
 
 @register("completion_report")
@@ -92,7 +94,7 @@ class CompletionReportHooks(Hooks):
         return None
 
     def fixed(self, f: dict, ctx: Context):
-        if f["key"] in ("content", "achievement") and not ctx.extra["_reports"]:
+        if f["key"] in ("content", "achievement", "requests") and not ctx.extra["_reports"]:
             return []   # 기록이 없으면 LLM에 쓰게 하지 않는다
         return None
 

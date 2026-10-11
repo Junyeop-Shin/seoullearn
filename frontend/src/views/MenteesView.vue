@@ -29,7 +29,7 @@ async function loadSamples() {
   }
 }
 
-// AI 다듬기 확인용 멘티 (docs/ai_polish_check.md의 시나리오가 시작하는 지점에 맞춰 둔 지어낸 멘티 다섯 명).
+// 확인용 멘티 (단계마다 바로 눌러 볼 수 있는 지점에 맞춰 둔 지어낸 멘티들. scripts/make_scenario_vault.py).
 // 다시 누르면 그 멘티들을 처음 상태로 되돌린다. 멘토 설정이 비어 있으면 지어낸 이름과 연락처를 넣는다
 async function loadScenario() {
   try {
@@ -69,7 +69,7 @@ async function loadScenario() {
     <div class="card">
       <p class="muted flush">지어낸 멘티 4명의 자료를 불러옵니다: 회기를 마친 멘티, 멘토 교체를 앞둔 멘티, 막 매칭된 멘티, 결석이 있었던 멘티. 실제 인물이 아니며 이 브라우저에만 저장됩니다.</p>
       <button type="button" data-test="load-samples" @click="loadSamples">예시 멘티 불러오기</button>
-      <p class="muted">AI 표현 다듬기와 서식 파일 내보내기를 바로 써 볼 수 있는 확인용 멘티를 불러옵니다. 다시 누르면 이 멘티들의 자료를 처음 상태로 되돌립니다.</p>
+      <p class="muted">단계마다 바로 눌러 볼 수 있게 맞춰 둔 확인용 멘티를 불러옵니다. 다시 누르면 이 멘티들의 자료를 처음 상태로 되돌립니다.</p>
       <button type="button" data-test="load-scenario" @click="loadScenario">확인용 멘티 불러오기</button>
     </div>
   </div>

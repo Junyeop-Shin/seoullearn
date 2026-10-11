@@ -172,6 +172,7 @@ docker compose run --rm ai-server python /project/scripts/compare_vector_backend
 | `POST /drafts/completion_report` | 완료보고서 초안. 수행 리스트·통계는 규칙, 감성케어 칸은 멘토 입력만. `extra.duration`이 `120`이면 8회차를 한 회기로 본다 | 멘토링 내용·성취도 |
 | `POST /drafts/handover_summary` | 멘토 교체 인계 요약. 허용 항목 네 가지만, 항목마다 출처 칸만 모아 따로 질의 | 항목별 요약 |
 
+- 화면(활동보고서, 종합계획서①·②)은 멘토가 적은 글을 AI로 다듬지 않는다(2026-10-11에 없앰). 아래의 다듬기 동작은 서버 엔진에 남아 있고, 완료보고서의 멘토 입력 칸과 `only`를 직접 지정한 요청에만 쓰인다.
 - 필드의 `source`에 따라 처리가 갈린다: `user`는 입력 그대로, `placeholder`는 `[멘티명]` 같은 자리표시, `derived`는 규칙 계산, `user_text`는 다듬기, `llm_draft`는 초안.
 - 개인정보 칸에 입력이 오면 버리고 경고한다. 5점 척도, 시간, 회차, 날짜 계산은 LLM에 맡기지 않는다.
 - LLM이 쓴 문장에 입력에 없는 숫자가 있으면 그 문장을 빼고 경고한다.

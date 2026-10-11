@@ -91,18 +91,6 @@ export function platformSafe(text) {
 }
 
 const rowsOf = (t) => String(t || '').split('\n').map((x) => x.trim()).filter(Boolean)
-/** 다듬을 줄: done(마지막으로 다듬은 글, 기본안)에 없는 줄만. 한 줄만 고쳤으면 그 줄만 AI에 보낸다. */
-export function freshLines(text, ...done) {
-  const seen = new Set(done.flatMap(rowsOf))
-  return rowsOf(text).filter((l) => !seen.has(l))
-}
-/** 보낸 줄(sent)이 다듬어져 돌아온 줄(got)을 원래 글의 그 자리에 넣는다. 줄 수가 달라 짝을 지을 수 없으면 null. */
-export function mergeLines(text, sent, got) {
-  got = rowsOf(got)
-  if (sent.length !== got.length) return null
-  const map = new Map(sent.map((l, i) => [l, got[i]]))
-  return String(text || '').split('\n').map((l) => map.get(l.trim()) ?? l).join('\n')
-}
 /** 두 글에서 서로 다른 줄만 [전, 후]로. 줄 수가 다르면 글 전체를 한 쌍으로. */
 export function changedLines(before, after) {
   const a = rowsOf(before), b = rowsOf(after)

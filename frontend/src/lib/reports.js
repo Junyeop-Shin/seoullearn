@@ -1,5 +1,5 @@
 // 보관함 항목 → 완료보고서·인계 요약의 입력(활동보고서 목록). 형식은 docs/vault_format.md 참고.
-import { assignedSentences, boxText } from './report'
+import { assignedLines, boxText } from './report'
 
 /** 같은 멘티의 활동보고서를 회차 순으로. 같은 회차가 여러 번 저장돼 있으면 가장 늦게 저장한 것을 쓴다. */
 export function reportsFromVault(items) {
@@ -65,22 +65,23 @@ export function plannedWeek(items, round) {
   const row = (file?.extra?.rows || []).find((r) => Number(r.week) === Number(round))
   if (row && ((row.online || '').trim() || (row.mentoring || '').trim())) {
     const courses = file.extra.courses || []
-    return { row, course: courseName(courses[row.course || 0] || courses[0]) }
+    const c = courses[row.course || 0] || courses[0]
+    return { row, course: courseName(c), platform: (c?.platform || '').trim() }
   }
   const pre = curriculumRow(items, round)
-  return pre ? { row: pre, course: '' } : null
+  return pre ? { row: pre, course: '', platform: '' } : null
 }
 
-/** 직전 회차에 낸 인강·과제. 아무것도 없으면 null.
- * lecture, task: 따로 적어 둔 것 (예전 화면으로 저장한 보고서, 진행 중인 멘티를 등록할 때 적은 것).
- * sentences: 직전 보고서의 학습 이해도에서 과제를 말한 문장 (활동가이드의 예시처럼 내 준 과제는 학습 이해도에 적는다). */
+/** 직전 회차에 낸 인강·과제 {lecture, task}. 아무것도 없으면 null.
+ * 직전 보고서의 학습 이해도에 '과제: …', '인강: …' 줄로 적어 둔 것을 읽는다 (적는 것은 선택이다).
+ * 예전 화면으로 저장한 보고서(extra.assignedHomework)와 진행 중인 멘티를 등록할 때 적은 것(profile.lastHomework)도 읽는다. */
 export function previousHomework(items, round, profile) {
   const prev = items.filter((x) => x.formId === 'activity_report' && Number(x.sessionNo ?? x.inputs?.session_no) === Number(round) - 1)
     .sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))[0]
-  const hw = prev?.extra?.assignedHomework || (prev ? null : profile?.lastHomework)
-  const sentences = assignedSentences([].concat(prev?.extra?.sheet?.understanding || []).map(boxText).join('\n'))
-  const out = { lecture: (hw?.lecture || '').trim(), task: (hw?.task || '').trim(), sentences }
-  return out.lecture || out.task || sentences.length ? out : null
+  const old = prev?.extra?.assignedHomework || (prev ? null : profile?.lastHomework)
+  const now = assignedLines([].concat(prev?.extra?.sheet?.understanding || []).map(boxText).join('\n'))
+  const out = { lecture: now.lecture || (old?.lecture || '').trim(), task: now.task || (old?.task || '').trim() }
+  return out.lecture || out.task ? out : null
 }
 
 /** 커리큘럼 표 → 계획서에 넣을 줄. 내용이 없는 주차는 뺀다.
@@ -147,7 +148,7 @@ export function handoverForDraft(draft) {
 }
 
 // ---- 지난 회기 요약: 다음 회기를 시작할 때 지난 회기의 계획서·활동보고서·완료보고서에서 추려 남긴다 (나머지는 지운다).
-// 새 회기의 종합계획서를 쓸 때 참고로 보여 주고, AI로 다듬을 때 이어지게 쓰는 재료로 넘긴다. 감성케어·정서 내용은 넣지 않는다.
+// 새 회기의 종합계획서를 쓸 때 참고로 보여 주고, AI로 초안을 채울 때 이어지게 쓰는 재료로 넘긴다. 감성케어·정서 내용은 넣지 않는다.
 export const TERM_SUMMARY_FORM = 'term_summary'
 
 export function termSummary(items, profile, nextCourse = '') {
@@ -157,7 +158,7 @@ export function termSummary(items, profile, nextCourse = '') {
   const completion = latestOf(items, 'completion_report')?.draft || {}
   const list = (v) => (Array.isArray(v) ? v : v ? [v] : []).map((x) => String(x).trim()).filter(Boolean)
   return { term: Number(profile?.term) || 1, rounds: reports.length, course: profile?.course || '', goal: goalsFromVault(items),
-    last_scope: last?.scope || '', next_homework: hw ? { lecture: hw.lecture, task: hw.task || hw.sentences.join(' ') } : null,
+    last_scope: last?.scope || '', next_homework: hw,
     content: list(completion.content), achievement: list(completion.achievement), next_course: String(nextCourse || '').trim() }
 }
 

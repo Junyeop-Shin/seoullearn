@@ -163,7 +163,7 @@ button.icon svg, a.linkbutton svg { width: 15px; height: 15px; }
 button.wide { width: 100%; padding: 11px; }
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .row > .field { margin-top: 8px; margin-bottom: 8px; }
-.row > .notice, .cell-row > .notice { margin: 0; }
+.row > .notice { margin: 0; }
 .schedule-row { flex-wrap: nowrap; margin-bottom: 6px; }   /* 요일·날짜 한 줄: 삭제 버튼이 아래로 떨어지지 않게 */
 .schedule-row input[type='date'] { flex: 1 1 150px; min-width: 0; max-width: 200px; }
 
@@ -263,6 +263,7 @@ label.check { margin: 12px 0; font-weight: 600; }
 
 /* 종합계획서: 항목과 강좌 */
 .plan-form .item { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+.plan-form fieldset > .item:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .plan-form .item .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .plan-form label.slot { display: block; margin: 8px 0; }
 .plan-form label.slot > span { display: block; font-size: 0.84rem; color: var(--ink-2); margin-bottom: 4px; }
@@ -305,8 +306,6 @@ table.curriculum td.cells select { font-size: 0.82rem; padding: 5px 26px 5px 7px
 .sheet > tr > th, .sheet > tr > td, .sheet > tbody > tr > th, .sheet > tbody > tr > td { border: 1px solid var(--line); padding: 10px 12px; vertical-align: top; text-align: left; }
 .sheet > tr > th, .sheet > tbody > tr > th { width: 108px; background: var(--surface-2); font-weight: 600; color: var(--ink-2); text-align: center; vertical-align: middle; white-space: normal; }
 .sheet th small { display: block; margin-top: 4px; font-weight: 400; color: var(--ink-2); word-break: break-all; }
-.sheet .cell-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.sheet .cell-row > span:first-child { flex: 1; }
 .sheet textarea { width: 100%; }
 @media (max-width: 720px) {
   .sheet, .sheet > tr, .sheet > tbody, .sheet > tbody > tr, .sheet > tr > th, .sheet > tr > td, .sheet > tbody > tr > th, .sheet > tbody > tr > td { display: block; width: auto; }
@@ -364,3 +363,12 @@ table.allowance input[type='number'] { width: 72px; }
   table.allowance { display: block; overflow-x: auto; }
   table.allowance input[type='number'] { width: 56px; padding: 7px 8px; }
 }
+
+/* 활동보고서: 인증사진을 끌어다 놓는 자리 */
+.photo-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+label.drop { position: relative; display: grid; gap: 4px; padding: 14px; border: 1px dashed var(--line-strong); border-radius: var(--radius-sm); font-size: 0.88rem; color: var(--muted); cursor: pointer; }
+label.drop strong { color: var(--ink-2); }
+label.drop span { word-break: break-all; }
+label.drop:hover, label.drop:focus-within { border-color: var(--primary); background: var(--primary-soft); }
+label.drop.on { border-style: solid; border-color: var(--primary-line); background: var(--primary-soft); color: var(--primary); }
+label.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }

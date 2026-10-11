@@ -9,9 +9,9 @@ import { dateLine, endTime, fillNames, monthDates, monthlyText, nextMonth, sched
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import curriculum from '../public/data/curriculum.json'
 import { fillPlanFile, mentorCode, planFileName } from '../src/lib/planFile'
-import { absentText, applyLines, assignedSentences, boxText, contentAuto, fromLines, halvesOf, joinLabel, progressLines, splitLabel, statusesOf, syncLines, toLines } from '../src/lib/report'
+import { absentText, applyLines, assignedLines, boxText, contentAuto, fromLines, halvesOf, progressLines, statusesOf, syncLines, toLines } from '../src/lib/report'
 import { CURRICULUM_SUBJECTS, GRADES, FIRST_WEEK, LAST_WEEK, findUnits, genericHints, gradeKey, hasExams, spreadUnits, weekFrame } from '../src/lib/curriculum'
-import { DIAG_SLOTS, GOAL_SLOTS, composeSlots, lectureRange, onlineText, parseSlots, platformSafe, toCircled, changedLines, freshLines, mergeLines } from '../src/lib/plan'
+import { DIAG_SLOTS, GOAL_SLOTS, composeSlots, lectureRange, onlineText, parseSlots, platformSafe, toCircled, changedLines } from '../src/lib/plan'
 import { PROFILE_FIELDS, menteeFacts } from '../src/lib/mentee'
 import { afterReport, flow, nextStage, nextTerm, prevStage, stageBadge, totalRounds, withState } from '../src/lib/stage'
 import { loadSettings, saveSettings } from '../src/stores/settings'
@@ -159,7 +159,7 @@ describe('계획서와 보고서 연결', () => {
     expect(termSummaryText(null)).toBe('')
     // 지금 화면으로 저장한 보고서: 내 준 과제는 학습 이해도의 문장으로만 남는다
     const now = [report(16, { inputs: { session_no: '16', status: '출석' }, extra: { sheet: { understanding: ['개념 설명을 잘 이해함\n3강 예제 풀기를 다음 회차까지 과제로 냄'] } } })]
-    expect(termSummary(now, { term: 1 }).next_homework).toEqual({ lecture: '', task: '3강 예제 풀기를 다음 회차까지 과제로 냄' })
+    expect(termSummary(now, { term: 1 }).next_homework).toBeNull()   // '과제:' 줄로 적지 않은 것은 불러오지 않는다
   })
 
   it('이번 회차의 계획과 지난 회차에 낸 과제를 찾는다', () => {
@@ -169,9 +169,9 @@ describe('계획서와 보고서 연결', () => {
     expect(curriculumRow([pre, file], 3).online).toBe('5~6강')        // 종합계획서②가 먼저다
     expect(curriculumRow([pre], 4)).toBeNull()
     const r2 = report(2, { extra: { assignedHomework: { lecture: '5~6강', task: '예제 풀기' } } })
-    expect(previousHomework([r2], 3, {})).toEqual({ lecture: '5~6강', task: '예제 풀기', sentences: [] })
+    expect(previousHomework([r2], 3, {})).toEqual({ lecture: '5~6강', task: '예제 풀기' })
     expect(previousHomework([report(2)], 3, { lastHomework: { lecture: '1강' } })).toBeNull()       // 직전 보고서가 있으면 등록 때 적은 것은 쓰지 않는다
-    expect(previousHomework([], 7, { lastHomework: { lecture: '11강', task: '' } })).toEqual({ lecture: '11강', task: '', sentences: [] })   // 진행 중 등록
+    expect(previousHomework([], 7, { lastHomework: { lecture: '11강', task: '' } })).toEqual({ lecture: '11강', task: '' })   // 진행 중 등록
   })
 
   it('초안의 개인정보 칸은 이 브라우저의 값으로 보여 주되, 저장하는 초안에는 자리표시를 그대로 둔다', async () => {
@@ -257,15 +257,8 @@ describe('인계 요약을 글로 주고받기', () => {
   })
 })
 
-describe('표현 다듬기는 고친 줄만 보낸다', () => {
-  it('이미 다듬은 줄과 기본안 줄은 빼고, 돌아온 줄을 제자리에 넣는다', () => {
-    const text = '(1) 수1 완강\n(2) 기말 3등급 맞고싶다고 함\n\n규칙 한 줄'
-    const sent = freshLines(text, '(1) 수1 완강', '규칙 한 줄')
-    expect(sent).toEqual(['(2) 기말 3등급 맞고싶다고 함'])
-    expect(mergeLines(text, sent, '(2) 기말 3등급을 맞고 싶어 함')).toBe('(1) 수1 완강\n(2) 기말 3등급을 맞고 싶어 함\n\n규칙 한 줄')
-    expect(freshLines(text, text)).toEqual([])
-    // 줄 수가 다르면 짝을 지을 수 없다: 적어 둔 글을 그대로 두게 null
-    expect(mergeLines(text, sent, '')).toBeNull()
+describe('바뀐 줄 찾기와 서버가 거른 글 되넣기', () => {
+  it('서로 다른 줄만 전·후로 찾고, 돌아온 줄을 칸에 다시 넣는다', () => {
     expect(changedLines('가\n나', '가\n다')).toEqual([['나', '다']])
     expect(changedLines('', '새 글')).toEqual([['', '새 글']])
     expect(changedLines('같음', '같음')).toEqual([])
@@ -349,7 +342,7 @@ describe('활동보고서: 플랫폼 입력 칸과 규칙', () => {
   it('학습 진도는 출결·인강·과제 줄로 만든다 (활동가이드의 필수 기재 사항, AI 미사용)', () => {
     const what = { lecture: '지수 (5~6강)', task: '5강 예제 풀기' }
     expect(progressLines({ status: '출석', time: '17:02~18:04', lecture: '함', task: '안 함', what })).toEqual(
-      ['출결: 정시 출석 (17:02~18:04)', '인강: 지수 (5~6강) 수강함', '과제: 5강 예제 풀기 수행하지 않음'])
+      ['출결: 정시 출석 (17:02~18:04)', '인강: 지수 (5~6강) 수강함', '과제: 5강 예제 풀기 - 수행하지 않음'])
     expect(progressLines({ status: '지각', time: '', lecture: '', task: '' })).toEqual(['출결: 지각', '', ''])
     expect(progressLines({ status: '출석', time: '', lecture: '안 함', task: '함' })).toEqual(['출결: 정시 출석', '인강: 수강하지 않음', '과제: 수행함'])
   })
@@ -366,20 +359,24 @@ describe('활동보고서: 플랫폼 입력 칸과 규칙', () => {
   })
   it("'이번 주차 학습 내용'은 종합계획서의 그 주차 계획을 학습범위·학습목표 두 줄로 가져온다", () => {
     const pre = { formId: 'plan_initial', savedAt: '1', extra: { rows: [{ week: 2, content: '지수법칙' }] } }
-    const file = { formId: 'plan_file', savedAt: '2', extra: { courses: [{ lecture: '가 강좌', instructor: '나' }], rows: [{ week: 2, online: '지수 (3~4강)', mentoring: '지수법칙 개념' }] } }
-    expect(plannedWeek([pre], 2)).toEqual({ row: { week: 2, content: '지수법칙' }, course: '' })
+    const file = { formId: 'plan_file', savedAt: '2', extra: { courses: [{ platform: '가상스터디', lecture: '가 강좌', instructor: '나' }], rows: [{ week: 2, online: '지수 (3~4강)', mentoring: '지수법칙 개념' }] } }
+    expect(plannedWeek([pre], 2)).toEqual({ row: { week: 2, content: '지수법칙' }, course: '', platform: '' })
     expect(contentAuto(plannedWeek([pre], 2).row)).toBe('학습범위: 지수법칙')
     const w = plannedWeek([pre, file], 2)
     expect(contentAuto(w.row, w.course)).toBe('학습범위: 가 강좌(나), 지수 (3~4강)\n학습목표: 지수법칙 개념')
+    expect(w.platform).toBe('가상스터디')   // 학습 진도의 인강 줄에 학습사이트와 강좌 이름을 함께 적는다
     expect(plannedWeek([pre, file], 5)).toBeNull()
     expect(contentAuto(null)).toBe('')
   })
-  it('내 준 과제는 학습 이해도에 적고, 다음 회차에 그 문장을 다시 보여 준다', () => {
-    const text = '1. 예습이 되어 개념 설명을 잘 이해함. 못 들은 강의는 다음 멘토링 시간까지 듣도록 과제로 냄.\n계산 실수가 잦음\n3강 예제 풀기를 숙제로 냄'
-    expect(assignedSentences(text)).toEqual(['못 들은 강의는 다음 멘토링 시간까지 듣도록 과제로 냄.', '3강 예제 풀기를 숙제로 냄'])
-    expect(assignedSentences('개념을 잘 이해함')).toEqual([])
-    const prev = { formId: 'activity_report', sessionNo: 2, savedAt: '1', extra: { sheet: { understanding: [text] } } }
-    expect(previousHomework([prev], 3, {})).toEqual({ lecture: '', task: '', sentences: ['못 들은 강의는 다음 멘토링 시간까지 듣도록 과제로 냄.', '3강 예제 풀기를 숙제로 냄'] })
+  it("다음 회차까지 낸 과제는 학습 이해도에 '과제:' 줄로 적었을 때만 불러온다 (선택)", () => {
+    const text = '1. 예습이 되어 개념 설명을 잘 이해함. 못 들은 강의는 과제로 냄.\n계산 실수가 잦음\n과제: 개념원리 중1 RPM 10~23p 풀기\n인강: 메가스터디, 수학의 시작 3~4강'
+    expect(assignedLines(text)).toEqual({ lecture: '메가스터디, 수학의 시작 3~4강', task: '개념원리 중1 RPM 10~23p 풀기' })
+    expect(assignedLines('개념을 잘 이해함. 숙제로 3강 예제를 냄')).toEqual({ lecture: '', task: '' })
+    const prev = (t) => ({ formId: 'activity_report', sessionNo: 2, savedAt: '1', extra: { sheet: { understanding: [t] } } })
+    expect(previousHomework([prev(text)], 3, {})).toEqual({ lecture: '메가스터디, 수학의 시작 3~4강', task: '개념원리 중1 RPM 10~23p 풀기' })
+    expect(previousHomework([prev('개념을 잘 이해함')], 3, {})).toBeNull()
+    expect(progressLines({ status: '출석', time: '', lecture: '함', task: '함', what: previousHomework([prev(text)], 3, {}) }).slice(1))
+      .toEqual(['인강: 메가스터디, 수학의 시작 3~4강 수강함', '과제: 개념원리 중1 RPM 10~23p 풀기 - 수행함'])
   })
   it('서버와는 줄마다 칸 이름표를 붙여 주고받고, 돌아온 줄을 칸에 다시 넣는다', () => {
     const text = toLines([['u0', '예제는 혼자 품\n\n풀이 과정 건너뜀'], ['u1', ''], ['e', '화면 끊김']])
@@ -389,13 +386,6 @@ describe('활동보고서: 플랫폼 입력 칸과 규칙', () => {
     expect(applyLines('예제는 혼자 품\n\n풀이 과정 건너뜀', ['예제를 혼자 풂', '풀이 과정을 건너뜀'])).toBe('예제를 혼자 풂\n\n풀이 과정을 건너뜀')
     expect(applyLines('예제는 혼자 품\n부모님과 다퉈 속상해함', ['예제를 혼자 풂'])).toBe('예제를 혼자 풂')
     expect(applyLines('속상해함', undefined)).toBe('')
-  })
-  it("다듬을 때 '출결:' 같은 머리말은 떼고 보냈다가 다시 붙인다", () => {
-    expect(splitLabel('(p0) 과제: 절반만 함')).toEqual(['(p0) 절반만 함', '과제: '])
-    expect(splitLabel('(u0) 예제는 혼자 품')).toEqual(['(u0) 예제는 혼자 품', ''])
-    expect(splitLabel('(p0) 개선 방향:')).toEqual(['', '개선 방향:'])           // 머리말뿐인 줄은 보내지 않는다
-    expect(joinLabel('(p0) 절반만 수행함', '과제: ')).toBe('(p0) 과제: 절반만 수행함')
-    expect(joinLabel('(u0) 예제를 혼자 풂', '')).toBe('(u0) 예제를 혼자 풂')
   })
   it('시간확대는 전반·후반으로 나누고, 예전 화면의 세 칸 값은 한 칸의 글로 읽는다', () => {
     expect(halvesOf('120')).toEqual(['전반 1시간 ', '후반 1시간 '])
@@ -565,3 +555,20 @@ describe('멘토 설정 (이 브라우저에만 저장)', () => {
     expect(validChannels({ 마포구: 'https://pf.kakao.com/_hjmxgn', 가짜구: 'https://example.com/x', 성동구: 'http://pf.kakao.com/_Jihan', 중구: 5 })).toEqual({ 마포구: 'https://pf.kakao.com/_hjmxgn' })
   })
 })
+
+import { unzipSync } from 'fflate'
+import { photoBase, photoNames, photoZip } from '../src/lib/photos'
+
+describe('인증사진 이름 바꿔 압축하기', () => {
+  it("이름은 '멘티이름 N회기 N회차 월.일', 둘째 장부터 (1)을 붙이고 확장자는 그대로 둔다", async () => {
+    const base = photoBase('홍길동', 1, 1, '2026-10-11')
+    expect(base).toBe('홍길동 1회기 1회차 10.11')
+    expect(photoBase('홍길동', 2, 3, '2026-03-09')).toBe('홍길동 2회기 3회차 3.9')
+    const files = [new File([new Uint8Array([1, 2])], 'IMG_0001.JPG'), new File([new Uint8Array([3])], 'photo.png'), new File([new Uint8Array([4])], '이름없음')]
+    expect(photoNames(base, files)).toEqual(['홍길동 1회기 1회차 10.11.jpg', '홍길동 1회기 1회차 10.11 (1).png', '홍길동 1회기 1회차 10.11 (2).jpg'])
+    const out = unzipSync(await photoZip(base, files.slice(0, 2)))
+    expect(Object.keys(out)).toEqual(['홍길동 1회기 1회차 10.11.jpg', '홍길동 1회기 1회차 10.11 (1).png'])
+    expect([...out['홍길동 1회기 1회차 10.11.jpg']]).toEqual([1, 2])   // 사진 내용은 그대로다
+  })
+})
+

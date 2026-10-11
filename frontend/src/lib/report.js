@@ -24,15 +24,15 @@ export function contentAuto(row, courseName = '') {
 }
 
 /** 학습 진도의 기본 줄 [출결, 인강, 과제]: 출석 상태·진행시간, 인강을 들었는지, 과제를 했는지로 만든다 (규칙, AI 미사용).
- * 활동가이드가 필수로 쓰라고 한 세 가지다. 개선 방향은 만들지 않는다 (멘토가 덧붙인다).
+ * 활동가이드가 필수로 쓰라고 한 세 가지다. 인강과 과제는 무엇인지까지 적는다: '인강: 메가스터디, 수학의 시작 1~2강 수강함', '과제: RPM 10~23p 풀기 - 수행함'.
  * done: {lecture, task} 각각 '함' | '안 함' | ''. what: {lecture, task} 무엇을 듣고 하기로 했는지 (없으면 빈 글). 해당 없는 줄은 빈 글. */
 export function progressLines({ status, time, lecture, task, what = {} }) {
   const tail = (v) => (v ? ` (${v})` : '')
-  const named = (v, done, missed) => [(v || '').trim(), done === '함' ? missed[0] : missed[1]].filter(Boolean).join(' ')
+  const named = (v, result, sep) => [(v || '').trim(), result].filter(Boolean).join(sep)
   return [
     status === '출석' ? `출결: 정시 출석${tail(time)}` : status === '지각' ? `출결: 지각${tail(time)}` : '',
-    lecture ? `인강: ${named(what.lecture, lecture, ['수강함', '수강하지 않음'])}` : '',
-    task ? `과제: ${named(what.task, task, ['수행함', '수행하지 않음'])}` : '',
+    lecture ? `인강: ${named(what.lecture, lecture === '함' ? '수강함' : '수강하지 않음', ' ')}` : '',
+    task ? `과제: ${named(what.task, task === '함' ? '수행함' : '수행하지 않음', ' - ')}` : '',
   ]
 }
 
@@ -64,14 +64,14 @@ export const absentText = (status) => (status === '무단결석' ? '멘티 무�
   : status === '임박취소' ? '멘티의 임박취소로 멘토링을 진행하지 못함.'
   : status === '인정결석' ? '멘티의 불가항력 사유로 인한 결석(인정결석)으로 멘토링을 진행하지 못함.' : '')
 
-/** 지난 회차 보고서에서 다음 회차까지 내 준 것을 적은 문장을 고른다 (규칙: '과제', '숙제', '다음 회차·멘토링·시간'이 든 문장).
- * 활동가이드의 예시처럼 내 준 과제는 학습 이해도(멘토링 학습 내용)에 적는다. 없으면 빈 목록. */
-export function assignedSentences(text) {
-  const sentences = rowsOf(text).flatMap((line) => line.replace(/^\d+[.)]\s*/, '').split(/(?<=[.!?。])\s+/)).map((s) => s.trim()).filter(Boolean)
-  return sentences.filter((s) => /과제|숙제|다음\s*(회차|멘토링|시간|주)/.test(s))
+/** 지난 회차 학습 이해도에서 다음 회차까지 낸 것을 읽는다: '과제: …', '인강: …'으로 시작하는 줄 (적는 것은 선택이다).
+ * 활동가이드에는 내 준 과제를 적는 칸이 따로 없어 학습 이해도에 적는다. {lecture, task}, 여러 줄이면 쉼표로 잇는다. */
+export function assignedLines(text) {
+  const pick = (head) => rowsOf(text).map((l) => l.replace(/^\d+[.)]\s*/, '')).filter((l) => l.startsWith(`${head}:`)).map((l) => l.slice(head.length + 1).trim()).filter(Boolean).join(', ')
+  return { lecture: pick('인강'), task: pick('과제') }
 }
 
-// ---- 서버와 주고받을 때: 줄마다 줄 머리에 칸 이름표를 붙인다. 서버는 줄 머리를 그대로 두고 내용만 거르거나 다듬는다
+// ---- 서버와 주고받을 때: 줄마다 줄 머리에 칸 이름표를 붙인다. 서버는 줄 머리를 그대로 두고 내용만 거른다
 /** 칸들 → '(u0) 글' 줄들. boxes: [[이름표, 칸의 글], …]. 빈 줄은 뺀다. */
 export const toLines = (boxes) => boxes.flatMap(([tag, text]) => rowsOf(text).map((line) => `(${tag}) ${line}`)).join('\n')
 /** '(u0) 글' 줄들 → {u0: ['글', …]}. 이름표가 없는 줄은 버린다 (서버가 붙인 문구일 수 있다). */
@@ -83,19 +83,6 @@ export function fromLines(text) {
   }
   return out
 }
-// 다듬을 때: '출결:' 같은 머리말은 AI에 보내지 않고 나중에 다시 붙인다 (머리말을 문장에 녹여 '과제를 절반만 함'처럼 바꾸지 않게)
-const LABELED = /^(\([a-z]\d?\)\s*)((?:출결|인강|과제|학습범위|학습목표|잘한 점|부족한 점|개선 방향)\s*:\s*)(.*)$/
-/** 이름표가 붙은 줄 → [AI에 보낼 줄, 뗀 머리말]. 머리말뿐인 줄은 보낼 것이 없다(빈 글). */
-export function splitLabel(line) {
-  const m = LABELED.exec(line)
-  return m ? [m[3].trim() ? m[1] + m[3] : '', m[2]] : [line, '']
-}
-/** 다듬어 돌아온 줄에 뗀 머리말을 다시 붙인다. */
-export function joinLabel(line, label) {
-  const m = /^(\([a-z]\d?\)\s*)(.*)$/.exec(line)
-  return label && m ? m[1] + label + m[2] : line
-}
-
 /** 서버가 돌려준 줄(got)을 칸의 글(text)에 다시 넣는다. 줄 수가 같으면 빈 줄 같은 원래 모양을 지키고, 다르면(통째로 빠진 줄이 있으면) 돌아온 줄만 남긴다. */
 export function applyLines(text, got = []) {
   const mine = rowsOf(text)

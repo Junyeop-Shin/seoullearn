@@ -12,9 +12,8 @@ const props = defineProps({
   full: { type: Boolean, default: false },
   courses: { type: Array, default: () => [] },   // 종합계획서②의 수강 강좌 [{lecture, instructor}]
   hints: { type: Array, default: () => [] },     // 주차마다 칸에 흐리게 보여 줄 예시 (그 주차에 맞는 내용)
-  copyable: { type: Boolean, default: false },   // 주차마다 [복사] 버튼을 둔다 (서식 파일은 주차마다 칸이 따로다)
 })
-const emit = defineEmits(['update:modelValue', 'copy'])
+const emit = defineEmits(['update:modelValue'])
 
 function sized() {
   const dates = weeklyDates(props.start.slice(0, 10), props.rounds)
@@ -42,7 +41,7 @@ function setWhen(i, key, value) {
 <template>
   <div data-test="curriculum">
     <table class="curriculum">
-      <thead><tr><th>주차</th><th>일시</th><th>{{ full ? '온라인 강의와 멘토링 내용' : '학습 내용' }}</th><th v-if="copyable"></th></tr></thead>
+      <thead><tr><th>주차</th><th>일시</th><th>{{ full ? '온라인 강의와 멘토링 내용' : '학습 내용' }}</th></tr></thead>
       <tbody>
       <tr v-for="(r, i) in modelValue" :key="r.week">
         <td>{{ r.week }}</td>
@@ -60,7 +59,6 @@ function setWhen(i, key, value) {
         <td v-else data-label="학습 내용">
           <input :value="r.content" :data-content="r.week" :aria-label="`${r.week}주차 학습 내용`" :placeholder="hints[i] ? `예: ${hints[i]}` : ''" @input="set(i, 'content', $event.target.value)" />
         </td>
-        <td v-if="copyable"><button type="button" class="small" :disabled="!(r.online || r.mentoring)" :data-copy-week="r.week" @click="emit('copy', r)">복사</button></td>
       </tr>
       </tbody>
     </table>

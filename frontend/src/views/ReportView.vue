@@ -5,17 +5,17 @@ import { api } from '../api/client'
 import MenteeHeader from '../components/MenteeHeader.vue'
 import { copyText } from '../lib/copy'
 import { menteePath, profileFromVault, regularSchedule, suggestDate } from '../lib/mentee'
-import { changedLines, freshLines, mergeLines } from '../lib/plan'
-import { absentText, applyLines, boxText, contentAuto, fromLines, halvesOf, joinLabel, progressLines, splitLabel, statusesOf, syncLines, toLines } from '../lib/report'
+import { absentText, applyLines, boxText, contentAuto, fromLines, halvesOf, progressLines, statusesOf, syncLines, toLines } from '../lib/report'
 import { plannedRow, plannedWeek, previousHomework } from '../lib/reports'
 import { endTime } from '../lib/schedule'
 import { afterReport } from '../lib/stage'
+import { photoBase, photoZip } from '../lib/photos'
 import { toast } from '../lib/toast'
 import { listItems, saveItem } from '../stores/vault'
 
 // 한 회차 활동보고서. 화면은 플랫폼 입력 칸과 같은 구성이다: 이번 주차 학습 내용, 학습 진도, 학습 이해도, 기타, 건의사항 (항목마다 글상자 하나).
 // 무엇을 쓰는지는 활동가이드 p.30을 따른다: 학습 내용 = 학습범위·학습목표, 학습 진도 = 출결·인강 수강·과제 수행, 학습 이해도 = 멘토링 학습 내용(내 준 과제 포함).
-// 학습 내용은 종합계획서의 그 주차 계획에서, 학습 진도는 출석·인강·과제 선택에서 규칙으로 채운다. AI는 멘토가 대충 적은 글의 표현을 다듬을 때만 쓴다.
+// 학습 내용은 종합계획서의 그 주차 계획에서, 학습 진도는 출석·인강·과제 선택에서 규칙으로 채운다. AI는 쓰지 않는다.
 // 평가(매우 잘함 ~ 매우 노력필요)는 플랫폼에서 바로 고르므로 여기서는 받지 않는다.
 const FORM_ID = 'activity_report'
 defineOptions({ inheritAttrs: false })   // 멘티 화면이 모든 단계에 같은 값을 넘긴다: 안 쓰는 값이 화면 요소에 붙지 않게 한다
@@ -30,7 +30,7 @@ const loaded = ref(false)
 const busy = ref('')
 const error = ref('')
 const notes = ref([])
-const prevHw = ref(null)       // 지난 회차에 낸 인강·과제 {lecture, task, sentences}
+const prevHw = ref(null)       // 지난 회차에 낸 인강·과제 {lecture, task}
 const week = ref(null)         // 종합계획서의 이번 주차 계획 {row, course}
 const next = ref('')           // 저장한 뒤 넘어갈 곳의 이름 (예: '2회차'). 저장 안내를 읽고 버튼으로 넘어간다
 
@@ -39,13 +39,16 @@ const q = reactive({ status: '출석', date: '', time: '', lectureDone: '', task
 const sheet = reactive({ content: '', progress: [''], understanding: [''], etc: '', requests: '' })
 const halves = computed(() => halvesOf(profile.value?.duration))
 const absent = computed(() => !!absentText(q.status))   // 진행하지 못한 회차 (임박취소, 무단결석, 인정결석)
-const polished = {}            // 마지막으로 AI가 다듬어 준 글. 그 뒤로 고치지 않은 줄은 다시 다듬지 않는다
-const changes = ref(null)      // AI가 바꾼 내용 {items: [{label, before, after}], undo}
 let planned = ''               // 종합계획서에서 가져온 학습 내용 (멘토가 고쳤는지 견주는 데 쓴다)
 let auto = ['', '', '']        // 규칙으로 넣어 둔 학습 진도 줄 [출결, 인강, 과제]
 
 // 무엇을 듣고 하기로 했는지: 따로 적어 둔 것이 있으면 그것을, 없으면 인강은 이번 주차 계획의 온라인 강의를 쓴다
-const what = computed(() => ({ lecture: prevHw.value?.lecture || (week.value?.row.online || '').trim(), task: prevHw.value?.task || '' }))
+// 인강은 학습사이트와 강좌 이름까지 적는다: '메가스터디, 수학의 시작(강사) 1~2강'. 계획에 그 주차 강의가 없으면 멘티 정보의 수강 강좌만 쓴다
+const plannedLecture = computed(() => {
+  const w = week.value, online = (w?.row.online || '').trim()
+  return online ? [w.platform, [w.course, online].filter(Boolean).join(' ')].filter(Boolean).join(', ') : (profile.value?.course || '').trim()
+})
+const what = computed(() => ({ lecture: prevHw.value?.lecture || plannedLecture.value, task: prevHw.value?.task || '' }))
 function syncProgress() {
   const lines = progressLines({ status: q.status, time: q.time.trim(), lecture: q.lectureDone, task: q.taskDone, what: what.value })
   sheet.progress[0] = syncLines(sheet.progress[0], auto, lines)
@@ -109,7 +112,7 @@ onMounted(async () => {
 
 const copy = (label, value) => copyText(value, label)
 
-// 서버와 주고받는 글: 줄마다 줄 머리에 칸 이름표를 붙인다 (서버가 줄을 지키며 개인정보와 넣지 않는 내용을 거르고, 다듬을 때도 줄마다 다듬는다)
+// 서버와 주고받는 글: 줄마다 줄 머리에 칸 이름표를 붙인다 (서버가 줄을 지키며 개인정보와 넣지 않는 내용을 거른다)
 const tagged = () => ({
   attendance: toLines(sheet.progress.map((t, h) => [`p${h}`, t])),
   session_content: toLines(sheet.understanding.map((t, h) => [`u${h}`, t])),
@@ -140,7 +143,6 @@ const boxes = () => [...halves.value.flatMap((half, h) => [[`${half}학습 진�
 const safe = (res) => {
   // 아동 안전 신호가 있으면 서버가 초안을 만들지 않고 운영사무국 안내만 돌려준다: 그 안내를 보여 주고 저장하지 않는다
   if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '보고서를 정리하지 못했습니다.')
-  if (res.error) throw new Error('AI의 답을 읽지 못해 다듬지 못했습니다. 잠시 뒤 다시 눌러 주세요.')   // 형식 오류를 '바꿀 표현이 없었습니다'로 넘기지 않는다
   return res
 }
 
@@ -157,41 +159,28 @@ async function run(name, fn) {
   }
 }
 
-// 표현 다듬기: 새로 적거나 고친 줄만 AI에 보낸다. 규칙으로 넣은 학습 진도 줄과 이미 다듬은 줄은 보내지 않는다. 학습 내용은 계획에서 온 글이라 다듬지 않는다
-const polish = () => run('polish', async () => {
-  const snap = boxes(), undo = JSON.parse(JSON.stringify(sheet))
-  const whole = tagged()
-  const fresh = {}, send = {}, labels = {}
-  for (const k of Object.keys(whole)) {
-    // '출결:' 같은 머리말은 떼고 보낸다. 머리말뿐인 줄은 보내지 않는다
-    const lines = freshLines(whole[k], polished[k], k === 'attendance' ? toLines([['p0', auto.join('\n')]]) : '').map((l) => [l, ...splitLabel(l)]).filter(([, body]) => body)
-    if (lines.length) Object.assign(fresh, { [k]: lines.map((x) => x[0]) }), Object.assign(send, { [k]: lines.map((x) => x[1]) }), Object.assign(labels, { [k]: lines.map((x) => x[2]) })
-  }
-  const only = Object.keys(fresh)
-  if (!only.length) return toast('새로 다듬을 내용이 없습니다. 학습 이해도처럼 직접 적은 글을 다듬습니다.')
-  const res = safe(await api.draft(FORM_ID, payload({ ...whole, ...Object.fromEntries(only.map((k) => [k, send[k].join('\n')])) }), { only, keep_lines: true, duration: profile.value?.duration }))
-  const kept = []
-  for (const k of only) {
-    const got = String(res.draft[k] || '').split('\n').filter((l) => l.trim())
-    const merged = mergeLines(whole[k], fresh[k], got.length === fresh[k].length ? got.map((l, i) => joinLabel(l, labels[k][i])).join('\n') : got.join('\n'))
-    if (merged === null) kept.push('일부 글은 다듬은 결과의 줄 수가 달라 적어 둔 그대로 두었습니다. 넣지 않는 내용이 빠졌을 수 있으니 저장할 때 확인해 주세요.')
-    else polished[k] = whole[k] = merged
-  }
-  restore(whole)
-  const items = boxes().flatMap(([label, after], i) => changedLines(snap[i][1], after).map(([b, a]) => ({ label, before: b, after: a })))
-  changes.value = items.length ? { items, undo } : null
-  notes.value = [...kept, ...(res.pii_masked.length ? [`AI에 보내기 전에 가린 정보: ${res.pii_masked.join(', ')}`] : []), ...res.warnings]
-  toast(changes.value ? '표현을 다듬었습니다. 바뀐 내용을 확인하고 저장해 주세요.' : '다듬어 보았지만 바꿀 표현이 없었습니다.')
-})
-function undoChanges() {
-  Object.assign(sheet, changes.value.undo)
-  for (const k of Object.keys(polished)) delete polished[k]
-  changes.value = null
-  toast('AI가 바꾸기 전으로 되돌렸습니다.')
-}
-
 // 저장은 AI를 쓰지 않는다. 서버가 개인정보를 가리고 넣지 않는 내용(정서·가정·건강)을 뺀 글을 칸에 다시 넣고 저장한다
 const line = (text, label) => String(text || '').split('\n').map((l) => l.trim()).find((l) => l.startsWith(`${label}:`)) || ''
+// ---- 인증사진: 시작·종료 사진(온라인은 화면 캡처)의 이름을 바꿔 압축 파일로 내려받는다 (활동가이드: 회차마다 2장 제출 필수). 사진은 저장하지도 서버로 보내지도 않는다
+const PHOTO_SLOTS = [['start', '시작'], ['mid', '중간 (선택)'], ['end', '종료']]
+const photoKind = computed(() => (profile.value?.mode === '오프라인' ? '사진' : '화면 캡처'))
+const photos = reactive({ start: null, mid: null, end: null })
+const photoSlots = computed(() => PHOTO_SLOTS.filter(([k]) => k !== 'mid' || q.status === '지각'))   // 지각 회차는 멘티 입장 후 사진을 더 넣을 수 있다
+const photoName = computed(() => photoBase(profile.value?.name || alias, profile.value?.term, no.value, q.date))
+function setPhoto(key, file) {
+  if (file && !file.type.startsWith('image/')) return toast('사진 파일을 넣어 주세요.')
+  photos[key] = file || null
+}
+async function downloadPhotos() {
+  const files = photoSlots.value.map(([k]) => photos[k]).filter(Boolean)
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([await photoZip(photoName.value, files)], { type: 'application/zip' }))
+  a.download = `${photoName.value}.zip`
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+  toast(`${a.download} 파일을 내려받았습니다.`)
+}
+
 const save = () => run('save', async () => {
   const sent = payload(tagged())
   const res = safe(await api.draft(FORM_ID, sent, { only: [], keep_lines: true, duration: profile.value?.duration }))
@@ -206,7 +195,6 @@ const save = () => run('save', async () => {
   const item = await saveItem({ id: savedId.value, alias, formId: FORM_ID, title: `활동보고서 ${no.value}회차`, sessionNo: no.value, inputs: { ...sent, ...readable }, draft: { ...res.draft, ...readable },
     extra: { quick: { ...q }, sheet: JSON.parse(JSON.stringify(sheet)), auto } })
   savedId.value = item.id
-  changes.value = null   // 저장한 글이 기준이다: 저장 전의 되돌리기는 남기지 않는다
   // 지금 회차를 저장했으면 다음 회차(마지막 회차였으면 완료보고서)로 넘어갈 수 있다
   const step = profile.value ? afterReport(profile.value, no.value) : {}
   if (Object.keys(step).length) {
@@ -248,18 +236,17 @@ const save = () => run('save', async () => {
 
       <section v-if="!absent" class="form-section">
         <h3>인강과 지난 회차 과제 확인</h3>
-        <div v-if="what.lecture || what.task || prevHw?.sentences.length" class="mini" data-test="prev-homework">
+        <div v-if="what.lecture || what.task" class="mini" data-test="prev-homework">
           <template v-if="what.lecture"><span class="t">{{ prevHw?.lecture ? '지난 회차에 낸 인강' : '이번 주차 계획의 인강' }}</span>{{ what.lecture }}<br /></template>
-          <template v-if="what.task"><span class="t">지난 회차에 낸 과제</span>{{ what.task }}<br /></template>
-          <template v-if="prevHw?.sentences.length"><span class="t">지난 회차 보고서에 적은 과제</span>{{ prevHw.sentences.join(' ') }}</template>
+          <template v-if="what.task"><span class="t">지난 회차에 낸 과제</span>{{ what.task }}</template>
         </div>
         <div class="form-grid">
           <div class="field"><span class="name">인강 수강</span>
             <span class="choices" role="radiogroup" aria-label="인강 수강"><label><input v-model="q.lectureDone" type="radio" value="함" name="lecture" />들음</label><label><input v-model="q.lectureDone" type="radio" value="안 함" name="lecture" />안 들음</label></span></div>
-          <div class="field"><span class="name">과제 수행</span>
+          <div v-if="what.task" class="field" data-test="task-done"><span class="name">과제 수행</span>
             <span class="choices" role="radiogroup" aria-label="과제 수행"><label><input v-model="q.taskDone" type="radio" value="함" name="task" />함</label><label><input v-model="q.taskDone" type="radio" value="안 함" name="task" />안 함</label></span></div>
         </div>
-        <p class="notice">고르면 아래 학습 진도에 '인강: …', '과제: …' 줄로 들어갑니다. 일부만 했다면 그 줄을 직접 고쳐 주세요.</p>
+        <p class="notice">고르면 아래 학습 진도에 줄로 들어갑니다. 일부만 했다면 그 줄을 직접 고쳐 주세요.{{ what.task ? '' : " 과제 수행은 지난 회차 학습 이해도에 '과제: …' 줄을 적어 두었을 때만 나옵니다." }}</p>
       </section>
 
       <div class="item">
@@ -277,8 +264,8 @@ const save = () => run('save', async () => {
           </div>
           <div class="item" :data-item="`understanding-${h}`">
             <div class="head"><strong>{{ half }}학습 이해도</strong><button type="button" class="small" :disabled="!sheet.understanding[h].trim()" :data-copy="`understanding-${h}`" @click="copy(`${half}학습 이해도`, sheet.understanding[h])">복사</button></div>
-            <textarea v-model="sheet.understanding[h]" :rows="Math.max(4, sheet.understanding[h].split('\n').length + 1)" placeholder="예습이 되어 거듭제곱근 개념 설명을 잘 이해함&#10;계산 실수 잦음, 지수법칙 계산 문제 반복&#10;못 들은 강의는 다음 멘토링 시간까지 듣도록 과제로 냄" :aria-label="`${half}학습 이해도`" :data-box="`understanding-${h}`"></textarea>
-            <span v-if="h === 0" class="notice">멘토링에서 한 내용과 멘티의 이해도를 한 줄에 하나씩 적어 주세요. 다음 회차까지 낸 인강·과제도 여기에 적습니다. 짧은 메모로 적고 [AI로 표현 다듬기]를 누르면 문장으로 고쳐 드립니다.</span>
+            <textarea v-model="sheet.understanding[h]" :rows="Math.max(4, sheet.understanding[h].split('\n').length + 1)" placeholder="예습이 되어 거듭제곱근 개념 설명을 잘 이해함&#10;계산 실수 잦음, 지수법칙 계산 문제 반복&#10;과제: 인강 교재 3강 범위 풀고 채점하기" :aria-label="`${half}학습 이해도`" :data-box="`understanding-${h}`"></textarea>
+            <span v-if="h === 0" class="notice">멘토링에서 한 내용과 멘티의 이해도를 한 줄에 하나씩 적어 주세요. 다음 회차까지 낼 과제가 있으면 '과제: 개념원리 RPM 10~23p 풀기'처럼 한 줄로 적어 주세요(선택). 다음 회차의 학습 진도에 불러옵니다.</span>
           </div>
         </template>
       </template>
@@ -292,16 +279,25 @@ const save = () => run('save', async () => {
         <div class="head"><strong>건의사항 <span class="tag">선택</span></strong><button type="button" class="small" :disabled="!sheet.requests.trim()" data-copy="requests" @click="copy('건의사항', sheet.requests)">복사</button></div>
         <textarea v-model="sheet.requests" rows="2" placeholder="멘토링 일정 변경, 장소 변경 등. 예: 다음 주는 멘티의 수학여행으로 진행하지 않습니다." aria-label="건의사항" data-sheet="requests"></textarea>
       </div>
-      <p class="notice">멘티 이름·연락처·학교는 쓰지 마세요. 적혀 있으면 저장하거나 AI에 보내기 전에 가립니다. 정서·가정 이야기는 보고서에 넣지 않습니다.</p>
-
-      <div v-if="changes" class="box ask changes" data-test="changes">
-        <div class="row"><strong class="grow">AI가 표현을 다듬은 곳 {{ changes.items.length }}곳</strong><button type="button" class="small" data-test="undo" @click="undoChanges">되돌리기</button></div>
-        <ul><li v-for="(c, i) in changes.items" :key="i"><b>{{ c.label }}</b><del v-if="c.before.trim()">{{ c.before }}</del><ins>{{ c.after || '(비워짐)' }}</ins></li></ul>
+      <div v-if="!absent" class="item" data-test="photos">
+        <div class="head"><strong>인증사진 <span class="tag">{{ profile?.mode === '오프라인' ? '오프라인' : '온라인' }}</span></strong></div>
+        <div class="photo-slots">
+          <label v-for="[key, label] in photoSlots" :key="key" class="drop" :class="{ on: photos[key] }" @dragover.prevent @drop.prevent="setPhoto(key, $event.dataTransfer.files[0])">
+            <strong>{{ label.replace(/^(\S+)/, `$1 ${photoKind}`) }}</strong>
+            <span>{{ photos[key] ? photos[key].name : '여기에 끌어다 놓거나 눌러서 고르기' }}</span>
+            <input type="file" accept="image/*" :data-photo="key" @change="setPhoto(key, $event.target.files[0])" />
+          </label>
+        </div>
+        <div class="row gap-top">
+          <button type="button" :disabled="!photos.start || !photos.end" data-test="photo-zip" @click="downloadPhotos">압축 파일 내려받기</button>
+          <span class="notice">사진 이름을 '{{ photoName }}', '{{ photoName }} (1)'로 바꿔 '{{ photoName }}.zip'으로 묶습니다. 사진은 저장하지 않고 서버로 보내지 않습니다.{{ profile?.mode === '오프라인' ? '' : ' 캡처에는 멘토·멘티의 얼굴과 이름, 날짜와 시간이 보여야 합니다.' }}</span>
+        </div>
       </div>
+      <p class="notice">멘티 이름·연락처·학교는 쓰지 마세요. 적혀 있으면 저장할 때 가립니다. 정서·가정 이야기는 보고서에 넣지 않습니다.</p>
+
       <div v-if="notes.length" class="box warn" data-test="notes"><ul><li v-for="n in notes" :key="n">{{ n }}</li></ul></div>
       <div class="row">
         <button class="primary" :disabled="!!busy" data-test="save">{{ busy === 'save' ? '저장하는 중…' : '저장' }}</button>
-        <button type="button" :disabled="!!busy || absent" data-test="polish" @click="polish">{{ busy === 'polish' ? '다듬는 중…' : 'AI로 표현 다듬기' }}</button>
         <button v-if="next && embedded" type="button" class="primary" data-test="next-round" @click="emit('saved')">{{ next }}로 넘어가기</button>
         <router-link v-if="!embedded" :to="menteePath(alias)" class="linkbutton">멘티 화면으로 돌아가기</router-link>
       </div>

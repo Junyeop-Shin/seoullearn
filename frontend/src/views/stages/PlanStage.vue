@@ -2,11 +2,10 @@
 import { computed, reactive, ref } from 'vue'
 import { api } from '../../api/client'
 import CurriculumEditor from '../../components/CurriculumEditor.vue'
-import { copyText } from '../../lib/copy'
 import { shrinkImage } from '../../lib/image'
 import { fillValues, scheduleText } from '../../lib/mentee'
 import { fillPlanFile, mentorCode, planFileName } from '../../lib/planFile'
-import { DIAG_SLOTS, GOAL_SLOTS, changedLines, composeSlots, freshLines, mergeLines, onlineText, parseSlots, toCircled } from '../../lib/plan'
+import { DIAG_SLOTS, GOAL_SLOTS, changedLines, composeSlots, onlineText, parseSlots, toCircled } from '../../lib/plan'
 import { courseName, curriculumCell, curriculumLines, handoverForDraft, handoverFromVault, handoverNote, latestOf,
   termSummaryFromVault, termSummaryText } from '../../lib/reports'
 import { totalRounds } from '../../lib/stage'
@@ -15,8 +14,8 @@ import { loadSettings } from '../../stores/settings'
 import { saveItem } from '../../stores/vault'
 
 // 종합계획서②: 1회차 후 정해진 서식 파일(종합활동계획서)에 옮겨 적어 1회차 활동보고서에 첨부한다.
-// 화면은 서식 파일의 표와 같은 칸, 같은 순서다. 칸마다 적은 글을 [복사]해 서식의 같은 칸에 붙여 넣는다.
-// 종합계획서①의 내용을 미리 가져오고, 강좌 목차로 커리큘럼을 채우고, 필요하면 AI로 초안을 채우거나 표현을 다듬는다.
+// 화면은 서식 파일의 표와 같은 칸, 같은 순서다. 적은 글은 맨 아래에서 서식 파일(hwpx, docx)에 채워 내려받는다.
+// 종합계획서①의 내용을 미리 가져오고, 강좌 목차로 커리큘럼을 채우고, 지난 회기를 이어 가면 AI로 초안을 채울 수 있다. 다 쓰면 서식 파일로 내려받는다.
 const FORM_ID = 'plan_file'
 defineOptions({ inheritAttrs: false })   // 멘티 화면이 모든 단계에 같은 값을 넘긴다: 안 쓰는 값이 화면 요소에 붙지 않게 한다
 const props = defineProps({ alias: { type: String, required: true }, profile: { type: Object, required: true }, items: { type: Array, required: true },
@@ -52,8 +51,7 @@ const busy = ref('')
 const error = ref('')
 const fillNote = ref('')
 const notes = ref([])
-const defaults = {}   // 서버가 규칙으로 만든 기본안 (멘토링 구성). 고치지 않은 줄은 AI로 다듬지 않는다
-const polished = {}   // 마지막으로 AI가 다듬어 준 글. 그 뒤로 고치지 않은 줄은 다시 다듬지 않는다
+const defaults = {}   // 서버가 규칙으로 만든 기본안 (멘토링 구성). 고치지 않았으면 서버가 다시 만든다
 const changes = ref(null)   // AI가 바꾼 내용 {mode, items: [{label, before, after}], undo}
 
 const goalText = computed(() => composeSlots(GOAL_SLOTS, goal.parts, goal.rest))
@@ -92,9 +90,7 @@ const courseList = computed(() => courses.map((c) => [c.platform, courseName(c)]
 const subjectTime = computed(() => [common.subject, courseList.value, common.schedule].filter((x) => x && x.trim()).join(' / '))
 const lines = (s) => s.split('\n').map((x) => x.trim()).filter(Boolean)
 const ready = computed(() => courses.reduce((n, c) => n + Math.max(0, c.lectures.length - (Number(c.done) || 0)), 0))   // 아직 안 들은 강 수
-const curriculumText = computed(() => curriculumLines(rows.value, true, courses).join('\n\n'))
 
-const copy = (label, value) => copyText(value, label)
 
 async function run(name, fn) {
   error.value = ''
@@ -176,7 +172,6 @@ const fillCurriculum = () => run('fill-curriculum', async () => {
 })
 
 // ---- AI: 바뀐 내용을 보여 주고 되돌릴 수 있게 한다
-const LABELS = { learning_goal: '멘티 학습목표', diagnosis: '학생진단', structure: '멘토링 구성', rules: '활동규칙' }
 const snapshot = () => [...GOAL_SLOTS.map((s, i) => [`멘티 학습목표 ${s.mark}`, goal.parts[i] || '']), ...DIAG_SLOTS.map((s, i) => [`학생진단 ${s.mark}`, diag.parts[i] || '']),
   ['멘토링 구성', plain.structure], ['활동규칙', plain.rules]]
 function track(mode, before, snap) {
@@ -185,7 +180,6 @@ function track(mode, before, snap) {
 }
 function undoChanges() {
   apply(changes.value.undo)
-  for (const k of Object.keys(polished)) delete polished[k]
   changes.value = null
   toast('AI가 바꾸기 전으로 되돌렸습니다.')
 }
@@ -193,7 +187,7 @@ const timing = () => ({ start_datetime: (props.profile.start_datetime || '').rep
 const safe = (res) => {
   // 아동 안전 신호가 있으면 서버가 초안을 만들지 않고 운영사무국 안내만 돌려준다: 그 안내를 보여 주고 저장하지 않는다
   if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '초안을 만들지 못했습니다.')
-  if (res.error) throw new Error('AI의 답을 읽지 못했습니다. 잠시 뒤 다시 눌러 주세요.')   // 형식 오류를 '바꿀 표현이 없었습니다'로 넘기지 않는다
+  if (res.error) throw new Error('AI의 답을 읽지 못했습니다. 잠시 뒤 다시 눌러 주세요.')
   return res
 }
 
@@ -211,38 +205,11 @@ const fillDraft = () => run('fill', async () => {
   toast(changes.value ? '초안을 채웠습니다. 새로 들어간 내용을 확인하고 고쳐 주세요.' : '참고 자료에서 채울 내용을 찾지 못했습니다.')
 })
 
-// 표현 다듬기: 종합계획서①에서 가져온 그대로인 줄과 이미 다듬은 줄은 보내지 않는다. 참고 자료도 보내지 않는다
-const polish = () => run('polish', async () => {
-  const before = memo(), snap = snapshot(), fresh = {}
-  for (const k of KEYS) {
-    const l = freshLines(before[k], polished[k], base[k], defaults[k])
-    if (l.length) fresh[k] = l
-  }
-  const only = Object.keys(fresh)
-  if (!only.length) return toast('새로 다듬을 내용이 없습니다. 종합계획서①에서 가져온 그대로이거나 이미 다듬었습니다.')
-  const m = {}
-  for (const k of ['learning_goal', 'structure']) if (fresh[k]) m[k] = fresh[k].join('\n')
-  const res = safe(await api.draft(FORM_ID, { subject_time: subjectTime.value, diagnosis: fresh.diagnosis || [], rules: fresh.rules || [] }, { ...timing(), memo: m, curriculum_lines: [], only }))
-  const kept = [], merged = []
-  const out = { ...before }
-  for (const k of only) {
-    const got = mergeLines(before[k], fresh[k], text(res.draft[k]))
-    if (got === null) kept.push(`${LABELS[k]} 칸은 다듬은 글의 줄 수가 달라 적어 둔 그대로 두었습니다. 빠진 내용이 없는지 확인해 주세요.`)
-    else { out[k] = got; merged.push(k) }
-  }
-  apply(out)
-  const after = memo()
-  for (const k of merged) polished[k] = after[k]   // 다듬지 못한 칸은 다시 다듬을 수 있게 둔다
-  track('polish', before, snap)
-  notes.value = [...kept, ...(res.pii_masked.length ? [`AI에 보내기 전에 가린 정보: ${res.pii_masked.join(', ')}`] : []), ...res.warnings.filter((w) => !w.includes('주차별 계획이 없어'))]
-  toast(changes.value ? '표현을 다듬었습니다. 바뀐 내용을 확인하고 저장해 주세요.' : '다듬어 보았지만 바꿀 표현이 없었습니다.')
-})
-
 // ---- 서식 파일로 내보내기: 서식 파일(docx, hwpx)에 이 화면의 글을 채워 내려받는다. 채우는 일은 이 브라우저 안에서만 하고 내용은 서버로 보내지 않는다
 // 빈 서식은 서버에 올려 둔 것을 받아 쓴다 (로그인한 멘토에게만 내준다)
 const exportAs = (format) => run('export', async () => {
   const bytes = await api.planTemplate(format)
-  if (!bytes) throw new Error('서버에 서식 파일이 없어 내보내지 못했습니다. 칸마다 [복사]해 서식 파일에 옮겨 주세요.')
+  if (!bytes) throw new Error('서버에 서식 파일이 없어 내보내지 못했습니다. 서버의 서식 폴더를 확인해 주세요.')
   const v = memo()
   const out = fillPlanFile(bytes, { period: period.value, mentee: fill.mentee || '', mentor: fill.mentor || '', subject_time: subjectTime.value,
     course: courseList.value, goal: lines(v.learning_goal), diagnosis: lines(v.diagnosis), structure: lines(v.structure), rules: lines(v.rules),
@@ -277,7 +244,7 @@ const save = () => run('save', async () => {
 
 <template>
   <div>
-    <p class="muted">1회차를 마친 뒤, 협의한 내용으로 종합계획서②를 씁니다. 아래 표는 서식 파일(종합활동계획서)과 같은 칸, 같은 순서입니다. 칸마다 [복사]해 서식 파일의 같은 칸에 붙여 넣고, 1회차 활동보고서에 첨부해 주세요.</p>
+    <p class="muted">1회차를 마친 뒤, 협의한 내용으로 종합계획서②를 씁니다. 다 쓰면 맨 아래에서 서식 파일로 내려받아 1회차 활동보고서에 첨부해 주세요.</p>
     <div v-if="error" class="box error">{{ error }}</div>
     <div v-if="previous" class="mini pre" data-test="previous-term"><span class="t">지난 회기 요약 (참고)</span>{{ termSummaryText(previous) }}</div>
     <div v-else-if="handover" class="mini pre" data-test="handover-ref"><span class="t">이전 멘토에게 인계받은 내용 (참고)</span>{{ handover }}</div>
@@ -289,22 +256,18 @@ const save = () => run('save', async () => {
       <table class="sheet" data-test="sheet">
         <tr>
           <th>멘토링기간</th>
-          <td colspan="3"><div class="cell-row"><span data-sheet="period">{{ period || '커리큘럼 표의 날짜가 정해지면 채워집니다' }}</span>
-            <button type="button" class="small" :disabled="!period" data-copy="period" @click="copy('멘토링기간', period)">복사</button></div></td>
+          <td colspan="3"><span data-sheet="period">{{ period || '커리큘럼 표의 날짜가 정해지면 채워집니다' }}</span></td>
         </tr>
         <tr>
           <th>멘 티</th>
-          <td><div class="cell-row"><span data-sheet="mentee">{{ fill.mentee || '멘티 설정에서 이름·학년 입력' }}</span>
-            <button type="button" class="small" :disabled="!fill.mentee" data-copy="mentee" @click="copy('멘티', fill.mentee)">복사</button></div></td>
+          <td><span data-sheet="mentee">{{ fill.mentee || '멘티 설정에서 이름·학년 입력' }}</span></td>
           <th>멘 토</th>
-          <td><div class="cell-row"><span data-sheet="mentor">{{ fill.mentor || '멘토 설정에서 이름·대학교·전공 입력' }}</span>
-            <button type="button" class="small" :disabled="!fill.mentor" data-copy="mentor" @click="copy('멘토', fill.mentor)">복사</button></div></td>
+          <td><span data-sheet="mentor">{{ fill.mentor || '멘토 설정에서 이름·대학교·전공 입력' }}</span></td>
         </tr>
         <tr>
           <th>멘토링<br />과목 및 시간</th>
           <td colspan="3">
-            <div class="cell-row"><span class="mini" data-sheet="subject_time">{{ subjectTime || '멘토링과목 / 수강강좌정보 / 진행일정(요일, 시간)' }}</span>
-              <button type="button" class="small" :disabled="!subjectTime" data-copy="subject_time" @click="copy('멘토링 과목 및 시간', subjectTime)">복사</button></div>
+            <p class="mini flush" data-sheet="subject_time">{{ subjectTime || '멘토링과목 / 수강강좌정보 / 진행일정(요일, 시간)' }}</p>
             <div class="form-grid">
               <label class="field"><span class="name">멘토링과목</span><input v-model="common.subject" data-course="subject" /></label>
               <label class="field"><span class="name">진행일정 (요일, 시간)</span><input v-model="common.schedule" placeholder="예: 매주(화) 17:00~18:00" data-course="schedule" /></label>
@@ -330,13 +293,12 @@ const save = () => run('save', async () => {
               <p class="notice">비워 둔 학습목표와 학생진단을 지난 회기 요약으로 채워 드립니다. 이미 적은 칸은 건드리지 않습니다.</p>
               <button type="button" :disabled="!!busy" data-test="fill" @click="fillDraft">{{ busy === 'fill' ? '채우는 중…' : '지난 회기에 이어 초안 채우기' }}</button>
             </div>
-            <div v-if="changes && changes.mode === 'fill'" class="box ask changes" data-test="changes">
+            <div v-if="changes" class="box ask changes" data-test="changes">
               <div class="row"><strong class="grow">AI가 새로 채운 내용 {{ changes.items.length }}곳</strong><button type="button" class="small" data-test="undo" @click="undoChanges">되돌리기</button></div>
               <ul><li v-for="(c, i) in changes.items" :key="i"><b>{{ c.label }}</b><ins>{{ c.after }}</ins></li></ul>
               <p class="notice">멘티가 말한 내용이 아니라 참고 자료로 쓴 초안입니다. 1회차에 이야기한 내용에 맞게 고쳐 주세요.</p>
             </div>
-            <div class="cell-row"><span class="notice">{{ pre ? '종합계획서①에서 가져왔습니다. 1회차에 협의한 내용으로 고쳐 주세요.' : '1회차에 협의한 목표를 항목별로 적어 주세요.' }}</span>
-              <button type="button" class="small" :disabled="!goalText" data-copy="learning_goal" @click="copy('멘티 학습목표', goalText)">복사</button></div>
+            <span class="notice">{{ pre ? '종합계획서①에서 가져왔습니다. 1회차에 협의한 내용으로 고쳐 주세요.' : '1회차에 협의한 목표를 항목별로 적어 주세요.' }}</span>
             <label v-for="(s, i) in GOAL_SLOTS" :key="s.mark" class="slot"><span>{{ s.mark }} {{ s.label }}</span>
               <input v-model="goal.parts[i]" :placeholder="`예: ${s.example}`" :data-goal="i" /></label>
             <label v-if="goal.rest" class="slot"><span>그 밖에</span><textarea v-model="goal.rest" rows="2"></textarea></label>
@@ -345,8 +307,7 @@ const save = () => run('save', async () => {
         <tr>
           <th>학생진단</th>
           <td colspan="3">
-            <div class="cell-row"><span class="notice">1회차에 확인한 내용을 항목별로 적어 주세요. 확인하지 못한 항목은 비워 둡니다.</span>
-              <button type="button" class="small" :disabled="!diagText" data-copy="diagnosis" @click="copy('학생진단', diagText)">복사</button></div>
+            <span class="notice">1회차에 확인한 내용을 항목별로 적어 주세요. 확인하지 못한 항목은 비워 둡니다.</span>
             <label v-for="(s, i) in DIAG_SLOTS" :key="s.mark" class="slot"><span>{{ s.mark }}</span>
               <input v-model="diag.parts[i]" :placeholder="`예: ${s.example}`" :data-diag="i" /></label>
             <label v-if="diag.rest" class="slot"><span>그 밖에</span><textarea v-model="diag.rest" rows="2"></textarea></label>
@@ -384,37 +345,27 @@ const save = () => run('save', async () => {
               <button type="button" class="primary" :disabled="!!busy || (alloc.mode === 'target' && !Number(alloc.target))" data-test="fill-curriculum" @click="fillCurriculum">{{ busy === 'fill-curriculum' ? '채우는 중…' : '커리큘럼 채우기' }}</button>
               <p v-if="fillNote" class="notice" data-test="fill-note">{{ fillNote }}</p>
             </div>
-            <div class="cell-row"><span class="notice">서식에는 주차마다 "(온라인강의) 강좌명(강사명), 강의 제목 (n~m강)" 줄바꿈 "(멘토링 내용) 학습 내용"으로 들어갑니다. 괄호 안은 목차에서 몇 번째 강인지입니다. 주차마다 [복사]하거나 전체를 복사해 주세요.</span>
-              <button type="button" class="small" :disabled="!curriculumText" data-copy="curriculum" @click="copy('커리큘럼 전체', curriculumText)">전체 복사</button></div>
-            <CurriculumEditor v-model="rows" :rounds="rounds" :start="profile.start_datetime || ''" :courses="courses" full copyable
-              @copy="(r) => copy(`${r.week}주차`, curriculumCell(r, courses))" />
+            <span class="notice">서식에는 주차마다 "(온라인강의) 강좌명(강사명), 강의 제목 (n~m강)" 줄바꿈 "(멘토링 내용) 학습 내용"으로 들어갑니다. 괄호 안은 목차에서 몇 번째 강인지입니다.</span>
+            <CurriculumEditor v-model="rows" :rounds="rounds" :start="profile.start_datetime || ''" :courses="courses" full />
           </td>
         </tr>
         <tr>
           <th>멘토링<br />구성</th>
           <td colspan="3">
-            <div class="cell-row"><span></span><button type="button" class="small" :disabled="!plain.structure.trim()" data-copy="structure" @click="copy('멘토링 구성', plain.structure)">복사</button></div>
             <textarea v-model="plain.structure" :rows="Math.max(5, plain.structure.split('\n').length)" placeholder="17:00~17:10 온라인 강의 수강(필수) 확인 & 퀴즈&#10;17:10~17:30 개념학습&#10;… (비워 두고 저장하면 시간 배분 기본안이 들어갑니다)" aria-label="멘토링 구성" data-field="structure"></textarea>
           </td>
         </tr>
         <tr>
           <th>활동규칙</th>
           <td colspan="3">
-            <div class="cell-row"><span></span><button type="button" class="small" :disabled="!plain.rules.trim()" data-copy="rules" @click="copy('활동규칙', plain.rules)">복사</button></div>
             <textarea v-model="plain.rules" :rows="Math.max(5, plain.rules.split('\n').length)" placeholder="한 줄에 규칙 하나씩&#10;멘토링 시간 준수하기&#10;일정 변경은 최소 3일 전에 논의하기" aria-label="활동규칙" data-field="rules"></textarea>
           </td>
         </tr>
       </table>
 
-      <div v-if="changes && changes.mode === 'polish'" class="box ask changes" data-test="changes">
-        <div class="row"><strong class="grow">AI가 표현을 다듬은 곳 {{ changes.items.length }}곳</strong><button type="button" class="small" data-test="undo" @click="undoChanges">되돌리기</button></div>
-        <ul><li v-for="(c, i) in changes.items" :key="i"><b>{{ c.label }}</b><del v-if="c.before.trim()">{{ c.before }}</del><ins>{{ c.after || '(비워짐)' }}</ins></li></ul>
-      </div>
       <div v-if="notes.length" class="box warn" data-test="notes"><ul><li v-for="n in notes" :key="n">{{ n }}</li></ul></div>
       <div class="row">
         <button class="primary" :disabled="!!busy" data-test="save">{{ busy === 'save' ? '저장하는 중…' : '저장' }}</button>
-        <button type="button" :disabled="!!busy" data-test="polish" @click="polish">{{ busy === 'polish' ? '다듬는 중…' : 'AI로 표현 다듬기' }}</button>
-        <span class="notice">표현 다듬기는 새로 적거나 고친 줄만 다듬고, 바뀐 곳을 보여 드립니다.</span>
       </div>
       <div class="course-card" data-test="export">
         <strong>서식 파일로 내보내기</strong>
