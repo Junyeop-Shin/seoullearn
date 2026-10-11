@@ -52,7 +52,7 @@ async function loadScenario() {
 
 <template>
   <div class="shell">
-    <h1>내 멘티</h1>
+    <div class="title-row"><h1>내 멘티</h1><router-link to="/mentees/new" class="linkbutton primary" data-test="new-mentee">멘티 등록</router-link></div>
     <p class="muted">멘티를 고르면 지금 할 단계의 화면이 열립니다. 자료는 이 브라우저에만 저장됩니다.</p>
 
     <router-link v-for="m in mentees" :key="m.alias" :to="menteePath(m.alias)" class="card mentee-card" data-test="mentee-card">
@@ -63,14 +63,19 @@ async function loadScenario() {
     </router-link>
     <p v-if="!mentees.length" class="card muted">아직 등록한 멘티가 없습니다. 멘티를 등록하거나 예시 멘티를 불러와 써 보세요.</p>
     <div v-if="error" class="box error" role="alert">{{ error }}</div>
-    <router-link to="/mentees/new" class="linkbutton primary" data-test="new-mentee">멘티 등록</router-link>
 
-    <h2>먼저 써 보고 싶다면</h2>
-    <div class="card">
-      <p class="muted flush">지어낸 멘티 4명의 자료를 불러옵니다: 회기를 마친 멘티, 멘토 교체를 앞둔 멘티, 막 매칭된 멘티, 결석이 있었던 멘티. 실제 인물이 아니며 이 브라우저에만 저장됩니다.</p>
-      <button type="button" class="gap-top" data-test="load-samples" @click="loadSamples">예시 멘티 불러오기</button>
-      <p class="muted">사전 연락부터 완료보고서까지 단계마다 한 명씩 준비한 연습용 멘티를 불러옵니다. 다시 누르면 연습용 멘티의 자료를 처음 상태로 되돌립니다.</p>
-      <button type="button" data-test="load-scenario" @click="loadScenario">단계별 연습용 멘티 불러오기</button>
-    </div>
+    <!-- 멘티가 있으면 접어 둔다: 처음 온 사람에게만 필요한 자료다 -->
+    <details class="fold" :open="!mentees.length" data-test="samples">
+      <summary>먼저 써 보고 싶다면: 지어낸 멘티 불러오기</summary>
+      <div class="row">
+        <button type="button" data-test="load-scenario" @click="loadScenario">단계별 연습용 멘티 불러오기</button>
+        <span class="notice grow">사전 연락부터 완료보고서까지 단계마다 한 명씩 준비했습니다. 다시 누르면 처음 상태로 되돌립니다.</span>
+      </div>
+      <div class="row gap-top">
+        <button type="button" data-test="load-samples" @click="loadSamples">예시 멘티 불러오기</button>
+        <span class="notice grow">회기를 마친 멘티, 멘토 교체를 앞둔 멘티, 막 매칭된 멘티, 결석이 있었던 멘티 4명입니다.</span>
+      </div>
+      <p class="notice">모두 지어낸 자료이고 실제 인물이 아닙니다.</p>
+    </details>
   </div>
 </template>

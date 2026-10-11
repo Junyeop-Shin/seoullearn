@@ -65,7 +65,7 @@ class VectorRetriever:
         self.chunks, self.embedder = chunks, embedder
         self.backend = backend or settings.vector_backend
         self.by_id = {c.id: c for c in chunks}
-        self.index_key = hashlib.sha256(("\x1e".join(c.text for c in chunks) + embedder.name).encode()).hexdigest()[:16]
+        self.index_key = hashlib.sha256(("\x1e".join(c.id + "\x1f" + c.text for c in chunks) + embedder.name).encode()).hexdigest()[:16]
         if self.backend == "pgvector":
             if store is None:
                 from .vector_store import PgVectorStore

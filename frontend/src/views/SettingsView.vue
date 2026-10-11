@@ -18,7 +18,7 @@ function save() {
 const router = useRouter()
 const error = ref('')
 async function leave() {
-  if (!window.confirm('탈퇴하면 서버의 계정 정보(아이디, 비밀번호, 동의 기록)를 바로 지우고 되돌릴 수 없습니다. 이 브라우저에 저장한 멘티 자료와 멘토 설정은 지워지지 않으니, 함께 지우려면 취소하고 백업·복원 화면에서 먼저 지워 주세요. 탈퇴할까요?')) return
+  if (!window.confirm('탈퇴하면 서버의 계정 정보(아이디, 비밀번호, 전자우편 주소, 동의 기록)를 바로 지우고 되돌릴 수 없습니다. 이 브라우저에 저장한 멘티 자료와 멘토 설정은 지워지지 않으니, 함께 지우려면 취소하고 백업·복원 화면에서 먼저 지워 주세요. 탈퇴할까요?')) return
   try {
     await withdraw()
     router.replace('/login')
@@ -50,7 +50,7 @@ async function leave() {
     <h2>계정과 개인정보</h2>
     <div class="card" data-test="account">
       <p class="flush">서버에는 아이디({{ auth.user?.username }}), 암호화한 비밀번호, 전자우편 주소, 가입할 때의 동의 기록만 있습니다. 자세한 내용은 <router-link to="/privacy">개인정보 처리방침</router-link>에서 볼 수 있습니다.</p>
-      <div v-if="error" class="box error">{{ error }}</div>
+      <div v-if="error" class="box error" role="alert">{{ error }}</div>
       <div v-if="auth.user?.role !== 'ADMIN'" class="row gap-top">
         <button type="button" class="danger" data-test="withdraw" @click="leave">회원 탈퇴</button>
         <span class="notice">탈퇴하면 계정 정보를 바로 지웁니다. 멘티 자료는 이 브라우저에 남습니다.</span>

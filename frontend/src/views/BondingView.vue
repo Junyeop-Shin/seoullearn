@@ -77,14 +77,14 @@ async function download() {
 <template>
   <div class="shell">
     <h1>친화·성장활동</h1>
-    <p class="muted">신청서와 결과보고서는 구글폼으로 냅니다. 낸 내용을 여기에 적어 두면 다시 볼 수 있고, 실제 활동 내용을 적은 기록은 완료보고서 초안을 쓸 때 참고합니다. 이 브라우저에만 저장합니다.</p>
+    <p class="muted">신청서와 결과보고서는 구글폼으로 냅니다. 낸 내용을 여기에 적어 두면 완료보고서 초안을 만들 때 참고합니다. 이 브라우저에만 저장합니다.</p>
     <div v-if="error" class="box error" role="alert">{{ error }}</div>
     <MenteePick v-model="mentee" />
     <template v-if="mentee">
     <div class="tabs" role="group" aria-label="활동 유형">
       <button v-for="t in BONDING_TYPES" :key="t" type="button" :aria-pressed="type === t" :class="{ on: type === t }" :data-type="t" @click="type = t">{{ t }}</button>
     </div>
-    <p class="box ask">4회차 이상 학습 멘토링을 마친 그룹이 신청할 수 있고, 신청 전에 보호자 사전동의를 받아야 합니다. 활동 5일 전까지 신청하고 승인을 받은 뒤 진행해 주세요. 회기마다 유형별로 한 번이며 학습 멘토링과 같은 날에는 할 수 없습니다.</p>
+    <ul class="box ask"><li>학습 멘토링을 4회차 이상 마친 뒤에 신청할 수 있습니다.</li><li>신청하기 전에 보호자 사전동의를 받아 주세요.</li><li>활동 5일 전까지 신청해 승인받은 뒤 진행해 주세요.</li><li>회기마다 유형별로 한 번이고, 학습 멘토링과 같은 날에는 할 수 없습니다.</li></ul>
 
     <form class="card plan-form" data-test="bonding-form" @submit.prevent="save" @input="unsaved.add(keyOf(mentee, type))">
       <div class="row"><h3 class="flush grow">신청할 때 적은 내용</h3>

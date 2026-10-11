@@ -93,9 +93,9 @@ async function calc() {
             <!-- 인정결석과 고학년지도는 멘티 칸에 둔다: 휴대폰 너비에서 금액을 바꾸는 확인란이 화면 밖으로 밀리지 않게 -->
             <td><strong>{{ r.name }}</strong><small>{{ r.mode }} · 회당 {{ r.hours }}시간 · 인정결석 {{ r.excused }}회</small>
               <label class="check flush"><input v-model="r.senior" type="checkbox" data-col="senior" />고학년지도 가산금 대상</label></td>
-            <td><input v-model="r.normal" type="number" min="0" max="31" :aria-label="`${r.name} 정상 진행 회차 수`" data-col="normal" /></td>
-            <td><input v-model="r.no_show" type="number" min="0" max="31" :aria-label="`${r.name} 무단결석 회차 수`" data-col="no_show" /></td>
-            <td><input v-if="r.mode === '온라인'" v-model="r.late_cancel" type="number" min="0" max="31" :aria-label="`${r.name} 임박취소 회차 수`" data-col="late_cancel" /><span v-else class="muted">해당 없음</span></td>
+            <td data-label="정상 진행"><input v-model="r.normal" type="number" min="0" max="31" :aria-label="`${r.name} 정상 진행 회차 수`" data-col="normal" /></td>
+            <td data-label="무단결석"><input v-model="r.no_show" type="number" min="0" max="31" :aria-label="`${r.name} 무단결석 회차 수`" data-col="no_show" /></td>
+            <td data-label="임박취소"><input v-if="r.mode === '온라인'" v-model="r.late_cancel" type="number" min="0" max="31" :aria-label="`${r.name} 임박취소 회차 수`" data-col="late_cancel" /><span v-else class="muted">해당 없음</span></td>
           </tr>
         </tbody>
       </table>
@@ -131,7 +131,7 @@ async function calc() {
       <form @submit.prevent="calc">
         <div class="row">
           <label class="field grow"><span class="name">멘토링 방식</span><select v-model="f.mode"><option>온라인</option><option>오프라인</option></select></label>
-          <label class="field grow"><span class="name">회당 시간</span><select v-model="f.hours"><option :value="1">1시간</option><option :value="2">2시간 (시간확대)</option></select></label>
+          <label class="field grow"><span class="name">회당 학습시간</span><select v-model="f.hours"><option :value="1">1시간</option><option :value="2">2시간 (시간확대)</option></select></label>
           <label v-if="f.mode === '온라인'" class="field grow"><span class="name">장기활동 가산금 구간</span>
             <select v-model="f.stage"><option v-for="n in 6" :key="n" :value="n">{{ n }}구간{{ n === 1 ? ' (가산 없음)' : ` (${(n - 1) * 10}%)` }}</option></select>
           </label>
@@ -154,7 +154,7 @@ async function calc() {
         </label>
         <button class="primary" data-test="calc-manual">계산하기</button>
       </form>
-      <div v-if="manualError" class="box error">{{ manualError }}</div>
+      <div v-if="manualError" class="box error" role="alert">{{ manualError }}</div>
       <template v-if="manual">
         <div class="mini gap-top" data-test="result">
           <strong>시간당 {{ won(manual.hourly.total) }}</strong>

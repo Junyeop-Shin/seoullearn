@@ -7,6 +7,7 @@ import ReportSource from '../components/ReportSource.vue'
 import { completionChecklist, showChecklist } from '../lib/checklist'
 import { copyText } from '../lib/copy'
 import { profileFromVault } from '../lib/mentee'
+import { checkDraft } from '../lib/formFields'
 import { activitiesFromVault, currentCompletion, goalsFromVault } from '../lib/reports'
 import { toast } from '../lib/toast'
 import { listItems, saveItem } from '../stores/vault'
@@ -64,10 +65,7 @@ async function draft() {
   error.value = ''
   busy.value = true
   try {
-    const res = await api.draft(FORM_ID, {}, { reports: reports.value, plan_goal: goals, activities, duration })
-    // 아동 안전 신호가 있으면 서버가 초안을 만들지 않고 운영사무국 안내만 돌려준다
-    if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '초안을 만들지 못했습니다. 잠시 후 다시 눌러 주세요.')
-    if (res.error) throw new Error('AI의 답을 읽지 못했습니다. 잠시 후 다시 눌러 주세요.')   // 빈 칸으로 조용히 넘어가지 않는다
+    const res = checkDraft(await api.draft(FORM_ID, {}, { reports: reports.value, plan_goal: goals, activities, duration }))
     for (const b of BOXES) text[b.key] = asText(res.draft[b.key])
     notes.value = [...res.warnings, ...res.reminders]
     return (drafted.value = true)
@@ -79,7 +77,7 @@ async function draft() {
   }
 }
 function redraft() {
-  if (!drafted.value || window.confirm('활동보고서로 초안을 다시 만듭니다. 지금 칸에 적힌 글은 새 초안으로 바뀝니다. 계속할까요?')) draft()
+  if (!drafted.value || window.confirm('활동보고서로 초안을 다시 만듭니다. 지금 칸에 적힌 글은 새 초안으로 바뀝니다. 다시 만들까요?')) draft()
 }
 
 const store = async () => { savedId = (await saveItem({ id: savedId, alias, formId: FORM_ID, title: '완료보고서', draft: { ...text } })).id }
@@ -100,12 +98,12 @@ async function save() {
   <div :class="{ shell: !embedded }">
     <template v-if="!embedded">
       <MenteeHeader :alias="alias" title="완료보고서" />
-      <h1>완료보고서 작성</h1>
+      <h1>완료보고서</h1>
     </template>
-    <p class="muted">{{ drafted ? '저장해 둔 종합계획서와 활동보고서로 초안을 써 두었습니다. 고치고 덧붙인 뒤' : '완료보고서는 마지막 회차를 마친 뒤에 씁니다. 칸을 채운 뒤' }} 칸마다 [복사]해 플랫폼의 같은 칸에 붙여 넣어 주세요. 수행 리스트는 플랫폼이 자동으로 채웁니다.</p>
+    <p class="muted">{{ drafted ? '저장해 둔 종합계획서와 활동보고서로 초안을 만들었습니다. 고치고 덧붙인 뒤' : '완료보고서는 마지막 회차를 마친 뒤에 씁니다. 칸을 채운 뒤' }} 칸마다 [복사]해 플랫폼의 같은 칸에 붙여 넣어 주세요. 수행 리스트는 플랫폼이 자동으로 채웁니다.</p>
     <div v-if="error" class="box error" role="alert">{{ error }}</div>
     <ReportSource :alias="alias" @loaded="loaded" />
-    <p v-if="busy" class="card muted" aria-live="polite" data-test="drafting">초안을 쓰는 중입니다…</p>
+    <p v-if="busy" class="card muted" aria-live="polite" data-test="drafting">초안을 만드는 중입니다…</p>
     <form v-if="ready" class="card plan-form" data-test="completion-form" @submit.prevent="save">
       <fieldset :disabled="busy">
         <div v-for="b in BOXES" :key="b.key" class="item">
@@ -113,9 +111,10 @@ async function save() {
           <textarea v-model="text[b.key]" :rows="rowsOf(text[b.key])" :aria-label="b.label" :data-draft="b.key"></textarea>
           <span class="notice">{{ b.hint }}</span>
         </div>
-        <div v-if="notes.length" class="box warn" data-test="notes"><ul><li v-for="n in notes" :key="n">{{ n }}</li></ul></div>
-        <div class="row">
-          <button class="primary" data-test="save">저장</button>
+        <div v-if="notes.length" class="box" data-test="notes"><ul><li v-for="n in notes" :key="n">{{ n }}</li></ul></div>
+        <div class="savebar">
+          <button class="primary" data-test="save">완료보고서 저장</button>
+          <span class="grow"></span>
           <button type="button" :disabled="!reports.length" data-test="redraft" @click="redraft">{{ drafted ? '초안 다시 만들기' : '초안 만들기' }}</button>
         </div>
       </fieldset>

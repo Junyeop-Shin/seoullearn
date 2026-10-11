@@ -1,5 +1,4 @@
 """Q053(시간확대 조건)을 청크 단위로 보기 + 용어집 한 줄('조건' → '대상')의 효과. LLM 호출 없음."""
-import sys
 
 from common import *  # noqa
 import common

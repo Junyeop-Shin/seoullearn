@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 
-// 화면 오른쪽 아래에 잠깐 뜨는 알림 (복사, 저장 결과).
+// 화면 위쪽에 잠깐 뜨는 알림 (복사, 저장 결과).
 export const toasts = reactive([])
 let seq = 0
 

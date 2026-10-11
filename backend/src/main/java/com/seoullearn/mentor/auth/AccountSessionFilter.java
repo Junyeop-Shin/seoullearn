@@ -22,6 +22,8 @@ public class AccountSessionFilter extends OncePerRequestFilter {
 
     static final String ACCOUNT_ID = "accountId";
 
+    static final String PW = "pw";
+
     private final AppUserRepository users;
 
     public AccountSessionFilter(AppUserRepository users) {
@@ -37,7 +39,9 @@ public class AccountSessionFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
-        if (session != null && session.getAttribute(ACCOUNT_ID) instanceof Long id && !users.existsById(id)) {
+        // 계정이 없어졌거나(탈퇴) 비밀번호가 바뀌었으면(재설정) 그 전에 만든 세션은 끊는다
+        if (session != null && session.getAttribute(ACCOUNT_ID) instanceof Long id
+                && !users.findById(id).map(u -> u.getPasswordHash().equals(session.getAttribute(PW))).orElse(false)) {
             session.invalidate();
         }
         chain.doFilter(request, response);

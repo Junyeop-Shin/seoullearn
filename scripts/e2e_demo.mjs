@@ -91,6 +91,7 @@ check(!sms.includes('[멘'), '자리표시가 남지 않음')
 check(await page.locator('input[placeholder="예: 19시"]').count() === 0 && !(await page.locator('.shell').innerText()).includes('통화에서 확인한 내용'), '전화할 시각·통화 내용 칸이 없음')
 check(!(await page.locator('.shell').innerText()).includes('직접 보관'), '연락처 보관 안내가 없음')
 check(await page.locator('[data-test=sessions]').count() === 0 && await page.locator('[data-test=archive]').count() === 0, '단계 화면에는 지난 보고서·멘티 정보·자료 관리가 없음')
+await page.locator('[data-test=handover-fold] > summary').click()   // 인계받은 내용은 접혀 있다
 await page.locator('[data-test=handover-note]').fill('안녕하세요, 인계 내용입니다.\n[출석 패턴] 대체로 정시에 출석함\n[학업 수준] 수학 4등급')
 await page.locator('[data-test=save-handover]').click()
 await toast('인계받은 내용')
@@ -311,6 +312,8 @@ check(JSON.stringify(lastBody('allowance_month')) === JSON.stringify({ groups: [
 
 log('10. 예시 멘티 불러오기')
 await page.goto(base + '/mentees')
+await page.locator('[data-test=mentee-card]').first().waitFor()   // 목록이 읽혀 접힌 뒤에 누른다
+await page.locator('[data-test=samples] > summary').click()   // 멘티가 있으면 접혀 있다
 await page.locator('[data-test=load-samples]').click()
 await toast('예시 자료')
 await page.locator('[data-test=mentee-card]', { hasText: '이OO' }).waitFor()   // 목록을 다시 읽을 때까지 기다린다

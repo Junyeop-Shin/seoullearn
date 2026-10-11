@@ -1,8 +1,6 @@
 package com.seoullearn.mentor.forms;
 
 import com.seoullearn.mentor.common.ApiException;
-import java.util.List;
-import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,11 +16,6 @@ public class FormsController {
 
     public FormsController(FormsService forms) {
         this.forms = forms;
-    }
-
-    @GetMapping
-    public List<Map<String, String>> list() {
-        return forms.list();
     }
 
     @GetMapping(value = "/{formId}", produces = MediaType.APPLICATION_JSON_VALUE)

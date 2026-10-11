@@ -84,14 +84,14 @@ public class AuthController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "비밀번호가 너무 깁니다. 한글은 24자, 영문·숫자는 72자까지 쓸 수 있습니다.");
         }
         if (users.existsByUsername(req.username())) {
-            throw new ApiException(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다.");
+            throw new ApiException(HttpStatus.CONFLICT, "이미 쓰고 있는 아이디입니다. 다른 아이디를 적어 주세요.");
         }
         try {
             AppUser user = users.saveAndFlush(new AppUser(req.username(), passwordEncoder.encode(req.password()), Role.MENTOR)
                     .email(req.email().trim().toLowerCase()).agreed(req.consentVersion(), clock.instant()));
             return new UserResponse(user.getUsername(), user.getRole());
         } catch (DataIntegrityViolationException e) {   // 같은 아이디로 동시에 가입한 경우
-            throw new ApiException(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다.");
+            throw new ApiException(HttpStatus.CONFLICT, "이미 쓰고 있는 아이디입니다. 다른 아이디를 적어 주세요.");
         }
     }
 
@@ -156,7 +156,7 @@ public class AuthController {
         } catch (AuthenticationException e) {
             // 없는 아이디도 똑같이 센다. 아이디가 없는지 비밀번호가 틀렸는지 구분해 알려주지 않는다
             limiter.recordFailure(req.username(), address);
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다.");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "아이디나 비밀번호가 맞지 않습니다. 다시 확인해 주세요.");
         }
         limiter.recordSuccess(req.username(), address);
         if (request.getSession(false) != null) {
@@ -166,9 +166,11 @@ public class AuthController {
         context.setAuthentication(auth);
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
-        // 계정 번호를 세션에 적어 둔다: 탈퇴하면 다른 기기에 남은 세션도 다음 요청에서 끊긴다 (AccountSessionFilter)
-        users.findByUsername(auth.getName())
-                .ifPresent(u -> request.getSession().setAttribute(AccountSessionFilter.ACCOUNT_ID, u.getId()));
+        // 계정 번호와 비밀번호 해시를 세션에 적어 둔다: 탈퇴하거나 비밀번호를 재설정하면 다른 기기에 남은 세션도 다음 요청에서 끊긴다 (AccountSessionFilter)
+        users.findByUsername(auth.getName()).ifPresent(u -> {
+            request.getSession().setAttribute(AccountSessionFilter.ACCOUNT_ID, u.getId());
+            request.getSession().setAttribute(AccountSessionFilter.PW, u.getPasswordHash());
+        });
         return toResponse(auth);
     }
 

@@ -33,7 +33,7 @@ async function send() {
   } finally {
     if (messages.value === list) busy.value = false
     await nextTick()
-    bottom.value?.scrollIntoView({ behavior: 'smooth' })
+    bottom.value?.scrollIntoView()
   }
 }
 </script>
@@ -47,7 +47,7 @@ async function send() {
       <div class="chips">
         <button v-for="q in EXAMPLES" :key="q" type="button" class="chip" @click="ask(q)">{{ q }}</button>
       </div>
-      <p class="notice">앞의 질문은 기억하지 않으니, 질문 하나에 필요한 내용을 모두 적어 주세요. "활동보고서 쓰고 싶어"처럼 적으면 쓰는 화면으로 안내해 드립니다. Enter로 보내고, Shift+Enter로 줄을 바꿉니다.</p>
+      <p class="notice">앞의 질문은 기억하지 않습니다. 질문 하나에 필요한 내용을 모두 적어 주세요. Enter로 보내고 Shift+Enter로 줄을 바꿉니다.</p>
     </div>
     <div v-else class="row"><span class="grow"></span><button type="button" class="small" data-test="clear-chat" @click="clearChat">대화 지우기</button></div>
     <div class="chat" aria-live="polite">
@@ -64,7 +64,7 @@ async function send() {
         <textarea v-model="text" placeholder="예: 멘티가 20분 늦게 왔는데 어떻게 처리하나요?" maxlength="1000" aria-label="질문 입력"
           @keydown.enter.exact="(e) => e.isComposing || (e.preventDefault(), send())"></textarea>
         <div class="row gap-top">
-          <span class="notice grow">멘티 이름·연락처·학교는 쓰지 마세요. 적혀 있으면 AI에 보내기 전에 가립니다.</span>
+          <span class="notice grow">멘티 이름·연락처·학교는 쓰지 마세요. 적혀 있으면 AI로 보내기 전에 가립니다.</span>
           <button class="primary" :disabled="busy || text.trim().length < 2">질문하기</button>
         </div>
       </form>

@@ -208,7 +208,7 @@ docker compose run --rm ai-server python -m evaluation.report_eval [--judge]   #
 
 - 장소 목록은 backend가 파일에서 읽어 내준다 (`GET /api/places`, `PLACES_FILE`). docker compose에서는 `data/places/study_cafes_temp.json`을 쓴다. **임시로 넣은 스터디카페 150곳(자치구마다 6곳, 카카오맵 장소 검색으로 찾음)이며 실제 협약 장소가 아니다.** 자료의 `sample`이 참이면 화면이 `notice` 문구로 그 사실을 알린다. docker 없이 실행하거나 테스트할 때의 기본값은 지어낸 장소 12곳(`synthetic/places.json`)이다. 실제 목록을 받으면 `PLACES_FILE`이 가리키는 파일만 바꾼다.
 - 지도는 카카오맵이다. `.env`의 `KAKAO_MAP_JS_KEY`에 JavaScript 키를 넣고, 카카오 개발자 사이트의 플랫폼 > Web에 화면 주소(`http://localhost:3000`)를 등록해야 뜬다.
-- 키가 없거나 주소가 등록되지 않았으면 지도 없이 목록과 '카카오맵에서 보기' 링크만 보여 준다.
+- 키가 없거나 주소가 등록되지 않았으면 지도 없이 목록과 '카카오맵 열기' 링크만 보여 준다.
 - 카카오에는 장소 이름과 좌표만 전달된다. 멘티·멘토 정보는 보내지 않는다.
 
 ### 답 못 한 질문 모음

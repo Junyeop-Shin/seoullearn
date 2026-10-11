@@ -155,7 +155,7 @@ class PlanInitialHooks(_PlanBase):
     def finish(self, ctx: Context, result: DraftResult) -> None:
         d = result.draft
         if not ctx.extra.get("_plan_sessions") and not ctx.extra.get("_curriculum_lines"):
-            ctx.warn("주차별 계획이 없어 회차별 커리큘럼을 1회차만 채웠습니다. 커리큘럼을 주차별로 적거나 강의 목차로 추천을 받아 주세요.")
+            ctx.warn("커리큘럼이 비어 있어 1회차만 채웠습니다. 주차별 학습 내용을 적거나 [단원으로 채우기]로 채운 뒤 다시 저장해 주세요.")
         # 멘토가 진단을 직접 적었으면 그대로 둔다. 적지 않았거나 AI가 사전 정보만으로 쓴 진단에만 붙인다
         if isinstance(d.get("diagnosis"), str) and LATER not in d["diagnosis"] and not _memo(ctx, "diagnosis"):
             text = d["diagnosis"].strip()
@@ -232,6 +232,6 @@ class PlanFileHooks(_PlanBase):
             lines.append(f"■ {f['label']}")
             lines += [f"  - {x}" for x in v] if isinstance(v, list) else [f"  {v if v else '(작성 필요)'}"]
         result.text = "\n".join(lines)
-        ctx.remind("종합계획서②는 공지사항의 서식 파일에 옮겨 적어 1회차 활동보고서의 첨부파일로 올립니다. 첨부하지 않으면 1회차 활동비가 지급되지 않습니다.")
+        ctx.remind("종합계획서②는 서식 파일로 내려받아 1회차 활동보고서에 첨부해 주세요. 첨부하지 않으면 1회차 활동비가 지급되지 않습니다.")
         for k in [k for k in ctx.extra if k.startswith("_")]:
             ctx.extra.pop(k)

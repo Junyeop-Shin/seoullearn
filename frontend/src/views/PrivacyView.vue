@@ -16,7 +16,7 @@ import { auth } from '../stores/auth'
     <h2>1. 처리하는 개인정보와 목적, 보유 기간</h2>
     <div class="scroll"><table class="terms">
       <thead><tr><th>항목</th><th>처리 목적</th><th>처리 근거</th><th>보유·이용 기간</th></tr></thead>
-      <tbody><tr v-for="r in COLLECTED" :key="r.items"><td>{{ r.items }}</td><td>{{ r.purpose }}</td><td>{{ r.basis }}</td><td>{{ r.period }}</td></tr></tbody>
+      <tbody><tr v-for="r in COLLECTED" :key="r.items"><td data-label="항목">{{ r.items }}</td><td data-label="처리 목적">{{ r.purpose }}</td><td data-label="처리 근거">{{ r.basis }}</td><td data-label="보유·이용 기간">{{ r.period }}</td></tr></tbody>
     </table></div>
     <ul>
       <li>위 정보는 서비스를 제공하는 데 꼭 필요해 동의 없이 처리합니다. 국외 이전(3절)만 가입할 때 따로 동의를 받습니다.</li>
@@ -29,7 +29,7 @@ import { auth } from '../stores/auth'
     <h2>2. 서버로 보내지 않고 브라우저에만 저장하는 정보</h2>
     <div class="scroll"><table class="terms">
       <thead><tr><th>정보</th><th>저장하는 곳</th></tr></thead>
-      <tbody><tr v-for="r in LOCAL_ONLY" :key="r.items"><td>{{ r.items }}</td><td>{{ r.where }}</td></tr></tbody>
+      <tbody><tr v-for="r in LOCAL_ONLY" :key="r.items"><td data-label="정보">{{ r.items }}</td><td data-label="저장하는 곳">{{ r.where }}</td></tr></tbody>
     </table></div>
     <ul>
       <li>이 정보는 운영자가 볼 수 없습니다. 서버가 만든 초안에는 '[멘티명]' 같은 자리표시만 들어 있고, 이름은 화면에서 채웁니다.</li>

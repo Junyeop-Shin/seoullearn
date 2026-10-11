@@ -84,11 +84,11 @@ def check_time_range(text: str, rules: dict, need_min: bool = True) -> list[str]
     start, end = r
     out = []
     if end <= start:
-        out.append("진행시간의 종료 시각이 시작 시각보다 빠릅니다.")
+        out.append("진행시간의 종료 시각이 시작 시각보다 빠릅니다. 진행시간을 고쳐 주세요.")
     if "earliest_start" in rules and start < _minutes(rules["earliest_start"]):
-        out.append(f"멘토링은 {rules['earliest_start']} 이후에 시작해야 합니다.")
+        out.append(f"멘토링은 {rules['earliest_start']} 이후에 시작해야 합니다. 진행시간을 확인해 주세요.")
     if "latest_end" in rules and end > _minutes(rules["latest_end"]):
-        out.append(f"멘토링은 {rules['latest_end']} 이전에 끝나야 합니다.")
+        out.append(f"멘토링은 {rules['latest_end']} 이전에 끝나야 합니다. 진행시간을 확인해 주세요.")
     if need_min and "min_minutes" in rules and 0 < end - start < rules["min_minutes"]:
         out.append(f"실제 진행시간이 {end - start}분으로 {rules['min_minutes']}분에 못 미칩니다. 출석 인정 기준을 확인해 주세요.")
     return out

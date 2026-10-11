@@ -3,7 +3,7 @@ import { computed, getCurrentInstance, reactive, ref } from 'vue'
 import { api } from '../../api/client'
 import CurriculumEditor from '../../components/CurriculumEditor.vue'
 import { planChecklist, showChecklist } from '../../lib/checklist'
-import { toText as text } from '../../lib/formFields'
+import { checkDraft as safe, toText as text } from '../../lib/formFields'
 import { shrinkImage } from '../../lib/image'
 import { fillValues, scheduleText } from '../../lib/mentee'
 import { fillPlanFile, mentorCode, planFileName } from '../../lib/planFile'
@@ -154,7 +154,7 @@ const readImages = (c) => run('image', async () => {
 
 // ---- 커리큘럼 채우기: 강좌를 순서대로 이어 붙여(이미 들은 강은 빼고) 주차에 나눈다
 const fillCurriculum = () => run('fill-curriculum', async () => {
-  if (rows.value.some((r) => (r.online || '').trim()) && !window.confirm('표에 적어 둔 온라인 강의와 멘토링 내용을 불러온 강의로 바꿉니다. 계속할까요?')) return
+  if (rows.value.some((r) => (r.online || '').trim()) && !window.confirm('표에 적어 둔 온라인 강의와 멘토링 내용을 불러온 강의로 바꿉니다. 바꿀까요?')) return
   // order: 그 강좌의 목차에서 몇 번째 강인지 (제목에 적힌 번호가 아니라 순서)
   const combined = courses.flatMap((c, ci) => c.lectures.map((l, i) => ({ ...l, course: ci, order: i + 1 })).slice(Number(c.done) || 0))
   const how = alloc.mode === 'weekly' ? { per_week: Number(alloc.perWeek) || 1 } : { target: Number(alloc.target) }
@@ -187,12 +187,6 @@ function undoChanges() {
   toast('AI가 바꾸기 전으로 되돌렸습니다.')
 }
 const timing = () => ({ start_datetime: (props.profile.start_datetime || '').replace('T', ' '), duration: Number(props.profile.duration) || 60, rounds: rounds.value })
-const safe = (res) => {
-  // 아동 안전 신호가 있으면 서버가 초안을 만들지 않고 운영사무국 안내만 돌려준다: 그 안내를 보여 주고 저장하지 않는다
-  if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '초안을 만들지 못했습니다. 잠시 후 다시 눌러 주세요.')
-  if (res.error) throw new Error('AI의 답을 읽지 못했습니다. 잠시 후 다시 눌러 주세요.')
-  return res
-}
 
 // 초안 채우기(지난 회기를 이어 가는 경우만): 비워 둔 학습목표·학생진단을 지난 회기 요약으로. 종합계획서①과 같은 규칙(같은 양식)으로 쓴다
 const fillDraft = () => run('fill', async () => {
@@ -241,7 +235,7 @@ async function store() {
   savedId = (await saveItem({ id: savedId, alias: props.alias, formId: FORM_ID, title: '종합계획서②', draft: res.draft, inputs: { subject_time: subjectTime.value },
     extra: { courses: keep, common: { ...common }, alloc: { ...alloc }, value: memo(), base: { ...base }, rows: rows.value } })).id
   await props.update({ course: [courses[0].platform, courses[0].lecture].filter(Boolean).join(' ') || props.profile.course, goal: goalText.value },
-    props.profile.stage === 'PLAN' ? '종합계획서②를 저장했습니다. 아래 [다음 단계]를 누르면 1회차 활동보고서로 넘어갑니다.' : '종합계획서②를 저장했습니다.')
+    props.profile.stage === 'PLAN' ? '종합계획서②를 저장했습니다. 아래 [종합계획서 마치고 활동보고서로]를 누르면 1회차로 넘어갑니다.' : '종합계획서②를 저장했습니다.')
 }
 const save = () => run('save', async () => {
   await store()
@@ -273,7 +267,7 @@ const save = () => run('save', async () => {
           <td><span data-sheet="mentor">{{ fill.mentor || '멘토 설정에서 이름·대학교·전공 입력' }}</span></td>
         </tr>
         <tr>
-          <th>멘토링<br />과목 및 시간</th>
+          <th>멘토링 <br />과목 및 시간</th>
           <td colspan="3">
             <p class="mini flush" data-sheet="subject_time">{{ subjectTime || '멘토링과목 / 수강강좌정보 / 진행일정(요일, 시간)' }}</p>
             <div class="form-grid">
@@ -294,7 +288,7 @@ const save = () => run('save', async () => {
           </td>
         </tr>
         <tr>
-          <th>멘티<br />학습목표</th>
+          <th>멘티 <br />학습목표</th>
           <td colspan="3">
             <div v-if="previous" class="course-card" data-test="fill-box" data-source="previous">
               <strong>AI로 초안 채우기</strong>
@@ -315,7 +309,7 @@ const save = () => run('save', async () => {
         <tr>
           <th>학생진단</th>
           <td colspan="3">
-            <span class="notice">1회차에 확인한 내용을 항목별로 적어 주세요. 확인하지 못한 항목은 비워 둡니다.</span>
+            <span class="notice">1회차에 확인한 내용을 항목별로 적어 주세요. 확인하지 못한 항목은 비워 두어도 됩니다.</span>
             <label v-for="(s, i) in DIAG_SLOTS" :key="s.mark" class="slot"><span>{{ s.mark }}</span>
               <textarea v-model="diag.parts[i]" rows="1" :placeholder="`예: ${s.example}`" :data-diag="i" @keydown.enter.prevent></textarea></label>
             <label v-if="diag.rest" class="slot"><span>그 밖에</span><textarea v-model="diag.rest" rows="2"></textarea></label>
@@ -327,12 +321,12 @@ const save = () => run('save', async () => {
             <div v-for="(c, ci) in courses" :key="ci" class="course-card">
               <details :open="!c.lectures.length" :data-test="`outline-${ci}`" @paste="pasteImages(c, $event)">
                 <summary>{{ courseName(c) || `강좌 ${ci + 1}` }}의 목차 불러와서 커리큘럼 채우기{{ c.lectures.length ? ` · ${c.lectures.length}강 불러옴` : '' }}</summary>
-                <p class="notice">학습사이트 강좌 페이지의 강의 목록을 통째로 복사해 붙여 넣으면 강의를 가려 읽습니다. 강의 제목이 제각각이어도 순서대로 몇 강인지 붙여 드립니다. 이 도구가 학습사이트에 접속하지는 않습니다.</p>
+                <p class="notice">학습사이트 강좌 페이지의 강의 목록을 통째로 복사해 붙여 넣어 주세요. 강의만 가려 읽고 순서대로 번호를 붙입니다.</p>
                 <textarea v-model="c.text" rows="4" placeholder="강의 목록을 여기에 붙여 넣어 주세요" :aria-label="`${courseName(c) || `강좌 ${ci + 1}`}의 강의 목록`" :data-outline="ci"></textarea>
                 <button type="button" class="gap-top" :disabled="!c.text.trim() || !!busy" :data-parse="ci" @click="parseOutline(c)">{{ busy === 'outline' ? '읽는 중…' : '목차 불러오기' }}</button>
                 <div class="image-read" :data-test="`image-${ci}`">
                   <strong>복사가 안 되는 사이트라면: 이미지로 읽기</strong>
-                  <p class="notice">강의 목록 화면을 캡처해 붙여 넣으면 AI가 읽어 목차로 불러옵니다. 길면 여러 장을 순서대로 넣어 주세요. 이미지는 AI로 보내므로 이름이나 아이디가 보이지 않게 강의 목록만 찍어 주세요. 이미지는 저장하지 않습니다.</p>
+                  <p class="notice">강의 목록을 캡처해 붙여 넣으면 AI가 읽습니다. 길면 여러 장을 순서대로 넣어 주세요. AI로 보내므로 이름이나 아이디가 보이지 않게 목록만 찍어 주세요. 저장하지는 않습니다.</p>
                   <div class="paste-zone" tabindex="0" aria-label="여기를 누르고 이미지를 붙여 넣기" :data-paste="ci">여기를 누르고 붙여 넣기 (Ctrl+V, ⌘V)</div>
                   <div v-if="c.images.length" class="thumbs">
                     <figure v-for="(img, k) in c.images" :key="k"><img :src="img.url" :alt="`올린 이미지 ${k + 1}`" /><button type="button" class="small" @click="c.images.splice(k, 1)">빼기</button></figure>
@@ -340,7 +334,7 @@ const save = () => run('save', async () => {
                   <button v-if="c.images.length" type="button" :disabled="!!busy" :data-image-read="ci" @click="readImages(c)">{{ busy === 'image' ? '이미지를 읽는 중…' : `이미지 ${c.images.length}장에서 읽기` }}</button>
                 </div>
               </details>
-              <label class="row gap-top">이미 들은 강의 수 (선택) <input v-model="c.done" type="number" min="0" placeholder="0" class="num" :data-course="`done-${ci}`" /></label>
+              <label class="row gap-top">이미 들은 강의 수 <span class="tag">선택</span> <input v-model="c.done" type="number" min="0" placeholder="0" class="num" :data-course="`done-${ci}`" /></label>
               <p v-if="c.note" class="notice" :data-note="ci">{{ c.note }}</p>
             </div>
             <div v-if="ready" class="course-card" data-test="alloc">
@@ -350,7 +344,7 @@ const save = () => run('save', async () => {
                 <label><input v-model="alloc.mode" type="radio" value="target" name="alloc" data-alloc="mode-target" />이번 회기에 <input v-model="alloc.target" type="number" min="1" :max="ready" class="num" placeholder="필수" aria-label="이번 회기에 들을 강의 수" data-alloc="target" @focus="alloc.mode = 'target'" /> 강 듣기 (회차에 고르게 나눔)</label>
               </div>
               <p class="notice">강의는 위에서 고른 방식대로 나누고, 멘토링 내용 문장은 AI가 씁니다. 채운 뒤 표에서 고쳐 주세요.</p>
-              <button type="button" class="primary" :disabled="!!busy || (alloc.mode === 'target' && !Number(alloc.target))" data-test="fill-curriculum" @click="fillCurriculum">{{ busy === 'fill-curriculum' ? '채우는 중…' : '커리큘럼 채우기' }}</button>
+              <button type="button" :disabled="!!busy || (alloc.mode === 'target' && !Number(alloc.target))" data-test="fill-curriculum" @click="fillCurriculum">{{ busy === 'fill-curriculum' ? '채우는 중…' : '커리큘럼 채우기' }}</button>
               <p v-if="fillNote" class="notice" data-test="fill-note">{{ fillNote }}</p>
             </div>
             <span class="notice">서식에는 주차마다 "(온라인강의) 강좌명(강사명), 강의 제목 (n~m강)" 줄바꿈 "(멘토링 내용) 학습 내용"으로 들어갑니다. 괄호 안은 목차에서 몇 번째 강인지입니다.</span>
@@ -358,7 +352,7 @@ const save = () => run('save', async () => {
           </td>
         </tr>
         <tr>
-          <th>멘토링<br />구성</th>
+          <th>멘토링 <br />구성</th>
           <td colspan="3">
             <textarea v-model="plain.structure" :rows="Math.max(5, plain.structure.split('\n').length)" placeholder="17:00~17:10 온라인 강의 수강(필수) 확인 & 퀴즈&#10;17:10~17:30 개념학습&#10;… (비워 두고 저장하면 시간 배분 기본안이 들어갑니다)" aria-label="멘토링 구성" data-field="structure"></textarea>
           </td>
@@ -372,16 +366,11 @@ const save = () => run('save', async () => {
       </tbody></table>
 
       <div v-if="notes.length" class="box warn" data-test="notes"><ul><li v-for="n in notes" :key="n">{{ n }}</li></ul></div>
-      <div class="row">
+      <p class="notice" data-test="export">서식 파일은 저장한 내용으로 이 브라우저 안에서 채웁니다. 내려받아 1회차 활동보고서에 첨부해 주세요. 파일 이름의 멘토코드는 멘토 설정의 이름과 연락처 뒤 네 자리로 만듭니다.</p>
+      <div class="savebar">
         <button class="primary" :disabled="!!busy" data-test="save">{{ busy === 'save' ? '저장하는 중…' : '저장' }}</button>
-      </div>
-      <div class="course-card" data-test="export">
-        <strong>서식 파일로 내려받기</strong>
-        <p class="notice">먼저 저장한 뒤, 이 화면의 내용을 종합계획서② 서식에 채운 파일을 내려받습니다. 내용은 이 브라우저 안에서 채웁니다. 파일 이름의 멘토코드는 멘토 설정의 이름과 연락처 뒤 네 자리로 만듭니다.</p>
-        <div class="row">
-          <button type="button" :disabled="!!busy" data-export="hwpx" @click="exportAs('hwpx')">한글(hwpx)로 내려받기</button>
-          <button type="button" :disabled="!!busy" data-export="docx" @click="exportAs('docx')">워드(docx)로 내려받기</button>
-        </div>
+        <button type="button" :disabled="!!busy" data-export="hwpx" aria-label="한글(hwpx)로 내려받기" @click="exportAs('hwpx')">한글<span class="wide-only">(hwpx)로</span> 내려받기</button>
+        <button type="button" :disabled="!!busy" data-export="docx" aria-label="워드(docx)로 내려받기" @click="exportAs('docx')">워드<span class="wide-only">(docx)로</span> 내려받기</button>
       </div>
       </fieldset>
     </form>

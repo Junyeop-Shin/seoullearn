@@ -39,8 +39,8 @@ public class SecurityConfig {
                 .logout(l -> l.logoutUrl("/api/auth/logout")
                         .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))
                 .exceptionHandling(e -> e
-                        .authenticationEntryPoint((req, res, ex) -> writeError(res, HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."))
-                        .accessDeniedHandler((req, res, ex) -> writeError(res, HttpStatus.FORBIDDEN, "이 요청을 처리할 권한이 없습니다.")));
+                        .authenticationEntryPoint((req, res, ex) -> writeError(res, HttpStatus.UNAUTHORIZED, "로그인이 필요합니다. 다시 로그인해 주세요."))
+                        .accessDeniedHandler((req, res, ex) -> writeError(res, HttpStatus.FORBIDDEN, "요청을 처리할 수 없습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.")));
         return http.build();
     }
 

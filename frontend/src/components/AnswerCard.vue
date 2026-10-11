@@ -15,7 +15,7 @@ const copyDraft = () => copyText(props.res.inquiry_draft, '문의 초안')
 
 <template>
   <div class="bubble bot">
-    <p v-if="res.intent === 'qa' && STATE[res.answerable]" class="notice flush" data-test="answer-state"><strong>{{ STATE[res.answerable] }}</strong></p>
+    <p v-if="res.intent === 'qa' && STATE[res.answerable]" class="box warn flush" data-test="answer-state">{{ STATE[res.answerable] }}</p>
     <div>{{ res.answer }}</div>
     <div v-if="res.screen" class="row gap-top">
       <router-link :to="SCREEN[res.intent] || '/'" class="linkbutton primary small">{{ LABEL[res.intent] || `${res.screen} 화면으로 이동` }}</router-link>
@@ -30,23 +30,23 @@ const copyDraft = () => copyText(props.res.inquiry_draft, '문의 초안')
       <div v-for="(c, i) in res.citations" :key="i" class="mini"><span class="t">근거</span>{{ c }}</div>
     </div>
     <p v-for="t in res.changed_notices || []" :key="t" class="box ask" data-test="changed-notice">이 내용은 공지 「{{ t }}」에서 바뀐 부분이 있습니다. 공지도 함께 확인해 주세요.</p>
+    <div v-if="res.inquiry_draft" class="mini gap-top" data-test="inquiry">
+      <span class="t">문의 초안</span>
+      <div class="pre">{{ res.inquiry_draft }}</div>
+      <div class="row gap-top">
+        <button type="button" class="small primary" @click="copyDraft">문의 초안 복사</button>
+        <span class="muted">{{ res.inquiry_contact }}</span>
+      </div>
+    </div>
     <div v-if="res.route" class="cards" data-test="route">
       <div class="mini">
         <span class="t">문의처: {{ res.route }}</span>
         <span>{{ res.route_info }}</span>
         <div v-if="res.route === '이음단'" class="gap-top">
-          <router-link to="/ieumdan" class="linkbutton small primary" data-test="route-contacts">자치구별 이음단 카카오톡 채널 보기</router-link>
+          <router-link to="/ieumdan" class="linkbutton small" data-test="route-contacts">이음단 연락처 보기</router-link>
         </div>
       </div>
     </div>
-    <div v-if="res.inquiry_draft" class="mini gap-top" data-test="inquiry">
-      <span class="t">문의 초안</span>
-      <div class="pre">{{ res.inquiry_draft }}</div>
-      <div class="row gap-top">
-        <button type="button" class="small" @click="copyDraft">문의 초안 복사</button>
-        <span class="muted">{{ res.inquiry_contact }}</span>
-      </div>
-    </div>
-    <p v-if="res.pii_masked?.length" class="notice" data-test="pii">AI에 보내기 전에 가린 정보: {{ res.pii_masked.join(', ') }}</p>
+    <p v-if="res.pii_masked?.length" class="notice" data-test="pii">AI로 보내기 전에 가린 정보: {{ res.pii_masked.join(', ') }}</p>
   </div>
 </template>

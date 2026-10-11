@@ -47,7 +47,8 @@ _NOT_WATCHED = re.compile(r"미수강|수강하지\s*않|안\s*들|못\s*들|듣
 # 들은 강이 아닌 숫자: 강좌의 전체 강 수, 목표나 예정으로 적은 강
 # '다음 주 6강'은 지우고 '다음 주 시험이라 5강만 수강'의 5강은 남긴다 (다음 주 바로 뒤에 강 번호가 올 때만 계획이다)
 _NOT_PROGRESS = re.compile(r"총\s*\d{1,3}\s*강|\([^)]*(?:목표|예정|계획)[^)]*\)|\d{1,3}(?:\s*[~,-]\s*\d{1,3})?\s*강\s*(?:예정|목표)|"
-                           r"다음\s*(?:주|회차|시간)(?:에는|에|부터|까지|은|는)?\s*\d{1,3}(?:\s*[~,-]\s*\d{1,3})?\s*강")
+                           r"다음\s*(?:주|회차|시간)(?:에는|에|부터|까지|은|는)?\s*\d{1,3}(?:\s*[~,-]\s*\d{1,3})?\s*강|"
+                           r"\d{1,3}\s*강\s*중\s*(?=\d)")   # '10강 중 3강'의 10강은 전체 강 수다
 
 
 def _session_no(r: dict) -> int:
@@ -136,7 +137,10 @@ def build(reports: list[dict], llm: ChatLLM) -> dict:
             m = re.search(r"\{.*\}", raw, re.S)
             if not m:
                 raise ValueError("JSON 없음")
-            text = str(json.loads(m.group(0))["summary"]).strip()
+            text = json.loads(m.group(0))["summary"]
+            if not isinstance(text, str):
+                raise ValueError("summary가 글이 아님")
+            text = text.strip()
         except LLMUnavailableError:
             raise
         except Exception as e:   # 형식 오류는 기록하고 그 항목을 비워 둔다 (지어내지 않는다)

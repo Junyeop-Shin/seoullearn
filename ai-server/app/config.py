@@ -23,8 +23,8 @@ class Settings:
 
     # 답변 생성 LLM. provider는 LangChain init_chat_model의 model_provider 값
     # (google_genai, openai 등). API 키는 GOOGLE_API_KEY / OPENAI_API_KEY 환경변수.
-    llm_provider: str = os.getenv("LLM_PROVIDER", "google_genai")
-    llm_model: str = os.getenv("LLM_MODEL", "gemini-3.6-flash")
+    llm_provider: str = os.getenv("LLM_PROVIDER", "openai")   # 처리방침(frontend/src/lib/privacy.js)의 이전받는 자와 같아야 한다
+    llm_model: str = os.getenv("LLM_MODEL", "gpt-4.1-mini-2025-04-14")
 
     # 평가 채점 LLM. 개선 전후를 비교하는 동안에는 바꾸지 않는다.
     judge_provider: str = os.getenv("JUDGE_PROVIDER", "google_genai")
@@ -45,8 +45,8 @@ class Settings:
     database_url: str = os.getenv("DATABASE_URL", "postgresql://seoullearn:seoullearn_dev@db:5432/seoullearn")
 
     top_k: int = int(os.getenv("TOP_K", "5"))
-    # 무료 등급 요청 한도 대응. 분당 요청 수 상한.
-    llm_rpm: float = float(os.getenv("LLM_RPM", "8"))
+    # 분당 요청 수 상한. Gemini 무료 등급으로 돌릴 때만 .env에서 8로 낮춘다.
+    llm_rpm: float = float(os.getenv("LLM_RPM", "30"))
     llm_max_retries: int = int(os.getenv("LLM_MAX_RETRIES", "5"))
     # 평가 실행의 LLM 응답 캐시. API 서버는 이 값과 상관없이 캐시를 쓰지 않는다.
     llm_cache: bool = os.getenv("LLM_CACHE", "on").lower() != "off"

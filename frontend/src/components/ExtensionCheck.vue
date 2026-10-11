@@ -20,7 +20,7 @@ onMounted(async () => { channel.value = (await loadChannels())[props.district] |
 
 <template>
   <div class="card checks" data-test="extension-check">
-    <p class="muted flush">시간확대는 멘티가 직접 신청합니다. 아래 네 가지가 모두 맞으면 신청할 수 있습니다.</p>
+    <p class="notice flush">아래 네 가지가 모두 맞으면 신청할 수 있습니다.</p>
     <label v-for="[key, label, hint] in ITEMS" :key="key" class="check"><input v-model="checked[key]" type="checkbox" :data-ext="key" />
       <span>{{ label }}<small v-if="hint" class="notice">{{ hint }}</small></span></label>
     <div v-if="all" class="box ask" data-test="extension-ok">

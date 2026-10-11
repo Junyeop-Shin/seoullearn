@@ -1,5 +1,4 @@
 """공지 우선(순서 바꾸기) 자세히 보기, 후보들의 '서비스에서 검색을 타는 문항' 기준 재확인. LLM 호출 없음."""
-import sys
 
 from common import *  # noqa
 from app import allowance

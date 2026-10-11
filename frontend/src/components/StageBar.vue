@@ -9,7 +9,7 @@ const index = (id) => props.stages.findIndex((s) => s.id === id)
   <ol class="stagebar" aria-label="단계">
     <li v-for="(s, i) in stages" :key="s.id" :class="{ done: i < index(current), now: s.id === current, viewing: s.id === viewing }">
       <button type="button" :data-stage="s.id" :aria-current="s.id === current ? 'step' : undefined" :aria-pressed="s.id === viewing" @click="$emit('view', s.id)">
-        <span class="n">{{ i + 1 }}</span>{{ s.label }}
+        <span class="n" :aria-label="i < index(current) ? `${i + 1}단계 마침` : undefined">{{ i < index(current) ? '✓' : i + 1 }}</span>{{ s.label }}
       </button>
     </li>
   </ol>

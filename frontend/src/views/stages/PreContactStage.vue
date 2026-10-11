@@ -25,7 +25,7 @@ const note = ref(handoverNote(savedHandover?.draft))
 async function saveHandover() {
   try {
     const text = note.value.trim()
-    await saveItem({ id: savedHandover?.id, alias: props.alias, formId: 'handover_summary', title: '인계 요약', draft: { ...parseHandoverText(text).found, text } })
+    await saveItem({ id: savedHandover?.id, alias: props.alias, formId: 'handover_summary', title: '인계받은 내용', draft: { ...parseHandoverText(text).found, text } })
     toast('인계받은 내용을 저장했습니다.')
     emit('saved')
   } catch (e) {
@@ -50,18 +50,21 @@ onMounted(async () => {
     <div v-if="!mentor.name || !mentor.phone" class="box warn" data-test="need-mentor">
       멘토 이름과 연락처가 없어 [멘토명], [멘토 연락처]가 그대로 남습니다. <router-link to="/settings">멘토 설정</router-link>에서 적어 두면 자동으로 채워집니다.
     </div>
+    <div v-if="!profile.name" class="box warn" data-test="need-mentee">멘티 이름이 없어 [멘티명]이 그대로 남습니다. 멘티 설정에서 이름을 적어 주세요.</div>
     <div v-if="error" class="box error" role="alert">{{ error }}</div>
     <template v-if="res">
       <!-- 문자 문구는 저장하지 않는 글이다: 고쳐도 '저장하지 않은 내용'으로 치지 않는다 -->
       <CopyBlock v-model="text" label="사전 연락 문자" data-nodirty />
-      <div class="box warn"><ul><li v-for="n in res.notes" :key="n">{{ n }}</li></ul></div>
+      <div class="box"><ul><li v-for="n in res.notes" :key="n">{{ n }}</li></ul></div>
     </template>
 
-    <h3>이전 멘토에게 인계받은 내용</h3>
-    <form class="card" data-test="handover-form" @submit.prevent="saveHandover">
-      <textarea v-model="note" rows="5" placeholder="멘토 교체로 인계받은 멘티라면, 이전 멘토가 보낸 글을 그대로 붙여 넣어 주세요." aria-label="이전 멘토에게 인계받은 내용" data-test="handover-note"></textarea>
-      <p class="notice">인계받은 것이 없으면 비워 두어도 됩니다.</p>
-      <button :disabled="!note.trim() && !savedHandover" data-test="save-handover">인계받은 내용 저장</button>
-    </form>
+    <!-- 인계받은 멘티에게만 필요한 칸이라 접어 둔다. 붙여 넣어 둔 글이 있으면 펼쳐 둔다 -->
+    <details class="fold" :open="!!savedHandover" data-test="handover-fold">
+      <summary>이전 멘토에게 인계받은 내용이 있다면</summary>
+      <form data-test="handover-form" @submit.prevent="saveHandover">
+        <textarea v-model="note" :rows="Math.max(5, note.split('\n').length + 1)" placeholder="이전 멘토가 보낸 글을 그대로 붙여 넣어 주세요." aria-label="이전 멘토에게 인계받은 내용" data-test="handover-note"></textarea>
+        <div class="row gap-top"><button :disabled="!note.trim() && !savedHandover" data-test="save-handover">인계받은 내용 저장</button></div>
+      </form>
+    </details>
   </div>
 </template>

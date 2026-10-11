@@ -61,7 +61,7 @@ def plan_initial(alias: str, start: str, goal: str, diag: str, weeks: list[tuple
 
 # 1. 정가상: 인계받은 멘티, 종합계획서①을 아직 쓰지 않음 (시나리오 1~8)
 add("정가상", "mentee_profile", "멘티 정보", "2026-10-09", profile("정가상", "고1", "수학", "성북구", "온라인", "2026-11-02T17:00", "PLAN"))
-add("정가상", "handover_summary", "인계 요약", "2026-10-09", {
+add("정가상", "handover_summary", "인계받은 내용", "2026-10-09", {
     "attendance_pattern": "대체로 정시에 출석함. 시험 기간에 일정 변경 요청이 두 번 있었음.", "homework_pattern": "인강은 꾸준히 듣지만 문제 풀이 과제는 자주 덜 해 옴.",
     "attitude": "집중 시간이 짧아 30분쯤 지나면 쉬는 시간을 한 번 주는 편이 좋았음.", "course_progress": "메가스터디 시발점 수1, 12강까지 수강함.", "text": HANDOVER})
 

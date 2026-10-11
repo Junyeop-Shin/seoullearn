@@ -1,8 +1,8 @@
 // 보관함 항목 → 완료보고서·인계 요약의 입력(활동보고서 목록). 형식은 docs/vault_format.md 참고.
 import { assignedLines, boxText } from './report'
 
-/** 같은 멘티의 활동보고서를 회차 순으로. 같은 회차가 여러 번 저장돼 있으면 가장 늦게 저장한 것을 쓴다. */
-export function reportsFromVault(items) {
+/** 회차 → 그 회차의 활동보고서 항목. 같은 회차가 여러 번 저장돼 있으면 가장 늦게 저장한 것을 쓴다. */
+export function latestReports(items) {
   const latest = new Map()
   for (const x of items) {
     if (x.formId !== 'activity_report') continue
@@ -11,7 +11,12 @@ export function reportsFromVault(items) {
     const prev = latest.get(no)
     if (!prev || prev.savedAt < x.savedAt) latest.set(no, x)
   }
-  return [...latest.entries()]
+  return latest
+}
+
+/** 같은 멘티의 활동보고서를 회차 순으로. */
+export function reportsFromVault(items) {
+  return [...latestReports(items).entries()]
     .sort((a, b) => a[0] - b[0])
     .map(([no, x]) => {
       const r = { ...x.inputs, ...x.draft, session_no: no, status: x.inputs?.status || '출석' }

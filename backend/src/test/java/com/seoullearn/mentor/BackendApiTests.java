@@ -152,7 +152,7 @@ class BackendApiTests {
 
     @Test
     void passwordResetByMailedLink(CapturedOutput output) throws Exception {
-        mentor("mentor_r1");
+        MockHttpSession old = mentor("mentor_r1");
         // 전자우편이 다르면 주소를 만들지 않고, 응답은 같다 (맞는지 알려 주지 않는다)
         mvc.perform(post("/api/auth/reset-request").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\": \"mentor_r1\", \"email\": \"other@example.com\"}")).andExpect(status().isNoContent());
@@ -164,6 +164,8 @@ class BackendApiTests {
         mvc.perform(post("/api/auth/reset").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"token\": \"" + token + "\", \"password\": \"new-pass-9999\"}")).andExpect(status().isNoContent());
         login("mentor_r1", "new-pass-9999");
+        // 재설정 전에 로그인해 둔 세션은 끊긴다
+        mvc.perform(get("/api/auth/me").session(old)).andExpect(status().isUnauthorized());
         // 한 번 쓴 주소는 다시 못 쓴다
         mvc.perform(post("/api/auth/reset").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"token\": \"" + token + "\", \"password\": \"again-pass-1\"}")).andExpect(status().isBadRequest());
@@ -233,13 +235,13 @@ class BackendApiTests {
                 "{\"username\": \"nobody_x1\", \"password\": \"wrong-pass-1\"}")) {
             mvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.detail").value("아이디 또는 비밀번호가 올바르지 않습니다."));
+                    .andExpect(jsonPath("$.detail").value("아이디나 비밀번호가 맞지 않습니다. 다시 확인해 주세요."));
         }
     }
 
     @Test
     void apiRequiresLoginAndCsrf() throws Exception {
-        mvc.perform(get("/api/forms")).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.detail").value("로그인이 필요합니다."));
+        mvc.perform(get("/api/forms/activity_report")).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.detail").value("로그인이 필요합니다. 다시 로그인해 주세요."));
         mvc.perform(post("/api/qa").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isUnauthorized());
         MockHttpSession session = mentor("mentor_e1");
@@ -261,9 +263,6 @@ class BackendApiTests {
     @Test
     void formsListAndDetail() throws Exception {
         MockHttpSession session = mentor("mentor_g1");
-        mvc.perform(get("/api/forms").session(session)).andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.form_id == 'activity_report')].title").value("활동보고서"))
-                .andExpect(jsonPath("$.length()").value(6));
         mvc.perform(get("/api/forms/activity_report").session(session)).andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.form_id").value("activity_report"))

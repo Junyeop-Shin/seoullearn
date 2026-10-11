@@ -28,7 +28,7 @@ def hourly(mode: str, stage: int = 1, senior: bool = False, vulnerable: bool = F
     """시간당 활동비와 내역. mode: 온라인 | 오프라인. stage: 장기활동 가산금 구간(1~6, 온라인만).
     senior: 고학년지도 가산금. vulnerable: 취약계층지원 가산금 (둘은 중복되지 않는다)."""
     if mode not in ("온라인", "오프라인"):
-        raise ValueError("멘토링 유형은 온라인 또는 오프라인이어야 합니다.")
+        raise ValueError("멘토링 방식은 온라인이나 오프라인 가운데 골라 주세요.")
     if not 1 <= stage <= MAX_STAGE:
         raise ValueError(f"가산금 구간은 1~{MAX_STAGE}이어야 합니다.")
     base = ONLINE_BASE if mode == "온라인" else OFFLINE_BASE

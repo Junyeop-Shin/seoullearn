@@ -55,7 +55,7 @@ function deadline(date, today) {
  * 진행하지 못한 회차(임박취소, 무단결석, 인정결석)는 학습 내용을 적지 않으므로 2-1과 2-3을 뺀다. */
 export function reportChecklist(v, today = todayText()) {
   const parts = [['출결', headed(v.progress, '출결')], ['인강 수강 여부', headed(v.progress, '인강')], ...(v.task ? [['과제 수행', headed(v.progress, '과제')]] : [])]
-  const notes = rowsOf(v.understanding).filter((l) => !/^(과제|인강):/.test(l)).length   // 다음 회차까지 낸 과제 줄은 세지 않는다
+  const notes = rowsOf(v.understanding).filter((l) => !/^(\d+[.)]\s*)?(과제|인강):/.test(l)).length   // 다음 회차까지 낸 과제 줄은 세지 않는다
   const all = [
     { no: '2-1', text: '해당 회차(주차)의 학습(혹은 멘토링) 범위와 목표를 작성했다.',
       ...orAsk(byParts([['학습범위', headed(v.content, '학습범위')], ['학습목표', headed(v.content, '학습목표')]]), v.content, '학습범위와 학습목표를 모두 적었는지 확인해 주세요.') },

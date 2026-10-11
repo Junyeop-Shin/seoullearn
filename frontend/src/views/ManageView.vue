@@ -3,7 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MenteeHeader from '../components/MenteeHeader.vue'
 import { PROFILE_FIELDS, PROFILE_FORM, docStatus, emptyProfile, menteePath, profileFromVault, sessionRows } from '../lib/mentee'
-import { WEEKDAYS } from '../lib/schedule'
+import { todayText, WEEKDAYS } from '../lib/schedule'
 import { toast } from '../lib/toast'
 import { downloadJson, exportAll, listItems, removeAlias, saveItem } from '../stores/vault'
 
@@ -43,7 +43,7 @@ async function saveProfile() {
 
 async function exportFile() {
   const data = await exportAll(alias)
-  downloadJson(data, `seoullearn-${(saved.value?.name || alias).replace(/\s+/g, '_')}-${data.exportedAt.slice(0, 10)}.json`)
+  downloadJson(data, `seoullearn-${(saved.value?.name || alias).replace(/\s+/g, '_')}-${todayText()}.json`)
   toast(`${data.items.length}건을 백업 파일로 내려받았습니다.`)
 }
 
@@ -61,29 +61,35 @@ async function removeAll() {
     <template v-if="saved">
       <h2>멘티 정보</h2>
       <form class="card" data-test="profile-form" @submit.prevent="saveProfile">
-        <p class="muted">이 브라우저에만 저장됩니다. 이름과 학년은 서버와 AI로 보내지 않고 화면에서만 채웁니다. 학교, 연락처, 가정 사정은 적지 마세요.</p>
+        <p class="muted">이름과 학년은 서버와 AI로 보내지 않고 화면에서만 채웁니다. 학교, 연락처, 가정 사정은 적지 마세요.</p>
         <div class="form-grid">
           <label v-for="f in PROFILE_FIELDS" :key="f.key" class="field" :class="{ wide: f.wide }">
             <span class="name">{{ f.label }}</span>
             <select v-if="f.control === 'select'" v-model="edit[f.key]" :data-profile="f.key">
-              <option value="">선택해 주세요</option><option v-for="o in f.options" :key="o" :value="o">{{ o }}</option>
+              <option value="">선택해 주세요</option><option v-for="o in f.options" :key="o" :value="o">{{ f.optionLabels?.[o] || o }}</option>
             </select>
             <input v-else v-model="edit[f.key]" :type="f.control" :placeholder="f.example ? `예: ${f.example}` : ''" :data-profile="f.key" />
             <span v-if="f.help" class="notice">{{ f.help }}</span>
           </label>
           <div class="field wide"><span class="name">정규 일정</span>
             <div v-for="(r, i) in edit.regularSchedule" :key="i" class="row schedule-row">
-              <select v-model="r.weekday" class="narrow" aria-label="요일"><option value="">요일</option><option v-for="d in WEEKDAYS" :key="d">{{ d }}</option></select>
-              <input v-model="r.startTime" type="time" class="narrow" aria-label="시작 시각" />
-              <button v-if="edit.regularSchedule.length > 1" type="button" class="small" @click="edit.regularSchedule.splice(i, 1)">삭제</button>
+              <select v-model="r.weekday" class="narrow" :aria-label="`${i + 1}번째 요일`"><option value="">요일</option><option v-for="d in WEEKDAYS" :key="d">{{ d }}</option></select>
+              <input v-model="r.startTime" type="time" class="narrow" :aria-label="`${i + 1}번째 시작 시각`" />
+              <button v-if="edit.regularSchedule.length > 1" type="button" class="small" :aria-label="`${i + 1}번째 요일 빼기`" @click="edit.regularSchedule.splice(i, 1)">빼기</button>
             </div>
             <button type="button" class="small" @click="edit.regularSchedule.push({ weekday: '', startTime: '' })">요일 추가</button>
-            <span class="notice">비워 두면 1회차 일시의 요일과 시각을 씁니다. 오프라인 일정·장소 화면에서 다음달 날짜를 채우는 기준입니다.</span>
+            <span class="notice">비워 두면 1회차 일시의 요일과 시각을 씁니다. '오프라인 일정·장소'에서 다음 달 날짜를 채우는 기준입니다.</span>
           </div>
-          <label class="field"><span class="name">현재 회기</span><input v-model.number="edit.term" type="number" min="1" data-profile="term" /></label>
-          <label class="field"><span class="name">현재 회차</span><input v-model.number="edit.currentRound" type="number" min="1" :max="rows.length" data-profile="currentRound" /></label>
         </div>
-        <button class="primary" data-test="save-profile">멘티 정보 저장</button>
+        <!-- 회기와 회차는 저장할 때마다 저절로 넘어간다: 어긋났을 때만 고치도록 접어 둔다 -->
+        <details data-test="round-fix" @invalid.capture="$event.currentTarget.open = true">
+          <summary>회기나 회차 번호가 맞지 않을 때</summary>
+          <div class="form-grid gap-top">
+            <label class="field"><span class="name">현재 회기</span><input v-model.number="edit.term" type="number" min="1" data-profile="term" /></label>
+            <label class="field"><span class="name">현재 회차</span><input v-model.number="edit.currentRound" type="number" min="1" :max="rows.length" data-profile="currentRound" /></label>
+          </div>
+        </details>
+        <div class="row gap-top"><button class="primary" data-test="save-profile">멘티 정보 저장</button></div>
       </form>
 
       <h2>활동보고서 <span class="tag">{{ status.reports }} / {{ rows.length }}</span></h2>
@@ -95,10 +101,15 @@ async function removeAll() {
           </router-link>
         </div>
         <p class="notice">'저장함'이 붙은 회차는 저장한 보고서가 있습니다. 누르면 다시 열어 고치거나 복사할 수 있습니다.</p>
-        <div class="row gap-top">
-          <router-link :to="to('/handover')" class="linkbutton small" data-test="doc-handover">멘토 교체 인계 요약 만들기{{ status.handover_summary ? ` (저장함 ${status.handover_summary})` : '' }}</router-link>
-          <router-link v-if="saved.mode === '오프라인'" :to="{ path: '/schedule', query: { mentee: alias } }" class="linkbutton small">오프라인 일정·장소</router-link>
+        <div v-if="saved.mode === '오프라인'" class="row gap-top">
+          <router-link :to="{ path: '/schedule', query: { mentee: alias } }" class="linkbutton small">오프라인 일정·장소</router-link>
         </div>
+      </div>
+
+      <h2>멘토 교체</h2>
+      <div class="card row">
+        <span class="notice grow">멘토가 바뀔 때 다음 멘토에게 넘길 인계 요약을 만듭니다. 출석 패턴, 과제 수행, 학습 태도, 수강 진도 네 가지만 담습니다.</span>
+        <router-link :to="to('/handover')" class="linkbutton" data-test="doc-handover">인계 요약 만들기{{ status.handover_summary ? ` (저장함 ${status.handover_summary})` : '' }}</router-link>
       </div>
 
       <h2>자료 관리</h2>

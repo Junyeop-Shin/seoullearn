@@ -236,9 +236,9 @@ def course_outline_image(req: OutlineImageRequest):
 @app.post("/drafts/weekly_plan")
 def weekly_plan(req: WeeklyPlanRequest):
     if any(not isinstance(x.get("title"), str) for x in req.lectures):
-        raise HTTPException(status_code=422, detail="강의 목록에 제목이 없는 항목이 있습니다. 강의 목차를 다시 정리해 주세요.")
+        raise HTTPException(status_code=422, detail="제목이 없는 강의가 있습니다. [목차 불러오기]를 다시 눌러 주세요.")
     if req.done > len(req.lectures):
-        raise HTTPException(status_code=422, detail="이미 들은 강 수가 전체 강 수보다 많습니다.")
+        raise HTTPException(status_code=422, detail="이미 들은 강의 수가 불러온 강의 수보다 많습니다. 숫자를 고쳐 주세요.")
     alloc = forms.weekly_plan.allocate(req.lectures, req.done, req.sessions, req.pace, req.start_date,
                                        [(r.start, r.end) for r in req.exams], [(r.start, r.end) for r in req.breaks],
                                        per_week=req.per_week, target=req.target)

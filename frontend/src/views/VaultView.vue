@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { PROFILE_FORM } from '../lib/mentee'
+import { todayText } from '../lib/schedule'
 import { clearSettings, loadSettings } from '../stores/settings'
 import { clearAll, downloadJson, exportAll, importAll, listItems, removeItem } from '../stores/vault'
 
@@ -22,7 +23,7 @@ onMounted(refresh)
 
 async function exportFile() {
   const data = await exportAll()
-  downloadJson(data, `seoullearn-vault-${data.exportedAt.slice(0, 10)}.json`)
+  downloadJson(data, `seoullearn-vault-${todayText()}.json`)
   failed.value = false
   status.value = `${data.items.length}건을 백업 파일로 내려받았습니다. 파일에 멘티 이름과 문서 내용이 그대로 들어 있으니 안전한 곳에 보관해 주세요.`
 }
@@ -64,29 +65,34 @@ async function removeAll() {
 <template>
   <div class="shell">
     <h1>백업·복원</h1>
-    <p class="muted">멘티 정보와 문서는 이 브라우저에만 저장되고 서버로 보내지 않습니다. 브라우저가 오래 쓰지 않은 사이트의 자료를 지울 수 있으니 회기마다 백업 파일을 내려받아 두고, 다른 컴퓨터에서 쓰려면 옮겨 간 곳에서 복원해 주세요.</p>
+    <p class="muted">멘티 정보와 문서는 이 브라우저에만 있습니다. 브라우저가 지울 수 있으니 회기마다 백업 파일을 내려받아 두세요. 다른 컴퓨터에서는 그 파일로 복원하면 됩니다.</p>
     <div class="card row">
       <button type="button" class="primary" :disabled="!items.length" @click="exportFile">백업 파일 내려받기</button>
       <button type="button" @click="$refs.file.click()">백업 파일로 복원</button>
       <input ref="file" type="file" accept="application/json,.json" hidden aria-label="백업 파일 고르기" @change="importFile" />
-      <span class="grow"></span>
-      <button type="button" class="danger" :disabled="!items.length && !hasSettings" @click="removeAll">이 브라우저의 자료 모두 지우기</button>
     </div>
     <p v-if="status" class="box" :class="failed ? 'error' : 'ask'" :role="failed ? 'alert' : 'status'" data-test="vault-status">{{ status }}</p>
     <p v-if="!items.length" class="muted">저장한 자료가 없습니다. 멘티를 등록하면 여기에 쌓입니다.</p>
-    <div v-for="(list, alias) in grouped" :key="alias" class="card">
-      <strong>{{ alias }}</strong> <span class="tag">{{ list.length }}건</span>
-      <table class="gap-top vault"><tbody>
+    <h2 v-if="items.length">저장한 자료</h2>
+    <details v-for="(list, alias) in grouped" :key="alias" class="fold" :data-vault="alias">
+      <summary>{{ alias }} <span class="tag">{{ list.length }}건</span></summary>
+      <table class="vault"><tbody>
         <tr v-for="x in list" :key="x.id">
           <td>{{ x.title }}</td>
-          <td class="muted nowrap" :title="x.savedAt.slice(0, 16).replace('T', ' ')">{{ x.savedAt.slice(0, 10) }}</td>
+          <td class="muted nowrap" :title="x.savedAt.slice(0, 16).replace('T', ' ')">{{ new Date(x.savedAt).toLocaleDateString('sv') }}</td>
           <!-- 멘티 정보는 여기서 지우지 않는다: 지우면 멘티가 메뉴에서 사라진다 (멘티를 지우는 것은 멘티 설정에서 한다) -->
           <td v-if="x.formId !== PROFILE_FORM" class="actions">
-            <button type="button" class="small danger" @click="remove(x.id)">삭제</button>
+            <button type="button" class="small danger" :aria-label="`${x.title} 지우기`" @click="remove(x.id)">지우기</button>
           </td>
           <td v-else></td>
         </tr>
       </tbody></table>
+    </details>
+
+    <h2>자료 지우기</h2>
+    <div class="card row">
+      <span class="notice grow">여럿이 쓰는 컴퓨터에서는 쓰고 난 뒤 지워 주세요. 멘티, 문서, 멘토 설정을 모두 지웁니다.</span>
+      <button type="button" class="danger" :disabled="!items.length && !hasSettings" @click="removeAll">이 브라우저의 자료 모두 지우기</button>
     </div>
   </div>
 </template>

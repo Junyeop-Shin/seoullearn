@@ -4,6 +4,7 @@
 // docx와 hwpx는 XML을 압축한 파일이다. hwp(예전 형식)는 다루지 못한다.
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 
+const clean = (s) => String(s ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '')   // XML에 넣을 수 없는 문자가 섞이면 파일이 열리지 않는다
 const TITLE = '「서울런 멘토단」 멘토링 종합 계획서'
 const squeeze = (s) => String(s || '').replace(/\s/g, '')
 const kids = (el, name) => [...el.childNodes].filter((n) => n.nodeName === name)
@@ -17,7 +18,7 @@ function plan(data) {
 
 function parse(xml) {
   const doc = new DOMParser().parseFromString(xml, 'application/xml')
-  if (doc.getElementsByTagName('parsererror').length) throw new Error('서식 파일을 읽지 못했습니다. 파일이 손상됐을 수 있습니다.')
+  if (doc.getElementsByTagName('parsererror').length) throw new Error('서식 파일을 읽지 못했습니다. 이 도구의 관리자에게 알려 주세요.')
   return doc
 }
 // XMLSerializer는 맨 앞의 XML 선언을 빼므로 원래 선언을 다시 붙인다
@@ -45,7 +46,7 @@ function setDocxCell(tc, lines, small = false) {
     }
     const t = kids(run, 'w:t')[0].cloneNode(false)
     t.setAttribute('xml:space', 'preserve')
-    t.textContent = line
+    t.textContent = clean(line)
     r.appendChild(t)
     p.appendChild(r)
     return p
@@ -89,7 +90,7 @@ function setHwpxCell(tc, lines, black, smaller) {
     const shape = black(run.getAttribute('charPrIDRef'))
     r.setAttribute('charPrIDRef', smaller && i ? smaller(shape) : shape)
     const t = kids(run, 'hp:t')[0].cloneNode(false)
-    t.textContent = line
+    t.textContent = clean(line)
     r.appendChild(t)
     p.appendChild(r)
     return p
@@ -107,7 +108,8 @@ function fillHwpx(xml, header, data) {
   const used = [...new Set(all(all(doc, 'hp:tbl')[0] || doc, 'hp:run').map((r) => r.getAttribute('charPrIDRef')))]   // 표 안에서 쓰는 글자 모양 가운데 고른다
   const black = (id) => (!shapes[id] || shapes[id].dark ? id : used.find((x) => shapes[x]?.dark && shapes[x].height === shapes[id].height) ?? id)
   // 같은 색에서 2pt(200) 작은 글자 모양. 없으면 그대로 둔다 (커리큘럼 칸 이름 아래의 강좌 줄)
-  const smaller = (id) => (shapes[id] ? Object.keys(shapes).find((x) => shapes[x].dark && Number(shapes[x].height) === Number(shapes[id].height) - 200) ?? id : id)
+  // 표 안에서 이미 쓰는 모양을 먼저 고른다 (같은 크기라도 글꼴이 다른 모양이 앞 번호에 있다)
+  const smaller = (id) => { if (!shapes[id]) return id; const ok = (x) => shapes[x]?.dark && Number(shapes[x].height) === Number(shapes[id].height) - 200; return used.find(ok) ?? Object.keys(shapes).find(ok) ?? id }
   const addr = (tc, key) => Number(kids(tc, 'hp:cellAddr')[0]?.getAttribute(key))
   const height = (tc) => Number(kids(tc, 'hp:cellSz')[0]?.getAttribute('height')) || 0
   let found = 0, head = null, first = -1, span = 0, cut = 0, removed = 0

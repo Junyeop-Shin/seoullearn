@@ -59,7 +59,7 @@ onMounted(async () => {
     map = new kakao.maps.Map(mapEl.value, { center: new kakao.maps.LatLng(37.5665, 126.978), level: 8 })
     draw()
   } catch (e) {
-    mapNote.value = `${e.message} 아래 목록의 '카카오맵에서 보기'로 위치를 확인할 수 있습니다.`
+    mapNote.value = `${e.message} 아래 목록의 [카카오맵 열기]로 위치를 확인할 수 있습니다.`
   }
 })
 watch(() => props.places, draw)
@@ -74,8 +74,8 @@ watch(() => props.places, draw)
         <label v-if="pickable" class="check flush"><input type="radio" name="place" :checked="picked === p.name" :data-pick="p.id" @change="pick(p)" /><strong>{{ p.name }}</strong></label>
         <strong v-else>{{ p.name }}</strong>
         <span class="tag">{{ p.type }}</span><span class="grow"></span>
-        <button v-if="!mapNote" type="button" class="small" @click="focus(p); mapEl.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })">지도에서 보기</button>
-        <a :href="kakaoLink(p)" target="_blank" rel="noopener noreferrer" class="linkbutton small">카카오맵에서 보기</a>
+        <button v-if="!mapNote" type="button" class="small" :aria-label="`${p.name} 위 지도에 표시`" @click="focus(p); mapEl.scrollIntoView?.({ block: 'nearest' })">위 지도에 표시</button>
+        <a :href="kakaoLink(p)" target="_blank" rel="noopener noreferrer" class="linkbutton small" :aria-label="`${p.name} 카카오맵 열기 (새 창)`">카카오맵 열기</a>
       </div>
       <div class="muted">{{ [p.address, p.hours].filter(Boolean).join(' · ') }}</div>
       <div v-if="p.note" class="notice">{{ p.note }}</div>

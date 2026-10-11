@@ -53,8 +53,8 @@ function setWhen(i, key, value) {
           <select v-if="courses.length > 1" :value="r.course || 0" :aria-label="`${r.week}주차 강좌`" @change="set(i, 'course', Number($event.target.value))">
             <option v-for="(c, ci) in courses" :key="ci" :value="ci">{{ c.lecture || `강좌 ${ci + 1}` }}</option>
           </select>
-          <label><span>온라인 강의</span><input :value="r.online" :data-online="r.week" :placeholder="`예: 강의 제목 (${2 * i + 1}~${2 * i + 2}강)`" @input="set(i, 'online', $event.target.value)" /></label>
-          <label><span>멘토링 내용</span><input :value="r.mentoring" :data-mentoring="r.week" @input="set(i, 'mentoring', $event.target.value)" /></label>
+          <label><span>온라인 강의</span><input :value="r.online" :data-online="r.week" :aria-label="`${r.week}주차 온라인 강의`" :placeholder="`예: 강의 제목 (${2 * i + 1}~${2 * i + 2}강)`" @input="set(i, 'online', $event.target.value)" /></label>
+          <label><span>멘토링 내용</span><input :value="r.mentoring" :data-mentoring="r.week" :aria-label="`${r.week}주차 멘토링 내용`" @input="set(i, 'mentoring', $event.target.value)" /></label>
         </td>
         <td v-else data-label="학습 내용">
           <input :value="r.content" :data-content="r.week" :aria-label="`${r.week}주차 학습 내용`" :placeholder="hints[i] ? `예: ${hints[i]}` : ''" @input="set(i, 'content', $event.target.value)" />

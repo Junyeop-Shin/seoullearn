@@ -2,7 +2,6 @@
 import json
 import unittest
 import unittest.mock
-from datetime import datetime
 from pathlib import Path
 
 from app import forms, unanswered
@@ -176,7 +175,7 @@ class HandoverTest(unittest.TestCase):
         self.assertEqual(handover.last_lecture([{"lecture_progress": "인강: 3~4강 수강하지 않음"}]), {})
         self.assertEqual(handover.last_lecture([{"lecture_progress": "5강 수강, 6, 7강 미수강"}])["다음 시작"], "6강")
         # 전체 강 수, 목표나 예정으로 적은 강은 들은 강이 아니다. '다음 주' 뒤에 강 번호가 바로 올 때만 계획으로 본다
-        for text in ("인강: 총 30강 중 5강 수강함", "5강 수강함 (목표 5~8강)", "5강 수강함 다음 주 6~7강 예정", "5강 수강. 다음 주에는 6강", "다음 주 시험이라 5강만 수강"):
+        for text in ("인강: 총 30강 중 5강 수강함", "5강 수강함 (목표 5~8강)", "5강 수강함 다음 주 6~7강 예정", "5강 수강. 다음 주에는 6강", "다음 주 시험이라 5강만 수강", "10강 중 5강 수강함"):
             self.assertEqual(handover.last_lecture([{"lecture_progress": text}])["다음 시작"], "6강", text)
         # 회기 중에 강좌를 바꿨으면 지금 강좌의 번호를 쓴다
         changed = [{"session_no": 1, "course": "강좌 가", "lecture_progress": "인강: 12강 수강함"}, {"session_no": 2, "course": "강좌 나", "lecture_progress": "인강: 1강 수강함"}]

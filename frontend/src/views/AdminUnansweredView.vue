@@ -45,7 +45,7 @@ async function remove(id) {
         <tr v-for="r in rows" :key="r.id">
           <td class="nowrap">{{ r.createdOn }}</td><td class="nowrap">{{ LABEL[r.answerable] || r.answerable }}</td>
           <td class="nowrap">{{ r.route || '-' }}</td><td>{{ r.question }}</td>
-          <td><button type="button" class="small danger" @click="remove(r.id)">삭제</button></td>
+          <td><button type="button" class="small danger" :aria-label="`${r.createdOn} 질문 지우기`" @click="remove(r.id)">지우기</button></td>
         </tr>
         </tbody>
       </table>

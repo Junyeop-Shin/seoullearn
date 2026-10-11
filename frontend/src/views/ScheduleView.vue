@@ -90,10 +90,11 @@ async function build() {
   <div class="shell">
     <h1>오프라인 일정·장소</h1>
     <p class="muted">다음 달 일정과 장소를 매월 20일쯤 자치구 이음단에 알립니다. 새 멘티의 첫 장소 요청도 여기서 만듭니다.</p>
-    <p v-if="loaded && !mentees.length" class="card muted" data-test="empty">진행 중인 오프라인 멘티가 없습니다.</p>
+    <p v-if="loaded && !mentees.length" class="card muted" data-test="empty">진행 중인 오프라인 멘티가 없습니다. <router-link to="/mentees/new">멘티를 등록</router-link>하거나 멘티 설정에서 멘토링 방식을 오프라인으로 바꿔 주세요.</p>
 
     <template v-if="mentees.length">
-      <div class="chips" role="group" aria-label="멘티 선택" data-test="mentee-chips">
+      <p v-if="mentees.length > 1" class="notice flush">멘티를 골라 주세요.</p>
+      <div class="chips gap-top" role="group" aria-label="멘티 선택" data-test="mentee-chips">
         <button v-for="m in mentees" :key="m.alias" type="button" :aria-pressed="picked === m.alias" :class="{ on: picked === m.alias }" :data-mentee="m.alias" @click="picked = m.alias">
           <strong>{{ m.profile.name || m.alias }}</strong><small>{{ menteeFacts(m.profile) }}</small>
         </button>
@@ -115,7 +116,7 @@ async function build() {
           <div v-for="(r, i) in regular" :key="i" class="row schedule-row">
             <select v-model="r.weekday" class="narrow" aria-label="요일" :data-regular="`weekday-${i}`"><option value="">요일</option><option v-for="d in WEEKDAYS" :key="d">{{ d }}</option></select>
             <input v-model="r.startTime" type="time" class="narrow" aria-label="시작 시각" :data-regular="`time-${i}`" />
-            <button v-if="regular.length > 1" type="button" class="small" :aria-label="`${i + 1}번째 요일 삭제`" @click="regular.splice(i, 1)">삭제</button>
+            <button v-if="regular.length > 1" type="button" class="small" :aria-label="`${i + 1}번째 요일 빼기`" @click="regular.splice(i, 1)">빼기</button>
           </div>
           <div class="row">
             <button type="button" class="small" @click="regular.push({ weekday: '', startTime: '' })">요일 추가</button>
@@ -126,10 +127,10 @@ async function build() {
           <div v-for="(r, i) in rows" :key="i" class="row schedule-row" data-test="date-row">
             <input v-model="r.date" type="date" :min="bound(1)" :max="bound(lastDay)" :aria-label="`${i + 1}번째 날짜`" />
             <input v-model="r.start" type="time" class="narrow" :aria-label="`${i + 1}번째 시작 시각`" />
-            <button type="button" class="small" :aria-label="`${i + 1}번째 날짜 삭제`" @click="rows.splice(i, 1)">삭제</button>
+            <button type="button" class="small" :aria-label="`${i + 1}번째 날짜 빼기`" @click="rows.splice(i, 1)">빼기</button>
           </div>
           <button type="button" class="small" @click="rows.push({ date: '', start: rows[0]?.start || regular[0]?.startTime || '' })">날짜 추가</button>
-          <span class="notice">달을 바꾸면 정규 요일로 날짜를 다시 채웁니다. 빠지는 날은 삭제하고, 보강일은 [날짜 추가]로 넣어 주세요.</span>
+          <span class="notice">달을 바꾸면 정규 요일로 날짜를 다시 채웁니다. 빠지는 날은 [빼기]로 빼고, 보강일은 [날짜 추가]로 넣어 주세요.</span>
         </div>
       </div>
 
@@ -144,7 +145,7 @@ async function build() {
         <p v-else class="notice">이 자치구의 장소 목록이 아직 없습니다. <router-link to="/places">전체 협약 장소</router-link>를 참고해 주세요.</p>
       </div>
 
-      <button type="button" class="primary" :disabled="!rows.some((r) => r.date)" data-test="build" @click="build">이음단에 보낼 문구 만들기</button>
+      <button type="button" :class="{ primary: !text }" :disabled="!rows.some((r) => r.date)" data-test="build" @click="build">이음단에 보낼 문구 만들기</button>
       <template v-if="text">
         <CopyBlock v-model="text" :label="`${current.profile.district || ''} 이음단에 보낼 문구`" />
         <div class="row">

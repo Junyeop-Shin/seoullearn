@@ -82,7 +82,8 @@ class ChecksTest(unittest.TestCase):
         # 결석을 말하지 않은 건강 문장은 결석으로 바꾸지 않고 뺀다 (없던 결석을 만들지 않는다)
         self.assertEqual(sensitive.filter_text("감기 기운이 있었지만 끝까지 집중함. 예제는 혼자 품"), ("예제는 혼자 품", ["건강"]))
         # 교과 용어는 정서·건강 내용이 아니다. 진짜 내용은 그대로 걸린다
-        for line in ["제안과 근거 찾기 연습", "교내과학탐구대회 준비", "화학 발열 반응 단원 5강까지 수강함", "소설 속 인물 간 갈등 구조 파악", "부모님과 상의해 문제집을 새로 사기로 함"]:
+        for line in ["제안과 근거 찾기 연습", "교내과학탐구대회 준비", "화학 발열 반응 단원 5강까지 수강함", "소설 속 인물 간 갈등 구조 파악", "부모님과 상의해 문제집을 새로 사기로 함",
+                     "현대소설 갈등의 전개 과정 정리", "사회 갈등과 통합 단원 개념 정리", "일차방정식 활용 용돈 문제 풀이", "불화수소의 수소 결합 설명"]:
             self.assertEqual(sensitive.drop_lines(line), (line, []), line)
         for line in ["형과 갈등이 있음", "치과 진료로 결석", "부모님과 사이가 안 좋다고 함"]:
             self.assertTrue(sensitive.drop_lines(line)[1], line)
@@ -707,7 +708,7 @@ class PlanDraftTest(unittest.TestCase):
         r = forms.draft("plan_initial", m3["mentor_decisions"], llm, {"pre_contact": m3["answers"]})
         self.assertNotIn("★", r.draft["learning_goal"])
         self.assertTrue(any("특수문자" in w for w in r.warnings))
-        self.assertTrue(any("주차별 계획이 없어" in w for w in r.warnings))
+        self.assertTrue(any("커리큘럼이 비어 있어" in w for w in r.warnings))
 
     def test_handover_allow_list_m2(self):
         m2 = json.loads((ROOT / "synthetic" / "sessions_M2.json").read_text(encoding="utf-8"))["expected_handover"]

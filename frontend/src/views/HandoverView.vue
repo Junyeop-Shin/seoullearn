@@ -31,13 +31,14 @@ function loaded({ reports: r, items }) {
 }
 
 async function build() {
-  if (ready.value && !window.confirm('활동보고서로 인계 요약을 다시 만듭니다. 지금 칸에 적힌 글은 새 요약으로 바뀝니다. 계속할까요?')) return
+  if (ready.value && !window.confirm('활동보고서로 인계 요약을 다시 만듭니다. 지금 칸에 적힌 글은 새 요약으로 바뀝니다. 다시 만들까요?')) return
   error.value = ''
   busy.value = true
   try {
     res.value = await api.handover(reports.value)
     for (const [k] of HANDOVER_ITEMS) summary[k] = res.value.summary[k] || ''
     ready.value = true
+    if (Object.values(summary).some(Boolean)) await save()   // 다시 열 때 AI를 또 부르지 않게 만든 글을 바로 저장한다
   } catch (e) {
     error.value = e.message
   } finally {
@@ -67,18 +68,20 @@ async function save() {
     <button type="button" :class="{ primary: !ready }" :disabled="busy || !reports.length" data-test="build-handover" @click="build">{{ busy ? '요약을 만드는 중…' : ready ? '인계 요약 다시 만들기' : '인계 요약 만들기' }}</button>
     <template v-if="res">
       <div v-if="res.warnings.length" class="box warn" data-test="warnings"><ul><li v-for="w in res.warnings" :key="w">{{ w }}</li></ul></div>
-      <p v-if="res.pii_masked.length" class="notice">AI에 보내기 전에 가린 정보: {{ res.pii_masked.join(', ') }}</p>
+      <p v-if="res.pii_masked.length" class="notice">AI로 보내기 전에 가린 정보: {{ res.pii_masked.join(', ') }}</p>
     </template>
     <template v-if="ready">
+      <div class="card">
       <label v-for="[k, label] in HANDOVER_ITEMS" :key="k" class="field">
         <span class="name">{{ label }}</span>
-        <textarea v-model="summary[k]" :data-summary="k"></textarea>
+        <textarea v-model="summary[k]" :rows="Math.max(2, summary[k].split('\n').length + 1)" :data-summary="k"></textarea>
       </label>
-      <div class="row">
+        <div class="row">
         <button type="button" class="primary" data-test="copy-handover" @click="copyAll">이음단에 보낼 글 복사</button>
-        <button type="button" data-test="save-handover" @click="save">저장</button>
+        <button type="button" data-test="save-handover" @click="save">인계 요약 저장</button>
+        </div>
+        <p class="notice">복사한 글은 다음 멘토에게 직접 보내지 말고 자치구 이음단에 보내 주세요. 이음단이 확인한 뒤 다음 멘토에게 전달합니다. 다음 멘토가 사전 연락 화면에 붙여 넣어 두고 종합계획서를 쓸 때 참고합니다.</p>
       </div>
-      <p class="notice">복사한 글은 다음 멘토에게 직접 보내지 말고 자치구 이음단에 보내 주세요. 이음단이 확인한 뒤 다음 멘토에게 전달합니다. 다음 멘토가 사전 연락 화면에 붙여 넣어 두고 종합계획서를 쓸 때 참고합니다.</p>
       <div v-if="res?.reminders?.length" class="card"><ul><li v-for="r in res.reminders" :key="r">{{ r }}</li></ul></div>
     </template>
   </div>

@@ -123,7 +123,8 @@ def send(base: str, messages: list[str], drafts: list[dict]) -> tuple[str, list[
     username = "leakcheck_" + secrets.token_hex(4)
     password = secrets.token_urlsafe(16)
     c.call("GET", "/api/auth/csrf")
-    code, body = c.call("POST", "/api/auth/signup", {"username": username, "password": password})
+    code, body = c.call("POST", "/api/auth/signup", {"username": username, "password": password, "email": username + "@example.com",
+                                                    "consentVersion": "2026-10-11", "consents": ["age14", "overseas", "mentee"]})
     if code != 201:
         raise SystemExit(f"가입 실패 ({code}): {body[:200]}  backend가 떠 있는지 확인해 주세요.")
     code, _ = c.call("POST", "/api/auth/login", {"username": username, "password": password})

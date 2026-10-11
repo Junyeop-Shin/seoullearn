@@ -132,7 +132,7 @@ def write_lines(alloc: dict, llm: ChatLLM | None, context: dict | None = None) -
         got = data.get(str(s["no"])) if isinstance(data, dict) else None
         lines = {}
         for key in ("mentoring", "counsel"):
-            text = str((got or {}).get(key) or "").strip()
+            text = str((got if isinstance(got, dict) else {}).get(key) or "").strip()
             # 강의 제목에 있는 숫자 말고 다른 숫자가 나오면 지어낸 것으로 보고 규칙 문장을 쓴다
             if not text or checks.unsupported_numbers(text, json.dumps([x["title"] for x in s["lectures"]], ensure_ascii=False)):
                 replaced += bool(text)

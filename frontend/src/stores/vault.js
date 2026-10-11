@@ -126,5 +126,5 @@ export function downloadJson(data, name) {
   a.href = url
   a.download = name
   a.click()
-  URL.revokeObjectURL(url)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)   // 바로 지우면 내려받기가 취소되는 브라우저가 있다
 }

@@ -22,7 +22,7 @@ async function submit() {
       alias = `멘티 ${n}`
     }
     if (alias === 'new') throw new Error('이 이름은 쓸 수 없습니다. 다른 이름을 적어 주세요.')
-    if (taken.includes(alias)) throw new Error('같은 이름으로 등록한 멘티가 이미 있습니다(이름을 바꿨어도 처음 등록한 이름으로 구분합니다). 뒤에 숫자를 붙여 주세요.')
+    if (taken.includes(alias)) throw new Error('같은 이름으로 등록한 멘티가 이미 있습니다. 이름 뒤에 숫자를 붙여 주세요.')
     const p = { ...emptyProfile(), name: alias, grade: f.grade.trim(), subject: f.subject, subjectEtc: f.subjectEtc.trim(), district: f.district, mode: f.mode,
       duration: f.duration, stage: 'PRE_CONTACT' }
     if (f.ongoing) {
@@ -48,7 +48,7 @@ async function submit() {
       <div class="form-grid">
         <label class="field"><span class="name">멘티 이름</span>
           <input v-model="f.name" placeholder="예: 김민수" maxlength="30" data-reg="name" />
-          <span class="notice">멘티의 이름을 적어 주세요. 이 브라우저에만 저장되고, 질문이나 보고서에 이 이름이 나오면 서버와 AI로 보내기 전에 가립니다. 비워 두면 '멘티 1' 같은 이름을 붙여 드립니다.</span>
+          <span class="notice">이 브라우저에만 저장하고, 글에 이 이름이 나오면 AI로 보내기 전에 가립니다. 비워 두면 '멘티 1'처럼 붙여 드립니다.</span>
         </label>
         <label class="field"><span class="name">학년</span><input v-model="f.grade" placeholder="예: 고1" maxlength="10" data-reg="grade" /></label>
         <label class="field"><span class="name">신청 과목<span class="req">*</span></span>
@@ -74,10 +74,10 @@ async function submit() {
           <select v-model="f.stage" data-reg="stage"><option v-for="s in flow({ term: f.term })" :key="s.id" :value="s.id">{{ s.label }}</option></select>
         </label>
         <label v-if="f.stage === 'ACTIVITY'" class="field"><span class="name">이번에 쓸 회차</span><input v-model.number="f.currentRound" type="number" min="1" :max="totalRounds(f)" data-reg="currentRound" /></label>
-        <label class="field wide"><span class="name">수강 강좌 <span class="tag">선택</span></span><input v-model="f.course" placeholder="예: 메가스터디 수학의 시작, 시발점 - 수1" data-reg="course" /></label>
+        <label class="field wide"><span class="name">학습사이트와 수강 강좌 <span class="tag">선택</span></span><input v-model="f.course" placeholder="예: 메가스터디 수학의 시작, 시발점 - 수1" data-reg="course" /></label>
         <label class="field"><span class="name">직전 회차에 낸 인강 분량 <span class="tag">선택</span></span><input v-model="f.lastLecture" placeholder="예: 5~6강" data-reg="lastLecture" /></label>
         <label class="field"><span class="name">직전 회차에 낸 과제 <span class="tag">선택</span></span><input v-model="f.lastTask" placeholder="예: 5강 예제 풀기" data-reg="lastTask" /></label>
-        <p class="notice wide">이전 활동보고서가 없으므로, 다음 보고서의 '지난 회차 과제 확인'에 쓸 내용을 여기서 받습니다.</p>
+        <p class="notice wide">이전 활동보고서가 없어, 다음 보고서의 '인강과 지난 회차 과제 확인'에 쓸 내용을 여기에 적어 주세요.</p>
       </div>
       <div v-if="error" class="box error" role="alert">{{ error }}</div>
       <div class="row"><button class="primary" data-test="register">멘티 등록</button></div>

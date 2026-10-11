@@ -43,7 +43,7 @@ router.onError((e, to) => {
 router.beforeEach(async (to) => {
   if (!auth.checked) await loadUser()
   if (!to.meta.public && !auth.user) return '/login'
-  if (to.path === '/login' && auth.user) return '/mentees'
+  if (to.path === '/login' && auth.user && !to.query.reset) return '/mentees'   // 재설정 주소는 로그인한 채로도 연다
   if (to.meta.admin && auth.user?.role !== 'ADMIN') return '/'
   return true
 })

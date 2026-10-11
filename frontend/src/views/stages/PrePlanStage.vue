@@ -3,7 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { api } from '../../api/client'
 import CurriculumEditor from '../../components/CurriculumEditor.vue'
 import { copyText } from '../../lib/copy'
-import { toText } from '../../lib/formFields'
+import { checkDraft, toText } from '../../lib/formFields'
 import { displayName } from '../../lib/mentee'
 import { CURRICULUM_SUBJECTS, GRADES, SEMESTERS, findUnits, genericHints, gradeKey, hasExams, loadCurriculum, spreadUnits } from '../../lib/curriculum'
 import { DIAG_SLOTS, GOAL_SLOTS, changedLines, composeSlots, parseSlots, platformSafe } from '../../lib/plan'
@@ -155,7 +155,7 @@ const hints = computed(() => {
   return fromUnits.length ? fromUnits : genericHints(rounds.value, exam)
 })
 function fillGeneral() {
-  if (rows.value.some((r) => (r.content || '').trim()) && !window.confirm('적어 둔 학습 내용을 교육과정 단원으로 바꿉니다. 계속할까요?')) return
+  if (rows.value.some((r) => (r.content || '').trim()) && !window.confirm('적어 둔 학습 내용을 교육과정 단원으로 바꿉니다. 바꿀까요?')) return
   const filled = spreadUnits(found.value.units, rounds.value, hasExams(general.grade))
   rows.value = rows.value.map((r, i) => ({ ...r, content: filled[i] ?? r.content }))
   generalNote.value = `${[general.grade, general.semester, found.value.name || general.subject].join(' ')} 단원 ${found.value.units.length}개를 ${rounds.value}주에 나눠 채웠습니다. 멘티의 교과서와 지금 진도에 맞게 고쳐 주세요.`
@@ -178,10 +178,7 @@ async function draft(mode) {
   // 저장은 AI를 부르지 않는다. 초안 채우기는 비워 둔 목표·진단만 채운다
   extra.only = fill ? ['learning_goal', 'diagnosis'].filter((k) => !before[k].trim()) : []
   if (fill && !extra.only.length) return null
-  const res = await api.draft(FORM_ID, inputs(), extra)
-  // 아동 안전 신호가 있으면 서버가 초안을 만들지 않고 운영사무국 안내만 돌려준다: 그 안내를 보여 주고 저장하지 않는다
-  if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '초안을 만들지 못했습니다. 잠시 후 다시 눌러 주세요.')
-  if (fill && res.error) throw new Error('AI의 답을 읽지 못했습니다. 잠시 후 다시 눌러 주세요.')
+  const res = checkDraft(await api.draft(FORM_ID, inputs(), extra))
   const out = Object.fromEntries(Object.keys(before).map((k) => [k, toText(res.draft[k])]))
   // 서버가 정리한 글(특수문자 정리, 채운 초안)을 같은 칸에 다시 넣는다
   const lost = [...applyText(goal, GOAL_SLOTS, out.learning_goal, '학습목표', true), ...applyText(diag, DIAG_SLOTS, out.diagnosis, '학생진단', false)]
@@ -191,7 +188,7 @@ async function draft(mode) {
     const items = snapshot().flatMap(([label, after], i) => changedLines(snap[i][1], after).map(([b, a]) => ({ label, before: b, after: a })))
     changes.value = items.length ? { items, undo: { goal: [...snap.slice(0, 4).map((x) => x[1])], diag: [...snap.slice(4, 8).map((x) => x[1])], structure: snap[8][1], rules: snap[9][1] } } : null
   }
-  notes.value = [...lost, ...(res.pii_masked.length ? [`AI에 보내기 전에 가린 정보: ${res.pii_masked.join(', ')}`] : []), ...res.missing_questions.map((q) => q.question), ...res.warnings, ...res.reminders]
+  notes.value = [...lost, ...(res.pii_masked.length ? [`AI로 보내기 전에 가린 정보: ${res.pii_masked.join(', ')}`] : []), ...res.missing_questions.map((q) => q.question), ...res.warnings, ...res.reminders]
   return res
 }
 
@@ -245,7 +242,7 @@ const copy = (label, value) => copyText(platformSafe(value), label)
 
 <template>
   <div>
-    <p class="muted">1회차 전에 서울런 플랫폼에 입력하는 계획입니다. 다 쓴 뒤 맨 아래 [저장]을 먼저 누르고, 항목마다 [복사]해 플랫폼의 같은 칸에 붙여 넣어 주세요. 멘토링 시작일만 정하면 저장할 수 있고, 아직 정하지 못한 항목은 비워 두어도 됩니다. 매칭 후 7일 이내에 입력해 주세요.</p>
+    <p class="muted">1회차 전, 매칭 후 7일 이내에 서울런 플랫폼에 입력하는 계획입니다. 다 쓰면 [저장]한 뒤 칸마다 [복사]해 플랫폼의 같은 칸에 붙여 넣어 주세요. 정하지 못한 칸은 비워 두어도 됩니다.</p>
     <div v-if="error" class="box error" role="alert">{{ error }}</div>
     <div v-if="previous" class="mini pre" data-test="previous-term">
       <span class="t">지난 회기 요약 (참고)</span>{{ termSummaryText(previous) }}
@@ -331,7 +328,7 @@ const copy = (label, value) => copyText(platformSafe(value), label)
       </div>
 
       <div v-if="notes.length" class="box warn" data-test="notes"><ul><li v-for="n in notes" :key="n">{{ n }}</li></ul></div>
-      <div class="row">
+      <div class="savebar">
         <button type="button" class="primary" :disabled="!!busy || !start" data-test="save" @click="save">{{ busy === 'save' ? '저장하는 중…' : '저장' }}</button>
         <span v-if="!start" class="notice">멘토링 시작일과 시작시간을 정하면 저장할 수 있습니다.</span>
       </div>

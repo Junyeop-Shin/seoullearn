@@ -4,7 +4,6 @@ import sys
 sys.path.insert(0, ".")
 import dataclasses
 import math
-import re
 from collections import Counter
 
 import numpy as np

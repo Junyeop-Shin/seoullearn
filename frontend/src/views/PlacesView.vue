@@ -30,11 +30,13 @@ onMounted(async () => {
     <h1>협약 장소</h1>
     <p class="muted">오프라인 멘토링 장소를 찾아보는 화면입니다. 장소는 직접 예약하지 않고 자치구 이음단에 요청해 승인받아야 합니다.</p>
     <div v-if="data.sample" class="box warn" data-test="sample">{{ data.notice || '지금 보이는 장소는 모두 지어낸 예시입니다. 실제 협약 장소가 아닙니다.' }}</div>
-    <div v-if="error" class="box error">{{ error }}</div>
-    <label class="field narrow"><span class="name">자치구</span>
-      <select v-model="district" data-test="district"><option v-for="d in districts(data.places)" :key="d">{{ d }}</option></select>
-    </label>
-    <PlaceMap :places="shown" />
+    <div v-if="error" class="box error" role="alert">{{ error }}</div>
+    <div class="card">
+      <label class="field narrow"><span class="name">자치구</span>
+        <select v-model="district" data-test="district"><option v-for="d in districts(data.places)" :key="d">{{ d }}</option></select>
+      </label>
+      <PlaceMap :places="shown" />
+    </div>
     <router-link to="/schedule" class="linkbutton primary gap-top">오프라인 일정·장소 정하러 가기</router-link>
   </div>
 </template>

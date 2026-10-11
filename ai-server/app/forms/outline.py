@@ -109,7 +109,7 @@ def parse(text: str, llm: ChatLLM | None = None) -> dict:
                 if title and str(title).replace(" ", "") in line.replace(" ", ""):  # 줄에 없는 제목은 받지 않는다
                     lectures.append({"no": None, "title": str(title).strip(), "unit": u,
                                      "minutes": x.get("minutes") if isinstance(x.get("minutes"), int) else None, "_pos": pos - 0.5 + n / 1000})
-                elif title:
+                elif title or n not in answered:   # AI가 빼먹은 줄도 못 읽은 줄로 남긴다
                     unparsed.append(line)
         except LLMUnavailableError:
             raise

@@ -20,7 +20,7 @@ const BOLD = ['이전받는 자', '이전되는 국가', '보유·이용 기간'
       <p class="notice">아래 정보는 서비스를 제공하는 데 꼭 필요해 동의 없이 처리합니다.</p>
       <div class="scroll"><table class="terms">
         <thead><tr><th>항목</th><th>처리 목적</th><th>처리 근거</th><th>보유·이용 기간</th></tr></thead>
-        <tbody><tr v-for="r in COLLECTED" :key="r.items"><td><strong>{{ r.items }}</strong></td><td>{{ r.purpose }}</td><td>{{ r.basis }}</td><td><strong>{{ r.period }}</strong></td></tr></tbody>
+        <tbody><tr v-for="r in COLLECTED" :key="r.items"><td data-label="항목"><strong>{{ r.items }}</strong></td><td data-label="처리 목적">{{ r.purpose }}</td><td data-label="처리 근거">{{ r.basis }}</td><td data-label="보유·이용 기간"><strong>{{ r.period }}</strong></td></tr></tbody>
       </table></div>
       <p class="notice">비밀번호는 되돌릴 수 없게 암호화해 저장합니다. 멘토 설정(이름, 연락처, 대학교, 전공)과 멘티 정보, 작성한 문서는 이 브라우저에만 저장하고 서버로 보내지 않습니다. 탈퇴는 멘토 설정 화면에서 바로 할 수 있고, 탈퇴하면 계정 정보를 즉시 지웁니다.</p>
     </section>
@@ -42,7 +42,7 @@ const BOLD = ['이전받는 자', '이전되는 국가', '보유·이용 기간'
     <div class="row">
       <button type="button" data-test="consent-cancel" @click="emit('cancel')">취소</button>
       <span class="grow"></span>
-      <button class="primary" :disabled="!all" data-test="consent-ok">확인하고 계속</button>
+      <button class="primary" :disabled="!all" data-test="consent-ok">동의하고 계속</button>
     </div>
     <p class="muted switch"><a href="/privacy" target="_blank" rel="noopener">개인정보 처리방침 전문 보기</a> · 시행일 {{ VERSION }}</p>
   </form>
