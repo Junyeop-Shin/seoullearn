@@ -1,46 +1,11 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, api, request } from '../src/api/client'
-import { draftFields, emptyInputs, inputFields, toPayload, toText } from '../src/lib/formFields'
+import { toText } from '../src/lib/formFields'
 import { loadSettings, saveSettings } from '../src/stores/settings'
 
-// 저장소의 forms/*.json (backend가 /api/forms로 그대로 내려주는 파일)
-const form = (id) => JSON.parse(readFileSync(resolve(process.cwd(), '..', 'forms', `${id}.json`), 'utf-8'))
-
-describe('양식 스키마 → 입력 칸', () => {
-  it('활동보고서: 개인정보 칸은 입력으로 그리지 않고, 회차 상태를 맨 앞에 둔다', () => {
-    const fields = inputFields(form('activity_report'))
-    const keys = fields.map((f) => f.key)
-    expect(keys[0]).toBe('status')
-    expect(keys).not.toContain('mentee_name')
-    expect(keys).not.toContain('mentee_grade')
-    expect(keys).not.toContain('mentor')
-    expect(keys).toContain('session_content')
-    const scale = fields.find((f) => f.key === 'progress_scale')
-    expect(scale.control).toBe('select')
-    expect(scale.options).toHaveLength(5)
-    expect(fields.find((f) => f.key === 'session_no')).toMatchObject({ control: 'number', min: 1, max: 16 })
-    expect(emptyInputs(fields).status).toBe('출석')
-  })
-
-  it('종합계획서①: AI·규칙이 채우는 칸은 입력으로 그리지 않는다', () => {
-    const keys = inputFields(form('plan_initial')).map((f) => f.key)
-    expect(keys).toEqual(['duration', 'weekday', 'start_datetime'])
-    expect(draftFields(form('plan_initial')).map((f) => f.key)).toContain('curriculum')
-  })
-
-  it('종합계획서②: 목록 칸은 줄 단위로 받아 배열로 보낸다', () => {
-    const fields = inputFields(form('plan_file'))
-    expect(fields.find((f) => f.key === 'diagnosis').control).toBe('lines')
-    const payload = toPayload(fields, { subject_time: ' 국어 ', diagnosis: '문학이 약함\n\n 인강 미수강 ', rules: '' })
-    expect(payload).toEqual({ subject_time: '국어', diagnosis: ['문학이 약함', '인강 미수강'], rules: [] })
-  })
-
-  it('날짜·시간 입력을 서버 형식으로 바꾼다', () => {
-    const fields = inputFields(form('plan_initial'))
-    expect(toPayload(fields, { duration: '60', weekday: '월', start_datetime: '2026-10-12T20:00' }).start_datetime).toBe('2026-10-12 20:00')
-    expect(toText(['a', 'b'])).toBe('a\nb')
+describe('초안 값 → 글', () => {
+  it('목록은 줄마다 하나, 없는 값은 빈 글', () => {
+    expect(toText(['가', '나'])).toBe('가\n나')
     expect(toText(null)).toBe('')
   })
 })

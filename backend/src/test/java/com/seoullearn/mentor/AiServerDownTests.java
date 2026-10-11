@@ -27,6 +27,6 @@ class AiServerDownTests {
                 .perform(post("/api/qa").with(csrf()).with(user("mentor_x1").roles("MENTOR"))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"question\": \"지각 처리\"}"))
                 .andExpect(status().isBadGateway())
-                .andExpect(jsonPath("$.detail").value("AI 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요."));
+                .andExpect(jsonPath("$.detail").value("지금은 AI 기능을 쓸 수 없습니다. 잠시 후 다시 시도해 주세요."));
     }
 }

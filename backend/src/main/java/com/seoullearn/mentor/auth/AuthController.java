@@ -6,9 +6,14 @@ import com.seoullearn.mentor.auth.AuthDtos.UserResponse;
 import com.seoullearn.mentor.common.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Set;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -19,6 +24,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,16 +37,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    /** 가입 전에 모두 동의해야 하는 항목. 화면의 frontend/src/lib/privacy.js(CONSENTS)와 같다. */
+    static final Set<String> REQUIRED_CONSENTS = Set.of("age14", "collect", "overseas", "mentee");
+
     private final AppUserRepository users;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
     private final LoginAttemptLimiter limiter;
+    private final Clock clock;
 
     public AuthController(AppUserRepository users, PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager, SecurityContextRepository securityContextRepository,
-            LoginAttemptLimiter limiter) {
+            LoginAttemptLimiter limiter, Clock clock) {
         this.limiter = limiter;
+        this.clock = clock;
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -52,15 +64,50 @@ public class AuthController {
         return Map.of("headerName", token.getHeaderName(), "token", token.getToken());
     }
 
-    /** 멘토 가입. 관리자 계정은 가입으로 만들 수 없다 (환경 변수로만 만든다). */
+    /**
+     * 멘토 가입. 관리자 계정은 가입으로 만들 수 없다 (환경 변수로만 만든다).
+     * 가입 전 동의(필수 항목 전부)가 없으면 받지 않고, 동의한 문서의 시행일과 일시를 함께 기록한다.
+     */
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse signup(@Valid @RequestBody SignupRequest req) {
+        if (!req.consents().containsAll(REQUIRED_CONSENTS)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "필수 동의 항목에 모두 동의해야 가입할 수 있습니다.");
+        }
+        // 비밀번호 암호화(bcrypt)는 72바이트까지만 받는다. 글자 수 검사는 한글(한 글자 3바이트)을 거르지 못한다
+        if (req.password().getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "비밀번호가 너무 깁니다. 한글은 24자, 영문·숫자는 72자까지 쓸 수 있습니다.");
+        }
         if (users.existsByUsername(req.username())) {
             throw new ApiException(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다.");
         }
-        AppUser user = users.save(new AppUser(req.username(), passwordEncoder.encode(req.password()), Role.MENTOR));
-        return new UserResponse(user.getUsername(), user.getRole());
+        try {
+            AppUser user = users.saveAndFlush(new AppUser(req.username(), passwordEncoder.encode(req.password()), Role.MENTOR)
+                    .agreed(req.consentVersion(), clock.instant()));
+            return new UserResponse(user.getUsername(), user.getRole());
+        } catch (DataIntegrityViolationException e) {   // 같은 아이디로 동시에 가입한 경우
+            throw new ApiException(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다.");
+        }
+    }
+
+    /**
+     * 회원 탈퇴(동의 철회). 계정(아이디, 비밀번호 해시, 동의 기록)을 바로 지우고 로그아웃한다.
+     * 다른 기기에 남은 세션은 그 기기의 다음 요청에서 끊긴다 (AccountSessionFilter).
+     * 멘티 자료는 서버에 없다 (멘토의 브라우저에만 있다).
+     */
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void withdraw(Authentication auth, HttpServletRequest request) {
+        if (toResponse(auth).role() == Role.ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "관리자 계정은 여기서 탈퇴할 수 없습니다.");
+        }
+        users.deleteByUsername(auth.getName());
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        SecurityContextHolder.clearContext();
     }
 
     @PostMapping("/login")
@@ -91,6 +138,9 @@ public class AuthController {
         context.setAuthentication(auth);
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
+        // 계정 번호를 세션에 적어 둔다: 탈퇴하면 다른 기기에 남은 세션도 다음 요청에서 끊긴다 (AccountSessionFilter)
+        users.findByUsername(auth.getName())
+                .ifPresent(u -> request.getSession().setAttribute(AccountSessionFilter.ACCOUNT_ID, u.getId()));
         return toResponse(auth);
     }
 

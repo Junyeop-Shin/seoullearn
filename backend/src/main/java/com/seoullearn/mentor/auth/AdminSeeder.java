@@ -39,6 +39,8 @@ public class AdminSeeder implements ApplicationRunner {
         if (!users.existsByUsername(username)) {
             users.save(new AppUser(username, passwordEncoder.encode(password), Role.ADMIN));
             log.info("관리자 계정을 만들었습니다.");
+        } else if (users.findByUsername(username).orElseThrow().getRole() != Role.ADMIN) {
+            log.warn("관리자 계정을 만들지 않았습니다: 같은 아이디의 멘토 계정이 이미 있습니다.");
         }
     }
 }

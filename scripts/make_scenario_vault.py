@@ -1,7 +1,7 @@
-"""확인용 멘티 자료를 만든다 (단계마다 바로 눌러 볼 수 있는 지점에 맞춘 지어낸 멘티들).
+"""연습용 멘티 자료를 만든다 (단계마다 바로 눌러 볼 수 있는 지점에 맞춘 지어낸 멘티들).
 
 지어낸 멘티들을 단계마다 확인할 지점에 맞춰 둔다. LLM을 부르지 않고, 실제 인물 정보는 없다.
-결과: frontend/public/scenario_vault.json (내 멘티 화면의 '확인용 멘티 불러오기'가 읽는다)
+결과: frontend/public/scenario_vault.json (내 멘티 화면의 '단계별 연습용 멘티 불러오기'가 읽는다)
 
   python scripts/make_scenario_vault.py
 """
@@ -119,12 +119,13 @@ UNITS16 = ["지수", "지수", "로그", "로그", "상용로그", "지수함수
 UNITS8 = ["다항식의 연산", "나머지정리와 인수분해", "복소수", "이차방정식", "이차방정식과 이차함수", "여러 가지 방정식", "연립부등식", "이차부등식"]
 
 
-def plan_file(alias: str, grade: str, start: str, minutes: int, course: dict, goal: list[str], diag: list[str], units: list[str]) -> None:
+def plan_file(alias: str, grade: str, start: str, minutes: int, course: dict, goal: list[str], diag: list[str], units: list[str], with_profile: bool = True) -> None:
     n = len(units)
     hour = int(start[11:13])
     wd = "일월화수목금토"[(date.fromisoformat(start[:10]).weekday() + 1) % 7]
     schedule = f"매주({wd}) {hour}:00~{hour + minutes // 60}:00"
-    add(alias, "mentee_profile", "멘티 정보", "2026-10-05", profile(alias, grade, "수학", "강남구", "온라인", start, "PLAN", duration=str(minutes), course=f"{course['platform']} {course['lecture']}", goal="\n".join(goal)))
+    if with_profile:   # 멘티 정보를 따로 넣는 멘티(완가상)는 건너뛴다: 두 건이면 백업·복원에 두 줄로 보인다
+        add(alias, "mentee_profile", "멘티 정보", "2026-10-05", profile(alias, grade, "수학", "강남구", "온라인", start, "PLAN", duration=str(minutes), course=f"{course['platform']} {course['lecture']}", goal="\n".join(goal)))
     weeks = [(u, f"{2 * i + 1}~{2 * i + 2}강", ("오리엔테이션(OT), " if i == 0 else "") + f"{u} 개념학습 및 확인 테스트") for i, u in enumerate(units)]
     plain = "\n".join(g.replace("①", "(1)").replace("②", "(2)").replace("③", "(3)").replace("④", "(4)") for g in goal)
     r = plan_initial(alias, start, plain, "\n".join(diag), weeks, "2026-10-06")[:n]
@@ -143,7 +144,7 @@ def plan_file(alias: str, grade: str, start: str, minutes: int, course: dict, go
     value = {"learning_goal": "\n".join(goal), "diagnosis": "\n".join(diag), "structure": "\n".join(structure), "rules": "\n".join(RULES)}
     add(alias, "plan_file", "종합계획서②", "2026-10-08", draft, {"subject_time": subject_time},
         {"courses": [{**course, "lectures": [], "done": ""}], "common": {"subject": "수학", "schedule": schedule}, "alloc": {"mode": "weekly", "perWeek": 2, "target": ""},
-         "value": value, "defaults": {"structure": value["structure"]}, "rows": r})
+         "value": value, "rows": r})
 
 
 plan_file("서가상", "고2", "2026-10-12T17:00", 60, {"platform": "메가스터디", "lecture": "수학의 시작, 시발점 - 대수", "instructor": "가상 강사"},
@@ -158,7 +159,7 @@ START7 = "2026-06-08T17:00"
 COURSE7 = {"platform": "메가스터디", "lecture": "수학의 시작, 시발점 - 대수", "instructor": "가상 강사"}
 plan_file("완가상", "고2", START7, 60, COURSE7,
           ["① 메가스터디 수학의 시작, 시발점 - 대수 완강", "② 대수 1회독 완료, 2학기 중간고사 수학 3등급", "③ 인강은 하루에 한 강씩 규칙적으로 듣고 오답 노트 쓰기"],
-          ["(과목역량) 개념은 이해하나 계산 실수가 잦음", "(학습습관 및 태도) 인강은 꾸준히 듣지만 문제 풀이 과제를 미루는 편임"], UNITS16)
+          ["(과목역량) 개념은 이해하나 계산 실수가 잦음", "(학습습관 및 태도) 인강은 꾸준히 듣지만 문제 풀이 과제를 미루는 편임"], UNITS16, with_profile=False)
 add("완가상", "mentee_profile", "멘티 정보", "2026-10-10", profile("완가상", "고2", "수학", "은평구", "온라인", START7, "COMPLETION", currentRound=16, course="메가스터디 수학의 시작, 시발점 - 대수"))
 LEC7 = "메가스터디, 수학의 시작, 시발점 - 대수(가상 강사)"
 NOTES7 = ["개념 설명을 잘 따라옴", "예제는 혼자 풀었으나 응용 문제에서 막힘", "계산 실수가 줄어듦", "오답 노트를 처음으로 써 옴", "서술형 풀이 과정을 끝까지 적는 연습을 함", "질문이 늘고 스스로 풀이를 설명함"]

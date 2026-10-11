@@ -9,7 +9,7 @@ Spring Boot 업무 백엔드. 화면(Vue)은 이 서비스의 `/api`로만 요�
 
 | 기능 | 경로 | 설명 |
 | --- | --- | --- |
-| 로그인·역할 | `/api/auth/*`, `/api/admin/*` | 멘토(MENTOR), 관리자(ADMIN). 아이디·비밀번호 해시·역할만 저장한다 |
+| 로그인·역할 | `/api/auth/*`, `/api/admin/*` | 멘토(MENTOR), 관리자(ADMIN). 아이디·비밀번호 해시·역할과 가입 전 동의 기록만 저장한다. 회원 탈퇴는 계정을 바로 지운다 |
 | 양식 스키마 | `GET /api/forms`, `GET /api/forms/{formId}` | 저장소의 `forms/*.json`을 그대로 제공한다. 파일을 추가하면 목록에 바로 나온다 |
 | AI 서버 중계 | `POST /api/qa`, `POST /api/chat`, `/api/drafts/**`, `/api/tools/**` | 로그인한 사용자의 요청을 ai-server로 넘기고 응답을 그대로 돌려준다 |
 | 협약 장소 | `GET /api/places`, `GET /api/config` | 장소 목록 파일을 그대로 내주고, 카카오맵 JavaScript 키(공개 키)를 화면에 알려 준다 |
@@ -17,7 +17,7 @@ Spring Boot 업무 백엔드. 화면(Vue)은 이 서비스의 `/api`로만 요�
 
 ## 저장하지 않는 것
 
-- 실명, 학교, 연락처, 가입 일시. `app_user`에는 `id, username, password_hash, role` 열만 있다.
+- 실명, 학교, 연락처. `app_user`에는 `id, username, password_hash, role`과 가입 전 동의 기록(`consent_version`: 동의한 문서의 시행일, `consented_at`: 동의한 일시)만 있다.
 - 질문, 답변, 보고서 내용. 중계하는 본문은 해석하지도 저장하지도 않는다.
 - 예외는 답 못 한 질문 모음이다. ai-server가 가린 질문 문장·분류·문의처·날짜만 `unanswered_question`에 넣는다. 질문한 사람을 알 수 있는 열은 없다.
 - 로그에는 `/api` 요청마다 메서드, 경로, 상태 코드, 처리 시간만 남는다(`api-access`). 본문, 쿼리 문자열, 사용자 아이디는 남기지 않는다.
@@ -31,11 +31,11 @@ Spring Boot 업무 백엔드. 화면(Vue)은 이 서비스의 `/api`로만 요�
 
 | 경로 | 설명 |
 | --- | --- |
-| `POST /api/auth/signup` | 멘토 가입. `{"username", "password"}`. 아이디는 영문 소문자·숫자·밑줄 4~20자, 비밀번호는 8~72자 |
+| `POST /api/auth/signup` | 멘토 가입. `{"username", "password", "consentVersion", "consents"}`. 아이디는 영문 소문자·숫자·밑줄 4~20자, 비밀번호는 8~72자. 가입 전 동의(필수 항목 `age14, collect, overseas, mentee` 전부)가 없으면 400 |
+| `DELETE /api/auth/me` | 회원 탈퇴(동의 철회). 계정을 바로 지우고 로그아웃한다. 다른 기기에 남은 세션은 그 기기의 다음 요청에서 끊긴다(`AccountSessionFilter`: 로그인할 때 세션에 적어 둔 계정 번호가 DB에 없으면 세션을 끝낸다). 관리자 계정은 안 된다 |
 | `POST /api/auth/login` | 로그인 |
 | `GET /api/auth/me` | 로그인한 사용자와 역할 |
 | `POST /api/auth/logout` | 로그아웃 |
-| `GET /api/admin/users` | 계정 목록 (ADMIN만) |
 
 로그인을 10분 안에 10번 틀리면(같은 아이디 + 같은 접속 주소) 10분 동안 잠기고 429를 돌려준다. 잠긴 동안에는 비밀번호가 맞아도 로그인되지 않는다. 한 접속 주소에서 아이디를 바꿔 가며 20번 틀려도 그 주소가 10분 잠긴다. 실패 기록은 서버 메모리에만 있고 DB와 로그에는 남지 않는다.
 
@@ -56,7 +56,7 @@ J=cookies.txt
 curl -s -c $J -b $J localhost:8080/api/auth/csrf -o /dev/null
 T=$(grep XSRF-TOKEN $J | awk '{print $7}')
 curl -s -c $J -b $J -X POST localhost:8080/api/auth/signup -H 'Content-Type: application/json' -H "X-XSRF-TOKEN: $T" \
-  -d '{"username":"mentor_test1","password":"test-pass-1234"}'
+  -d '{"username":"mentor_test1","password":"test-pass-1234","consentVersion":"2026-10-11","consents":["age14","collect","overseas","mentee"]}'
 curl -s -c $J -b $J -X POST localhost:8080/api/auth/login -H 'Content-Type: application/json' -H "X-XSRF-TOKEN: $T" \
   -d '{"username":"mentor_test1","password":"test-pass-1234"}'
 T=$(grep XSRF-TOKEN $J | awk '{print $7}')

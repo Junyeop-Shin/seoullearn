@@ -65,6 +65,14 @@ class DiskCache:
                 f.write(json.dumps({"k": k, "v": v}, ensure_ascii=False) + "\n")
 
 
+def first_json(raw: str) -> dict:
+    """모델 출력에서 첫 JSON 객체만 읽는다 (코드블록 표시나 앞뒤 설명이 붙어도)."""
+    start = raw.find("{")
+    if start < 0:
+        raise ValueError("JSON 없음")
+    return json.JSONDecoder().raw_decode(raw[start:])[0]
+
+
 class LLMUnavailableError(RuntimeError):
     """제공사 쪽 문제로 응답을 못 받았다: 요청 한도(429)·과부하(503)로 재시도를 다 쓴 경우와 키 오류 같은 그 밖의 호출 오류.
     답변 형식 오류와 달리 평가 문항의 실패나 '답 못 한 질문'으로 기록하면 안 되므로 실행을 멈추게 한다."""
@@ -75,7 +83,8 @@ class LangChainLLM:
         from langchain.chat_models import init_chat_model  # 지연 import: 오프라인 테스트에는 불필요
 
         self.name = f"{provider}:{model}"
-        self.model = init_chat_model(model, model_provider=provider, temperature=temperature)
+        # 시간 제한을 두고, SDK가 스스로 다시 부르는 것은 끈다: 재시도는 아래 루프 하나가 분당 호출 제한(LLM_RPM)을 지키며 한다
+        self.model = init_chat_model(model, model_provider=provider, temperature=temperature, timeout=60, max_retries=0)
         self.throttle = _Throttle(settings.llm_rpm)
         self.cache = DiskCache(settings.cache_dir / "llm_cache.jsonl") if use_cache else None
         self.max_retries = max_retries

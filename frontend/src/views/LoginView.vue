@@ -2,10 +2,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
+import ConsentStep from '../components/ConsentStep.vue'
 import { login } from '../stores/auth'
 
 const router = useRouter()
-const mode = ref('login')
+const mode = ref('login')   // login → (멘토 계정 만들기) consent → signup
+const consent = ref(null)   // 가입 전 동의 {version, items}
 const username = ref('')
 const password = ref('')
 const error = ref('')
@@ -15,7 +17,7 @@ async function submit() {
   error.value = ''
   busy.value = true
   try {
-    if (mode.value === 'signup') await api.signup(username.value, password.value)
+    if (mode.value === 'signup') await api.signup(username.value, password.value, consent.value)
     await login(username.value, password.value)
     // 가입 직후에는 멘토 설정(이름, 연락처, 멘토링 유형)부터 적게 한다
     router.replace(mode.value === 'signup' ? '/settings' : '/mentees')
@@ -39,24 +41,27 @@ async function submit() {
       </ul>
     </section>
     <section class="panel">
-      <form @submit.prevent="submit">
+      <ConsentStep v-if="mode === 'consent'" @agreed="consent = $event; mode = 'signup'" @cancel="mode = 'login'" />
+      <form v-else @submit.prevent="submit">
         <h2>{{ mode === 'signup' ? '멘토 계정 만들기' : '로그인' }}</h2>
+        <p v-if="mode === 'signup'" class="notice" data-test="consent-done">가입 전 동의를 마쳤습니다. <button type="button" class="small" @click="mode = 'consent'">동의 내용 다시 보기</button></p>
         <label class="field"><span class="name">아이디</span>
-          <input v-model="username" autocomplete="username" required />
+          <input v-model="username" autocomplete="username" required :pattern="mode === 'signup' ? '[a-z0-9_]{4,20}' : undefined" :title="mode === 'signup' ? '영문 소문자·숫자·밑줄 4~20자' : undefined" />
           <span v-if="mode === 'signup'" class="notice">영문 소문자·숫자·밑줄 4~20자로 적어 주세요. 실명이나 학교명은 쓰지 마세요.</span>
         </label>
         <label class="field"><span class="name">비밀번호</span>
-          <input v-model="password" type="password" :autocomplete="mode === 'signup' ? 'new-password' : 'current-password'" required />
-          <span v-if="mode === 'signup'" class="notice">8자 이상</span>
+          <input v-model="password" type="password" :autocomplete="mode === 'signup' ? 'new-password' : 'current-password'" required :minlength="mode === 'signup' ? 8 : undefined" />
+          <span v-if="mode === 'signup'" class="notice">8자 이상으로 적어 주세요.</span>
         </label>
-        <div v-if="error" class="box error">{{ error }}</div>
+        <div v-if="error" class="box error" role="alert">{{ error }}</div>
         <button class="primary wide" :disabled="busy">{{ mode === 'signup' ? '가입하고 시작하기' : '로그인' }}</button>
         <p class="muted switch">
           {{ mode === 'signup' ? '이미 계정이 있나요?' : '처음이신가요?' }}
-          <button type="button" class="small" @click="mode = mode === 'signup' ? 'login' : 'signup'; error = ''">
+          <button type="button" class="small" @click="mode = mode === 'signup' ? 'login' : 'consent'; error = ''">
             {{ mode === 'signup' ? '로그인하기' : '멘토 계정 만들기' }}
           </button>
         </p>
+        <p class="muted switch"><router-link to="/privacy">개인정보 처리방침</router-link></p>
       </form>
     </section>
   </div>

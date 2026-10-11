@@ -50,6 +50,38 @@ class GuardTest(unittest.TestCase):
         g = guard.check("김민지 학생 어머님이 010-1234-5678로 상담 원하심")
         self.assertEqual(g.text, "[이름] 학생 어머님이 [전화번호]로 상담 원하심")
 
+    def test_name_is_masked_whatever_particle_follows(self):
+        for q in ["김민수 학생을 맡게 됐어요", "김민수 학생에게 연락했어요", "김민수 학생과 통화", "김민수 학생도 지각", "김민수 어머니가 연락",
+                  "김민수 학생에 대해 문의드립니다", "담당이 김민수 학생으로 바뀌었어요", "민수 학생부터 시작", "김민수 어머니로부터 연락", "지한 학생이 결석"]:
+            self.assertEqual(guard.check(q).pii, ["이름"], q)
+        # '결석한 학생', '배정된 학생'처럼 줄기가 흔한 낱말인 꾸밈말과 문장을 여는 말은 이름이 아니다 (가리면 검색 질의와 저장한 글에서 그 말이 사라진다)
+        for q in ["결석한 학생을 어떻게 처리하나요", "지각한 학생도 출석 인정되나요", "배정된 학생에게 연락", "수강하던 학생이 그만둠", "오늘 학생이 결석했어요",
+                  "혹시 학생이 지각하면 어떻게 하나요", "시간확대 학생은 몇 회차인가요", "서울런 학생은 누구나 신청", "무단결석 학생의 활동비",
+                  "수업에 학생이 늦게 들어옴", "과제를 학생이 직접 고름", "강남구 학생은 어디서 만나나요"]:
+            r = guard.check(q)
+            self.assertEqual((r.pii, r.text), ([], q), q)
+        # 꾸밈말과 흔한 낱말은 이름이 아니다 ('는'으로 끝나는 말, 학년, 중학교 …). 평가셋 Q057의 질문이 바뀌지 않아야 한다
+        for q in ["EBS랑 강남인강만 듣는 학생도 멘토링 신청돼요?", "수학을 싫어하는 학생을 어떻게 지도하나요", "중학교 학생도 되나요",
+                  "매칭 학생을 바꾸고 싶어요", "어떤 학생에게 맞는 강좌인가요", "1학년 학생을 맡았어요", "결석 학생에게 연락"]:
+            r = guard.check(q)
+            self.assertEqual((r.pii, r.text), ([], q), q)
+
+    def test_phone_formats(self):
+        for n in ["02 123 4567", "02)123-4567", "+82 10-1234-5678", "010-1234-5678", "01012345678", "031-123-4567"]:
+            self.assertEqual(guard.check(f"연락처는 {n} 입니다").pii, ["전화번호"], n)
+        self.assertEqual(guard.check("2026 10 11에 17 00 시작").pii, [])
+
+    def test_safety_words_and_training_names(self):
+        for s in ["멘티가 가정폭력을 당하는 것 같아요", "학교폭력 피해를 말했어요", "아버지가 손찌검을 한대요", "멘티가 체벌을 받는다고 해요",
+                  "성희롱을 당했다고 합니다", "밥을 못 먹고 굶는다고 해요", "왕따를 당한대요", "극단적 선택 얘기를 해요", "누나한테 맞았대요",
+                  "아동학대가 의심돼요", "성폭력 피해를 입었다고 해요"]:
+            self.assertTrue(guard.check(s).safety, s)
+        # 필수교육·강좌 이름, 강좌가 학년이나 나에게 '맞는지'를 묻는 말은 신호가 아니다
+        for s in ["아동학대 예방교육은 어디서 들어요?", "성폭력 예방교육 수료증은 어떻게 받아요?", "성희롱·성폭력 예방교육 이수", "학교폭력 예방교육 들어야 하나요?",
+                  "비폭력대화 강좌는 언제 열려요?", "이 강좌가 중2에게 맞을까요?", "초등 5학년에게 맞을까요?", "저한테 맞을지 모르겠어요",
+                  "멘토에게 맞을 시간대", "각자해결하기로 했어요", "추가출석 인정되나요?"]:
+            self.assertFalse(guard.check(s).safety, s)
+
     def test_safety(self):
         self.assertTrue(guard.check("멘티가 집에서 맞는다는 얘기를 했어요").safety)
         self.assertFalse(guard.check("시간 맞춰서 들어가면 되나요?").safety)
@@ -60,8 +92,13 @@ class GuardTest(unittest.TestCase):
         # 낱말 중간에서 맞는 것은 신호가 아니다. 진짜 신호는 그대로 잡는다
         for s in ["문제를 혼자해결함", "글자해석 연습", "평가출제 경향 설명", "이투스 개념때려잡기 수강", "개념 때려잡기 3강"]:
             self.assertFalse(guard.check(s).safety, s)
-        for s in ["자해 흔적이 있음", "아버지가 때려요", "때려잡았다고 함"]:
+        for s in ["자해 흔적이 있음", "아버지가 때려요", "때려잡았다고 함", "아버지가 술 마시면 때리신대요", "아빠가 화나면 때리고 물건을 던진대요", "형이 자꾸 때립니다",
+                  "엄마가 때릴까 봐 무섭대요", "아빠한테 혼나고 맞았대요", "엄마한테 어제도 맞았다고 해요", "멘티가 맞고 온 것 같아요"]:
             self.assertTrue(guard.check(s).safety, s)
+        # 때리는 뜻이 아닌 말: 보고서에 흔한 '멍 때리다', '때려 맞히다(찍다)'가 걸리면 초안이 통째로 막힌다
+        for s in ["수업 중 멍 때리는 일이 많음", "멍때려서 다시 설명함", "객관식은 때려 맞히는 편", "답을 때려 맞춤", "암기를 때려 박음", "학원을 때려치웠다고 함",
+                  "시간이 맞고 온라인으로 진행", "멘토님께 확인해보니 답이 맞았어요", "이음단에게 어제 문의함"]:
+            self.assertFalse(guard.check(s).safety, s)
         for s in ["활동보고서는 7일 이내 제출이 맞아요?", "이음단에게 문의하는 게 맞아요?", "멘티에게 맞는 강좌 추천",
                   "서울런에서 수준에 맞는 강의를 골랐음", "10문제 중 8개 맞았다고 함", "이 강좌가 멘티에게 잘 맞았습니다",
                   "집에서 푼 문제는 다 맞았음", "시간이 맞아서 일정을 옮김"]:
@@ -106,6 +143,39 @@ class CorpusTest(unittest.TestCase):
         self.assertIn("만료된 지난 공고", qa.build_context(expired[:1]))
         self.assertIn("지난 공고 기준", qa.SYSTEM)
         self.assertTrue(all(c.page for c in v1))
+        # 활동가이드 문서를 바꾼 유효한 공지가 그 문서의 청크에 적혀 있다 (v1에는 공지가 없어 비어 있다)
+        self.assertTrue(all(not c.superseded_by for c in v1))
+        changed = [c for c in v2 if c.superseded_by]
+        self.assertTrue(changed and all(c.doc_type == "manual" for c in changed))
+        self.assertTrue(any("시간확대" in t for c in changed if c.doc_id == "manual-2026-5-1" for t in c.superseded_by))
+
+    def test_answer_carries_sources_and_changed_notices(self):
+        # 답변이 근거로 쓴 자료의 본문을 함께 돌려주고, 그 활동가이드 내용을 바꾼 공지가 있으면 제목을 알린다 (규칙, LLM 미사용)
+        v2 = load_markdown("v2")
+        old = next(c for c in v2 if c.doc_id == "manual-2026-5-1")
+        notice = next(c for c in v2 if "manual-2026-5-1" in c.supersedes)
+
+        class Hits:
+            def __init__(self, hits):
+                self.hits = hits
+
+            def search(self, q, k):
+                return [(c, 1.0) for c in self.hits]
+
+        class Cites:
+            name = "fake"
+
+            def __init__(self, nums):
+                self.nums = nums
+
+            def complete(self, system, user):
+                return json.dumps({"answerable": "yes", "answer": "답", "citations": self.nums, "route": None})
+
+        res = qa.answer("시간확대 조건이 뭐예요?", Hits([old, notice]), Cites([1]))
+        self.assertEqual(res.sources, [{"cite": old.cite, "text": old.text}])
+        self.assertEqual(res.changed_notices, [notice.title])
+        # 그 공지를 함께 근거로 썼으면 따로 알리지 않는다
+        self.assertEqual(qa.answer("시간확대 조건이 뭐예요?", Hits([old, notice]), Cites([1, 2])).changed_notices, [])
 
 
 class RetrievalTest(unittest.TestCase):
@@ -195,6 +265,11 @@ class ParseTest(unittest.TestCase):
     def test_bad_route_dropped(self):
         d = qa.parse_output('{"answerable":"yes","answer":"x","citations":[],"route":"서울시청"}')
         self.assertIsNone(d["route"])
+
+    def test_null_citations_and_trailing_text_do_not_discard_the_answer(self):
+        d = qa.parse_output('{"answerable":"no","answer":"자료에 없습니다.","citations":null,"route":"운영사무국"}\n참고: {위 답은 초안입니다}')
+        self.assertEqual((d["answer"], d["citations"]), ("자료에 없습니다.", []))
+        self.assertEqual(qa.parse_output('{"answerable":"yes","answer":"x","citations":["²", 2]}')["citations"], [2])
 
 
 class RouteAndEmbeddingTest(unittest.TestCase):
@@ -398,58 +473,40 @@ class LLMFailureTest(unittest.TestCase):
 
 
 class InquiryDraftTest(unittest.TestCase):
-    class Fake:
-        name = "fake"
-
-        def __init__(self, out):
-            self.out, self.calls = out, []
-
-        def complete(self, system, user):
-            self.calls.append(user)
-            return self.out
+    """문의 초안은 정해진 틀로 만든다 (LLM을 부르지 않는다)."""
 
     def _res(self, **kw):
-        base = dict(question="가람중 멘티가 학습사이트를 바꾸고 싶대요", answer="자료에 없습니다.", answerable="no", route="운영사무국",
-                    cite_labels=["활동가이드 p.62 문의처별 담당 범위"])
+        base = dict(question="가람중 멘티가 학습사이트를 바꾸고 싶대요. 연락처는 010-1234-5678", answer="자료에 없습니다.", answerable="no", route="운영사무국")
         return qa.QAResult(**{**base, **kw})
 
     def test_draft_for_unanswered_question(self):
         from app import inquiry
 
-        llm = self.Fake('{"draft": "안녕하세요, 서울런 멘토입니다. 학습사이트 변경이 가능한지 문의드립니다. 확인 부탁드립니다."}')
-        d = inquiry.build(self._res(), llm)
-        self.assertIn("문의드립니다", d.text)
+        d = inquiry.build(self._res())
+        self.assertTrue(d.text.startswith("안녕하세요, 서울런 멘토입니다."))
+        self.assertIn("멘티가 학습사이트를 바꾸고 싶대요", d.text)
+        self.assertIn("찾아보았지만 해당 내용을 찾지 못했습니다. 확인 부탁드립니다.", d.text)
         self.assertIn("02-3274-9212", d.contact)
-        self.assertIsNone(d.error)
-        self.assertNotIn("가람중", llm.calls[0])  # LLM에는 가린 질문만 간다
-        self.assertIn("p.62", llm.calls[0])
+        # 가린 정보와 자리표시는 초안에 남기지 않는다
+        for word in ["가람중", "010-1234-5678", "[학교명]", "[전화번호]", "을(를)"]:
+            self.assertNotIn(word, d.text)
 
-    def test_ieumdan_contact_is_channel_text(self):
+    def test_partial_answer_names_what_was_checked(self):
         from app import inquiry
 
-        d = inquiry.build(self._res(route="이음단", answerable="partial"), self.Fake('{"draft": "문의드립니다."}'))
+        d = inquiry.build(self._res(route="이음단", answerable="partial", cite_labels=["활동가이드 p.62 문의처별 담당 범위", "활동가이드 p.62 문의처별 담당 범위"]))
+        self.assertIn("활동가이드 p.62 문의처별 담당 범위에서 일부 내용은 확인했지만 정확한 기준을 찾지 못했습니다.", d.text)
         self.assertIn("이음단", d.contact)
         self.assertNotIn("http", d.contact)   # 주소는 화면이 자치구별 목록에서 붙인다
 
     def test_no_draft_when_answered_or_safety(self):
         from app import inquiry
 
-        llm = self.Fake('{"draft": "x"}')
-        self.assertIsNone(inquiry.build(self._res(answerable="yes"), llm))
-        self.assertIsNone(inquiry.build(self._res(safety=True, route="운영사무국(즉시)", answerable="yes"), llm))
-        self.assertIsNone(inquiry.build(self._res(route="운영사무국(즉시)"), llm))
-        self.assertEqual(llm.calls, [])
-
-    def test_bad_output_is_recorded_and_pii_masked(self):
-        from app import inquiry
-
-        d = inquiry.build(self._res(), self.Fake("초안입니다"))
-        self.assertIn("ValueError", d.error)
-        self.assertIn("문의드립니다", d.text)
-        self.assertNotIn("가람중", d.text)
-        d2 = inquiry.build(self._res(), self.Fake('{"draft": "가람중 김민지 학생 관련 문의드립니다. 010-1234-5678"}'))
-        self.assertNotIn("가람중", d2.text)
-        self.assertNotIn("010-1234-5678", d2.text)
+        self.assertIsNone(inquiry.build(self._res(answerable="yes")))
+        self.assertIsNone(inquiry.build(self._res(safety=True, route="운영사무국(즉시)", answerable="yes")))
+        self.assertIsNone(inquiry.build(self._res(route="운영사무국(즉시)")))
+        # 답변을 만들다 실패한 것(형식 오류)은 자료에 없는 것이 아니다: '찾지 못했습니다'라는 초안을 만들지 않는다
+        self.assertIsNone(inquiry.build(self._res(error="ValueError: JSON 없음")))
 
 
 class RouterTest(unittest.TestCase):
@@ -479,12 +536,15 @@ class RouterTest(unittest.TestCase):
         self.assertEqual(classify_by_rule("종합계획서 회차별 커리큘럼 짜 줘"), "plan")
         self.assertIsNone(classify_by_rule("활동보고서 좀 봐 줘"))  # 무엇을 원하는지 애매함
         self.assertIsNone(classify_by_rule("보고서랑 계획서 둘 다 써 줘"))
+        # 완료보고서와 결과보고서는 화면이 따로 있어 활동보고서 안내로 보내지 않는다
+        for q in ["완료보고서 초안 만들어 줘", "완료 보고서 써 줘", "성장활동 결과보고서 작성해 줘"]:
+            self.assertEqual(classify_by_rule(q), "qa", q)
 
     def test_report_goes_to_screen_without_llm(self):
         llm = self.CountingLLM()
         s = self._graph(llm).invoke({"message": "4회차 활동보고서 초안 써 줘"})
         self.assertEqual((s["intent"], s["method"]), ("report", "rule"))
-        self.assertIn("해당 화면으로 이동", s["result"]["answer"])
+        self.assertIn("'내 멘티'에서 멘티를 고르면", s["result"]["answer"])
         self.assertIn("진행 회차", s["result"]["required_inputs"])
         self.assertNotIn("멘티 성명", s["result"]["required_inputs"])  # 개인정보 칸은 입력받지 않는다
         self.assertEqual(llm.calls, 0)
@@ -520,6 +580,18 @@ class RouterTest(unittest.TestCase):
         self.assertEqual((s["intent"], s["method"]), ("report", "llm"))
         self.assertNotIn("가람중", seen[0])
         self.assertEqual(s["pii_masked"], ["학교명"])
+
+    def test_format_error_is_not_shown_as_not_found(self):
+        # 답변의 형식이 깨지면 답변 상태를 비운다: 화면이 '자료에서 찾지 못했습니다'라고 하지 않고 문의 초안도 붙지 않는다. 문의처는 남는다
+        class Broken(self.CountingLLM):
+            def complete(self, system, user):
+                return "잘 모르겠습니다"
+
+        r = self._graph(Broken()).invoke({"message": "지각 처리 어떻게 해요?"})["result"]
+        self.assertTrue(r["error"])
+        self.assertIsNone(r["answerable"])
+        self.assertIsNone(r["inquiry_draft"])
+        self.assertEqual(r["route"], "운영사무국")
 
     def test_bad_llm_intent_is_recorded_and_falls_back_to_qa(self):
         s = self._graph(self.CountingLLM(out="잘 모르겠습니다")).invoke({"message": "활동보고서 좀 봐 줘"})

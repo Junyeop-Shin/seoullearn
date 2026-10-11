@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, getCurrentInstance, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api/client'
 import MenteeHeader from '../components/MenteeHeader.vue'
+import { reportChecklist, showChecklist } from '../lib/checklist'
 import { copyText } from '../lib/copy'
 import { menteePath, profileFromVault, regularSchedule, suggestDate } from '../lib/mentee'
 import { absentText, applyLines, boxText, contentAuto, fromLines, halvesOf, progressLines, statusesOf, syncLines, toLines } from '../lib/report'
@@ -10,6 +11,7 @@ import { plannedRow, plannedWeek, previousHomework } from '../lib/reports'
 import { endTime } from '../lib/schedule'
 import { afterReport } from '../lib/stage'
 import { downloadZip, photoBase, photoZip } from '../lib/photos'
+import { revealError } from '../lib/reveal'
 import { toast } from '../lib/toast'
 import { listItems, saveItem } from '../stores/vault'
 
@@ -20,13 +22,15 @@ import { listItems, saveItem } from '../stores/vault'
 const FORM_ID = 'activity_report'
 defineOptions({ inheritAttrs: false })   // 멘티 화면이 모든 단계에 같은 값을 넘긴다: 안 쓰는 값이 화면 요소에 붙지 않게 한다
 const props = defineProps({ embedded: { type: Boolean, default: false }, round: { type: Number, default: 0 } })
-const emit = defineEmits(['saved'])
+const emit = defineEmits(['saved', 'stored'])   // stored: 보관함에 저장했다 (다음 회차로 넘어가기 전에도 알린다)
+const me = getCurrentInstance()
 const route = useRoute()
 const alias = String(route.params.alias)
 const no = ref(props.round || Number(route.params.no) || 0)
 const profile = ref(null)
 const savedId = ref(undefined)
 const loaded = ref(false)
+let live = false               // 화면을 다 연 뒤부터 선택을 따라 줄을 고친다 (저장한 보고서를 여는 것만으로 줄이 바뀌지 않게)
 const busy = ref('')
 const error = ref('')
 const notes = ref([])
@@ -54,10 +58,10 @@ function syncProgress() {
   sheet.progress[0] = syncLines(sheet.progress[0], auto, lines)
   auto = lines
 }
-watch(() => [q.status, q.time, q.lectureDone, q.taskDone], () => { if (loaded.value && !absent.value) syncProgress() })
+watch(() => [q.status, q.time, q.lectureDone, q.taskDone], () => { if (live && !absent.value) syncProgress() })
 // 결석으로 바꾸면 학습 내용 칸을 결석 문구로, 되돌리면 계획에서 가져온 글로 바꾼다 (멘토가 고쳐 쓴 글은 건드리지 않는다)
 watch(() => q.status, (now, before) => {
-  if (!loaded.value) return
+  if (!live) return
   const mine = sheet.content.trim()
   if (mine && mine !== planned.trim() && mine !== absentText(before)) return
   sheet.content = absentText(now) || planned
@@ -107,6 +111,8 @@ onMounted(async () => {
     error.value = e.message
   } finally {
     loaded.value = true
+    await nextTick()
+    live = true
   }
 })
 
@@ -142,7 +148,7 @@ function restore(texts) {
 const boxes = () => [...halves.value.flatMap((half, h) => [[`${half}학습 진도`, sheet.progress[h]], [`${half}학습 이해도`, sheet.understanding[h]]]), ['기타', sheet.etc], ['건의사항', sheet.requests]]
 const safe = (res) => {
   // 아동 안전 신호가 있으면 서버가 초안을 만들지 않고 운영사무국 안내만 돌려준다: 그 안내를 보여 주고 저장하지 않는다
-  if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '보고서를 정리하지 못했습니다.')
+  if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '보고서를 저장하지 못했습니다. 잠시 후 다시 [저장]을 눌러 주세요.')
   return res
 }
 
@@ -154,6 +160,7 @@ async function run(name, fn) {
     await fn()
   } catch (e) {
     error.value = e.message
+    revealError()
   } finally {
     busy.value = ''
   }
@@ -173,7 +180,11 @@ function setPhoto(key, file) {
 }
 async function downloadPhotos() {
   const files = photoSlots.value.map(([k]) => photos[k]).filter(Boolean)
-  toast(`${downloadZip(await photoZip(photoName.value, files), photoName.value)} 파일을 내려받았습니다.`)
+  try {
+    toast(`${downloadZip(await photoZip(photoName.value, files), photoName.value)} 파일을 내려받았습니다.`)
+  } catch {
+    toast('압축 파일을 만들지 못했습니다. 사진을 다시 골라 주세요.')
+  }
 }
 
 const save = () => run('save', async () => {
@@ -190,18 +201,24 @@ const save = () => run('save', async () => {
   const item = await saveItem({ id: savedId.value, alias, formId: FORM_ID, title: `활동보고서 ${no.value}회차`, sessionNo: no.value, inputs: { ...sent, ...readable }, draft: { ...res.draft, ...readable },
     extra: { quick: { ...q }, sheet: JSON.parse(JSON.stringify(sheet)), auto } })
   savedId.value = item.id
+  emit('stored')
   // 지금 회차를 저장했으면 다음 회차(마지막 회차였으면 완료보고서)로 넘어갈 수 있다
   const step = profile.value ? afterReport(profile.value, no.value) : {}
   if (Object.keys(step).length) {
-    const { _id, ...rest } = profile.value
-    await saveItem({ id: _id, alias, formId: 'mentee_profile', title: '멘티 정보', draft: { ...rest, ...step } })
+    // 멘티 정보는 저장 직전에 다시 읽어 얹는다: 이 화면을 연 뒤 다른 단계에서 고친 값(1회차 일시, 강좌, 목표)을 옛 값으로 되돌리지 않게
+    const { _id, ...rest } = profileFromVault(await listItems(alias)) || profile.value
+    // 그 사이 다른 탭에서 더 뒤 회차로 넘어갔으면 회차를 되돌리지 않는다
+    if (!(rest.currentRound > step.currentRound)) await saveItem({ id: _id, alias, formId: 'mentee_profile', title: '멘티 정보', draft: { ...rest, ...step } })
   }
   const empty = absent.value ? [] : boxes().filter(([label, text]) => /학습 (진도|이해도)$/.test(label) && !text.trim()).map(([label]) => label)
   if (!sheet.content.trim()) empty.unshift('이번 주차 학습 내용')
-  notes.value = [...(empty.length ? [`비어 있는 칸이 있습니다: ${empty.join(', ')}. 플랫폼에 제출하기 전에 채워 주세요.`] : []),
-    ...(res.pii_masked.length ? [`가린 정보: ${res.pii_masked.join(', ')}`] : []), ...res.warnings, ...res.reminders]
+  notes.value = ['저장했습니다. 이제 칸마다 [복사]해 플랫폼의 같은 칸에 붙여 넣어 주세요.',
+    ...(empty.length ? [`비어 있는 칸이 있습니다: ${empty.join(', ')}. 플랫폼에 제출하기 전에 채워 주세요.`] : []),
+    ...(res.pii_masked.length ? [`저장하면서 가린 정보: ${res.pii_masked.join(', ')}`] : []), ...res.warnings, ...res.reminders]
   next.value = step.stage ? '완료보고서' : step.currentRound ? `${step.currentRound}회차` : ''
   toast(step.stage ? '저장했습니다. 마지막 회차입니다. 다음은 완료보고서입니다.' : step.currentRound ? `저장했습니다. 다음은 ${step.currentRound}회차입니다.` : '저장했습니다.')
+  showChecklist(`${no.value}회차 활동보고서`, reportChecklist({ absent: absent.value, status: q.status, content: sheet.content, progress: sheet.progress.join('\n'),
+    understanding: sheet.understanding.join('\n'), task: !!what.value.task, date: q.date, photos: !!(photos.start && photos.end) }), me)
   if (!next.value) emit('saved')
 })
 </script>
@@ -209,11 +226,11 @@ const save = () => run('save', async () => {
 <template>
   <div :class="{ shell: !embedded }">
     <template v-if="!embedded">
-      <MenteeHeader :alias="alias" :title="`활동보고서 ${no}회차`" />
+      <MenteeHeader :alias="alias" :name="profile?.name" :title="`활동보고서 ${no}회차`" />
       <h1>{{ no }}회차 활동보고서</h1>
     </template>
-    <p class="muted">칸마다 [복사]해 플랫폼의 같은 칸에 붙여 넣어 주세요. 평가는 플랫폼에서 직접 고릅니다. 멘토링 후 7일 이내에 제출해 주세요.</p>
-    <div v-if="error" class="box error">{{ error }}</div>
+    <p class="muted">다 쓴 뒤 맨 아래 [저장]을 먼저 눌러 주세요. 저장하면 이름·연락처를 가리고 빈칸을 확인합니다. 그다음 칸마다 [복사]해 플랫폼의 같은 칸에 붙여 넣습니다. 평가는 플랫폼에서 직접 고르고, 멘토링 후 7일 이내에 제출해 주세요.</p>
+    <div v-if="error" class="box error" role="alert">{{ error }}</div>
     <p v-if="savedId && !next" class="box ask" data-test="reopened">저장해 둔 {{ no }}회차 활동보고서입니다. 고쳐서 다시 저장할 수 있습니다.</p>
 
     <form v-if="loaded" class="card plan-form" @submit.prevent="save">
@@ -241,12 +258,12 @@ const save = () => run('save', async () => {
           <div v-if="what.task" class="field" data-test="task-done"><span class="name">과제 수행</span>
             <span class="choices" role="radiogroup" aria-label="과제 수행"><label><input v-model="q.taskDone" type="radio" value="함" name="task" />함</label><label><input v-model="q.taskDone" type="radio" value="안 함" name="task" />안 함</label></span></div>
         </div>
-        <p class="notice">고르면 아래 학습 진도에 줄로 들어갑니다. 일부만 했다면 그 줄을 직접 고쳐 주세요.{{ what.task ? '' : " 과제 수행은 지난 회차 학습 이해도에 '과제: …' 줄을 적어 두었을 때만 나옵니다." }}</p>
+        <p class="notice">고르면 아래 학습 진도에 줄로 들어갑니다. 일부만 했다면 그 줄을 직접 고쳐 주세요.{{ what.task ? '' : " 지난 회차에 '과제:' 줄을 적지 않아 과제 수행은 묻지 않습니다." }}</p>
       </section>
 
       <div class="item">
         <div class="head"><strong>이번 주차 학습 내용</strong><button type="button" class="small" :disabled="!sheet.content.trim()" data-copy="content" @click="copy('이번 주차 학습 내용', sheet.content)">복사</button></div>
-        <textarea v-model="sheet.content" :rows="Math.max(3, sheet.content.split('\n').length + 1)" placeholder="학습범위: 거듭제곱근과 지수법칙&#10;학습목표: 거듭제곱근의 개념을 이해하고 지수법칙을 적용해 식을 계산할 수 있다" aria-label="이번 주차 학습 내용" data-sheet="content"></textarea>
+        <textarea v-model="sheet.content" :rows="Math.max(3, sheet.content.split('\n').length + 1)" placeholder="예) 학습범위: 거듭제곱근과 지수법칙&#10;학습목표: 거듭제곱근의 개념을 이해하고 지수법칙을 적용해 식을 계산할 수 있다" aria-label="이번 주차 학습 내용" data-sheet="content"></textarea>
         <span v-if="!absent" class="notice">{{ planned ? `종합계획서의 ${no}주차 계획을 가져왔습니다. 다르게 진행했다면 고쳐 주세요. ` : '' }}학습범위(혹은 목차)와 학습목표를 적습니다.</span>
       </div>
 
@@ -254,27 +271,29 @@ const save = () => run('save', async () => {
         <template v-for="(half, h) in halves" :key="h">
           <div class="item" :data-item="`progress-${h}`">
             <div class="head"><strong>{{ half }}학습 진도</strong><button type="button" class="small" :disabled="!sheet.progress[h].trim()" :data-copy="`progress-${h}`" @click="copy(`${half}학습 진도`, sheet.progress[h])">복사</button></div>
-            <textarea v-model="sheet.progress[h]" :rows="Math.max(3, sheet.progress[h].split('\n').length + 1)" placeholder="출결: 5분 전 도착&#10;인강: 거듭제곱근과 지수법칙 3강 수강, 4강 미수강&#10;과제: 인강 교재를 수강 범위만큼 풀고 채점했으나 오답 풀이는 하지 않음" :aria-label="`${half}학습 진도`" :data-box="`progress-${h}`"></textarea>
+            <textarea v-model="sheet.progress[h]" :rows="Math.max(3, sheet.progress[h].split('\n').length + 1)" placeholder="예) 출결: 5분 전 도착&#10;인강: 거듭제곱근과 지수법칙 3강 수강, 4강 미수강&#10;과제: 인강 교재를 수강 범위만큼 풀고 채점했으나 오답 풀이는 하지 않음" :aria-label="`${half}학습 진도`" :data-box="`progress-${h}`"></textarea>
             <span class="notice">{{ h === 0 ? '위에서 고른 것으로 채웠습니다. 잘한 점, 부족한 점, 개선 방향을 덧붙여도 됩니다.' : '후반 1시간의 진도를 직접 적어 주세요. 출결과 인강·과제 확인은 전반에 들어 있습니다.' }}</span>
           </div>
           <div class="item" :data-item="`understanding-${h}`">
             <div class="head"><strong>{{ half }}학습 이해도</strong><button type="button" class="small" :disabled="!sheet.understanding[h].trim()" :data-copy="`understanding-${h}`" @click="copy(`${half}학습 이해도`, sheet.understanding[h])">복사</button></div>
-            <textarea v-model="sheet.understanding[h]" :rows="Math.max(4, sheet.understanding[h].split('\n').length + 1)" placeholder="예습이 되어 거듭제곱근 개념 설명을 잘 이해함&#10;계산 실수 잦음, 지수법칙 계산 문제 반복&#10;과제: 인강 교재 3강 범위 풀고 채점하기" :aria-label="`${half}학습 이해도`" :data-box="`understanding-${h}`"></textarea>
-            <span v-if="h === 0" class="notice">멘토링에서 한 내용과 멘티의 이해도를 한 줄에 하나씩 적어 주세요. 다음 회차까지 낼 과제가 있으면 '과제: 개념원리 RPM 10~23p 풀기'처럼 한 줄로 적어 주세요(선택). 다음 회차의 학습 진도에 불러옵니다.</span>
+            <textarea v-model="sheet.understanding[h]" :rows="Math.max(4, sheet.understanding[h].split('\n').length + 1)" placeholder="예) 예습이 되어 거듭제곱근 개념 설명을 잘 이해함&#10;계산 실수 잦음, 지수법칙 계산 문제 반복&#10;과제: 인강 교재 3강 범위 풀고 채점하기" :aria-label="`${half}학습 이해도`" :data-box="`understanding-${h}`"></textarea>
+            <span v-if="h === 0" class="notice">한 내용과 멘티의 이해도를 한 줄에 하나씩 적어 주세요. 다음 회차까지 낼 과제는 '과제: 개념원리 RPM 10~23p 풀기'처럼 '과제:'로 시작해 적으면(선택) 다음 회차에서 수행 여부를 확인할 수 있습니다.</span>
           </div>
         </template>
       </template>
 
       <div class="item" data-item="etc">
         <div class="head"><strong>기타 <span class="tag">선택</span></strong><button type="button" class="small" :disabled="!sheet.etc.trim()" data-copy="etc" @click="copy('기타', sheet.etc)">복사</button></div>
-        <textarea v-model="sheet.etc" rows="2" placeholder="학습사이트, 멘토링 공간, 진행과 관련해 전할 내용. 예: 화상 화면이 자주 끊깁니다. 확인 부탁드립니다." aria-label="기타" data-box="etc"></textarea>
+        <textarea v-model="sheet.etc" rows="2" placeholder="예) 화상 화면이 자주 끊깁니다. 확인 부탁드립니다." aria-label="기타" data-box="etc"></textarea>
+        <span class="notice">학습사이트, 멘토링 공간, 진행과 관련해 전할 내용을 적습니다.</span>
       </div>
 
       <div class="item">
         <div class="head"><strong>건의사항 <span class="tag">선택</span></strong><button type="button" class="small" :disabled="!sheet.requests.trim()" data-copy="requests" @click="copy('건의사항', sheet.requests)">복사</button></div>
-        <textarea v-model="sheet.requests" rows="2" placeholder="멘토링 일정 변경, 장소 변경 등. 예: 다음 주는 멘티의 수학여행으로 진행하지 않습니다." aria-label="건의사항" data-sheet="requests"></textarea>
+        <textarea v-model="sheet.requests" rows="2" placeholder="예) 다음 주는 멘티의 수학여행으로 진행하지 않습니다." aria-label="건의사항" data-sheet="requests"></textarea>
+        <span class="notice">멘토링 일정 변경, 장소 변경 등을 적습니다.</span>
       </div>
-      <div v-if="!absent" class="item" data-test="photos">
+      <div v-if="!absent" class="item" data-test="photos" data-nodirty>
         <div class="head"><strong>인증사진 <span class="tag">{{ profile?.mode === '오프라인' ? '오프라인' : '온라인' }}</span></strong></div>
         <div class="photo-slots">
           <label v-for="[key, label] in photoSlots" :key="key" class="drop" :class="{ on: photos[key] }" @dragover.prevent @drop.prevent="setPhoto(key, $event.dataTransfer.files[0])">
@@ -292,7 +311,7 @@ const save = () => run('save', async () => {
 
       <div v-if="notes.length" class="box warn" data-test="notes"><ul><li v-for="n in notes" :key="n">{{ n }}</li></ul></div>
       <div class="row">
-        <button class="primary" :disabled="!!busy" data-test="save">{{ busy === 'save' ? '저장하는 중…' : '저장' }}</button>
+        <button :class="{ primary: !next }" :disabled="!!busy" data-test="save">{{ busy === 'save' ? '저장하는 중…' : '저장' }}</button>
         <button v-if="next && embedded" type="button" class="primary" data-test="next-round" @click="emit('saved')">{{ next }}로 넘어가기</button>
         <router-link v-if="!embedded" :to="menteePath(alias)" class="linkbutton">멘티 화면으로 돌아가기</router-link>
       </div>

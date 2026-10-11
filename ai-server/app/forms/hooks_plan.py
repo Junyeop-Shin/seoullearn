@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from . import checks, sensitive
 from .engine import Context, DraftResult, Hooks, load_form, register
+from .handover import second_check
 
 WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"]
 LATER = "1회차에 자세한 상담 예정"
@@ -33,12 +34,25 @@ def structure_lines(minutes: int, start) -> list[str]:
     return out
 
 
-def allowed_handover(handover) -> dict:
-    """인계 요약은 허용 목록의 항목만 받는다 (출석 패턴, 과제 수행, 학습 태도, 수강 강의·진도)."""
+def allowed_handover(handover) -> tuple[dict, bool]:
+    """인계 요약은 허용 목록의 항목만 받는다 (출석 패턴, 과제 수행, 학습 태도, 수강 강의·진도).
+    허용 항목 안에 섞인 학업 수준·정서·개인 사정 문장도 뺀다 (이전 멘토가 보낸 글을 그대로 붙여 넣기 때문이다). (남긴 것, 뺀 것이 있는지)"""
     if not isinstance(handover, dict):
-        return {}
+        return {}, False
     allow = {a["key"]: a["label"] for a in load_form("handover_summary")["allow"]}
-    return {allow[k]: v for k, v in handover.items() if k in allow and v}
+    out, dropped = {}, False
+    for k, v in handover.items():
+        if not v:
+            continue
+        if k not in allow:
+            dropped = True
+            continue
+        checked = [second_check(line, k) for line in str(v).split("\n")]
+        dropped = dropped or any(bad for _, bad in checked)
+        kept = "\n".join(text for text, _ in checked if text)
+        if kept:
+            out[allow[k]] = kept
+    return out, dropped
 
 
 def _memo(ctx: Context, key: str) -> str:
@@ -64,10 +78,9 @@ def _curriculum(ctx: Context, fmt: str) -> list[str] | None:
 
 class _PlanBase(Hooks):
     def _common_prepare(self, ctx: Context) -> None:
-        dropped = ctx.extra.get("handover")
-        ctx.extra["handover"] = allowed_handover(dropped)
-        if isinstance(dropped, dict) and len(ctx.extra["handover"]) < len([v for v in dropped.values() if v]):
-            ctx.warn("인계 요약에서 허용되지 않은 항목(학업 수준, 정서·상담 내용 등)은 쓰지 않았습니다.")
+        ctx.extra["handover"], dropped = allowed_handover(ctx.extra.get("handover"))
+        if dropped:
+            ctx.warn("인계 요약에서 허용되지 않은 내용(학업 수준, 정서·상담 내용 등)은 쓰지 않았습니다.")
         if not ctx.extra["handover"]:
             ctx.extra.pop("handover")
         self._drop_sensitive(ctx)
@@ -88,6 +101,8 @@ class _PlanBase(Hooks):
                 return kept
             if isinstance(v, list):
                 return [x for x in (clean(i) for i in v) if not isinstance(x, str) or x.strip()]
+            if isinstance(v, dict):
+                return {k: clean(x) for k, x in v.items()}
             return v
 
         memo = ctx.extra.get("memo")
@@ -95,6 +110,8 @@ class _PlanBase(Hooks):
             for k in self._TEXT_KEYS:
                 if k in box:
                     box[k] = clean(box[k])
+        if "previous_term" in ctx.extra:   # 지난 회기 요약(참고 자료)도 같은 규칙으로 거른다
+            ctx.extra["previous_term"] = clean(ctx.extra["previous_term"])
         if found:
             ctx.warn("정서·가정·건강 관련 내용은 종합계획서에 넣지 않았고 AI에도 보내지 않았습니다. 꼭 필요한 내용이면 운영사무국과 상의해 주세요.")
 

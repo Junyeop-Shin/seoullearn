@@ -30,7 +30,7 @@ const tab = ref((STEPS.value.find((s) => !s.done) || STEPS.value.at(-1)).id)
       <router-link :to="{ path: '/schedule', query: { mentee: alias } }">오프라인 일정·장소</router-link>에서 이음단에 요청해 주세요.
     </p>
     <!-- 탭을 오가도 저장하지 않은 글이 남게 두 화면을 살려 둔다. 종합계획서①을 다시 저장하면 ②는 그 내용을 새로 가져오도록 다시 그린다 -->
-    <KeepAlive>
+    <KeepAlive :max="2">
       <PrePlanStage v-if="tab === 'pre'" :alias="alias" :profile="profile" :items="items" :update="update" />
       <PlanStage v-else :key="pre?.savedAt || 'none'" :alias="alias" :profile="profile" :items="items" :update="update" />
     </KeepAlive>

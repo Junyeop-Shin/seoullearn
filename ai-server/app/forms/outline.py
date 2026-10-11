@@ -120,7 +120,7 @@ def parse(text: str, llm: ChatLLM | None = None) -> dict:
     out = [lec for _, lec in sorted(enumerate(lectures), key=lambda t: t[1].pop("_pos", t[0]))]
     nos = [x["no"] for x in out if x["no"] is not None]
     if len(set(nos)) != len(nos):
-        warnings.append("강 번호가 겹칩니다. 여러 강좌의 목차가 섞였는지 확인해 주세요.")
+        warnings.append("같은 번호의 강의가 두 번 이상 들어 있습니다. 여러 강좌의 목차를 함께 붙여 넣지 않았는지 확인해 주세요.")
     if unparsed:
         warnings.append(f"강의로 읽지 못한 줄이 {len(unparsed)}개 있습니다. 필요하면 직접 추가해 주세요.")
     if not out:

@@ -7,7 +7,7 @@
 //   (임시 폴더에서) npm install --no-save playwright && npx playwright install chromium
 //   (그 폴더에서) node <저장소>/scripts/e2e_demo.mjs <스크린샷 저장 폴더>
 //
-// 실제 LLM을 4번 안팎 호출한다. 지어낸 이름만 쓴다. 끝나면 만든 계정(e2e_*)은 DB에서 직접 지운다.
+// 실제 LLM을 5번 안팎 호출한다 (공용 키라면 꼭 필요할 때만 돌린다). 지어낸 이름만 쓴다. 끝나면 만든 계정(e2e_*)을 회원 탈퇴로 지운다.
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 const { chromium } = createRequire(resolve(process.cwd(), 'x.js'))('playwright')
@@ -33,15 +33,34 @@ const shot = (n) => page.screenshot({ path: `${out}/${n}.png`, fullPage: true })
 const toast = (text) => page.locator('.toast', { hasText: text }).first().waitFor()
 const next = async () => { await page.locator('[data-test=next-stage]').click(); await page.waitForTimeout(400) }
 const nowStage = () => page.locator('.stagebar li.now').innerText()
+// 저장한 뒤 뜨는 체크리스트 팝업: 항목별 판단(○ △ ✕)을 읽고 [확인]으로 닫는다
+const closeChecklist = async () => {
+  await page.locator('[data-test=checklist][open]').waitFor()
+  const text = await page.locator('[data-test=checklist]').innerText()
+  const marks = await page.locator('[data-test=checklist] li').evaluateAll((list) => list.map((li) => `${li.dataset.check}:${li.dataset.mark}`).join(' '))
+  await page.locator('[data-test=checklist-ok]').click()
+  await page.locator('[data-test=checklist][open]').waitFor({ state: 'detached' })
+  return { text, marks }
+}
 
 // 가입하면 멘토 설정부터 연다
 await page.goto(base + '/mentees')
 await page.waitForURL('**/login')
 await page.getByRole('button', { name: '멘토 계정 만들기' }).click()
+// 가입 전 동의: 필수 항목에 모두 동의해야 아이디와 비밀번호를 적는 단계로 간다
+const consentText = await page.locator('[data-test=consent]').innerText()
+check(await page.locator('[data-test=consent-ok]').isDisabled() && await page.locator('input[autocomplete=username]').count() === 0, '동의하기 전에는 가입 단계로 갈 수 없음')
+check(['수집하는 항목', '수집·이용 목적', '보유·이용 기간', '이전받는 자', '이전되는 국가', '동의를 거부할 권리'].every((w) => consentText.includes(w)), '동의 화면에 수집 항목·목적·보유 기간과 국외 이전, 거부할 권리를 알림')
+await page.locator('[data-consent=age14]').check()
+check(await page.locator('[data-test=consent-ok]').isDisabled(), '일부만 동의하면 넘어갈 수 없음')
+await page.locator('[data-consent=all]').check()
+await page.locator('[data-test=consent-ok]').click()
+await page.locator('[data-test=consent-done]').waitFor()
 await page.locator('input[autocomplete=username]').fill(user)
 await page.locator('input[type=password]').fill('e2e-pass-1234')
 await page.getByRole('button', { name: '가입하고 시작하기' }).click()
 await page.waitForURL('**/settings')
+check(lastBody('/api/auth/signup').consents.length === 4 && /^\d{4}-\d{2}-\d{2}$/.test(lastBody('/api/auth/signup').consentVersion), '가입 요청에 동의한 항목과 문서의 시행일이 실림')
 log('1. 멘토 설정')
 await page.locator('[data-set=name]').fill(MENTOR)
 await page.locator('[data-set=phone]').fill(PHONE)
@@ -175,6 +194,8 @@ await page.waitForFunction(() => document.querySelector('[data-test=fill-note]')
 check((await page.locator('[data-test=fill-note]').innerText()).startsWith('8강을 16주에'), '목표 강의 수만큼 회차에 고르게 나눔 (두 강좌에 걸쳐)')
 await page.locator('[data-test=save]').click()
 await toast('종합계획서②')
+const planCheck = await closeChecklist()
+check(planCheck.text.includes('참고용') && planCheck.marks.startsWith('1-1:o 1-2:tri') && planCheck.marks.endsWith('1-4:o 1-5:o 1-6:o 1-7:tri'), `종합계획서②를 저장하면 체크리스트 팝업이 뜨고 항목마다 ○ △ ✕로 판단함 (${planCheck.marks})`)
 const fileBody = lastBody('subject_time')
 const cells = fileBody.extra.curriculum_lines.join('\n\n')
 check(fileBody.extra.memo.learning_goal.includes('① 가상스터디 수학의 기초 완강\n② 수1 완강, 오답노트 습관') && fileBody.inputs.diagnosis.some((x) => x.startsWith('(학습습관 및 태도) 대체로 정시에 출석함')), '목표·진단이 서식 형식(①, (과목역량) …)으로 저장됨')
@@ -185,6 +206,7 @@ check(await page.locator('[data-test=sheet] [data-copy]').count() === 0 && await
 // ①을 고치지 않은 칸은 다시 열어도 ①의 글을 따르고, 고친 칸은 남는다
 await page.locator('[data-diag="0"]').fill('기본 문제는 푸는데 응용은 어려워함')
 await page.locator('[data-test=save]').click()
+await closeChecklist()
 await page.waitForFunction(() => !document.querySelector('[data-test=save]').disabled)
 await shot('04-plan')
 check(await page.locator('.stagebar li').count() === 4, '1회기의 단계는 네 개')
@@ -208,6 +230,8 @@ await page.locator('[data-box="understanding-0"]').fill('예제는 혼자 품\n�
 await shot('05-report')
 await page.locator('[data-test=save]').click()
 await toast('다음은 2회차')
+const reportCheck = await closeChecklist()
+check(reportCheck.marks === '2-1:o 2-2:o 2-3:o 2-4:o 2-5:tri 2-6:tri' && reportCheck.text.includes('1회차 활동보고서 체크리스트'), `활동보고서를 저장하면 체크리스트 팝업이 뜸 (${reportCheck.marks})`)
 check((await page.locator('[data-test=notes]').innerText()).includes('7일 이내') && lastBody('"keep_lines":true').extra.only.length === 0, '저장은 AI를 부르지 않고, 제출 안내를 보여 줌')
 const understood = await page.locator('[data-box="understanding-0"]').inputValue()
 check(!understood.includes('최민지') && !understood.includes('속상') && understood.includes('건너') && understood.split('\n').length === 3 && understood.includes('과제: 개념원리 RPM 10~23p 풀기'), '저장하면 이름과 정서 이야기가 빠지고 학습 내용은 줄마다 남음')
@@ -237,6 +261,7 @@ await page.locator('[data-q=time]').fill('17:00~18:01')
 await page.locator('[data-sheet=content]').fill('총정리')
 await page.locator('[data-test=save]').click()
 await toast('다음은 완료보고서')
+await closeChecklist()
 await page.locator('[data-test=next-round]').click()
 await page.locator('[data-test=next-term]').waitFor()
 check((await nowStage()).includes('완료보고서'), '마지막 회차 저장 뒤 완료보고서 단계')
@@ -297,6 +322,11 @@ await shot('08-sample')
 log('11. 이름과 연락처가 서버로 나가지 않았는지')
 for (const secret of [MENTEE, '박가상', MENTOR, PHONE, '가상대학교']) check(!sent.some((s) => s.includes(secret)), `'${secret}'이(가) 요청에 없음 (요청 ${sent.length}건)`)
 check(errors.length === 0, `브라우저 오류 없음 ${errors.join(' | ')}`)
+
+// 만든 계정은 회원 탈퇴로 지운다 (DB에 시험 계정이 쌓이지 않게)
+await page.goto(base + '/settings')
+await page.locator('[data-test=withdraw]').click()
+await page.waitForURL('**/login')
 
 await browser.close()
 log(failures.length ? `\n실패 ${failures.length}건` : '\n모두 통과', `· 계정 ${user}`)

@@ -52,7 +52,7 @@ describe('협약 장소', () => {
   })
 
   it('키가 없으면 지도를 불러오지 않는다', async () => {
-    await expect(loadKakao('')).rejects.toThrow('지도 키가 설정되지 않았습니다.')
+    await expect(loadKakao('')).rejects.toThrow('지금은 지도를 보여 드릴 수 없습니다.')
     expect(document.querySelector('script[src*="dapi.kakao.com"]')).toBeNull()
   })
 })

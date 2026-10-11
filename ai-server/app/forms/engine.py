@@ -258,7 +258,7 @@ def draft(form_id: str, inputs: dict, llm: ChatLLM, extra: dict | None = None) -
         if source == "derived":
             result.draft[key] = hooks.derive(f, ctx)
             if _empty(result.draft[key]) and hooks.required(f, ctx):
-                result.missing_questions.append({"key": key, "label": label, "question": f"'{label}'을(를) 계산할 정보가 부족합니다."})
+                result.missing_questions.append({"key": key, "label": label, "question": f"'{label}' 칸을 채울 정보가 부족합니다."})
             continue
         fixed = hooks.fixed(f, ctx)
         if fixed is not None:
@@ -268,7 +268,7 @@ def draft(form_id: str, inputs: dict, llm: ChatLLM, extra: dict | None = None) -
             result.draft[key] = "" if _empty(value) else value
             if _empty(value):
                 if hooks.required(f, ctx):
-                    result.missing_questions.append({"key": key, "label": label, "question": f"'{label}'을(를) 알려 주세요."})
+                    result.missing_questions.append({"key": key, "label": label, "question": f"'{label}' 칸을 적어 주세요."})
             else:
                 _validate_user(f, value, ctx)
             continue

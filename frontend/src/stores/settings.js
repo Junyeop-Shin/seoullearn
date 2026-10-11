@@ -14,6 +14,11 @@ export function loadSettings() {
   return Object.fromEntries(TEXT_KEYS.map((k) => [k, typeof s[k] === 'string' ? s[k] : '']))
 }
 
+/** 이 브라우저에 저장한 멘토 설정을 지운다. */
+export function clearSettings() {
+  try { localStorage.removeItem(KEY) } catch { /* 저장소를 못 써도 지장 없다 */ }
+}
+
 /** 바꿀 값만 넘긴다. */
 export function saveSettings(patch) {
   const next = loadSettings()

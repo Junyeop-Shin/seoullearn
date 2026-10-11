@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { draftValueText, goalsFromVault, handoverFromVault, reportsFromVault } from '../src/lib/reports'
+import { currentCompletion, goalsFromVault, handoverFromVault, myHandover, receivedHandover, reportsFromVault, termSummary } from '../src/lib/reports'
 
 const item = (over) => ({ id: Math.random().toString(36), alias: '수학 고2 A', formId: 'activity_report', savedAt: '2026-10-01T00:00:00.000Z', inputs: {}, draft: {}, ...over })
 
@@ -26,18 +26,31 @@ describe('보관함 → 완료보고서·인계 요약 입력', () => {
     expect(goalsFromVault([])).toEqual([])
   })
 
-  it('강의 목록을 한 줄씩 글로 바꾼다', () => {
-    const lectures = [{ no: 1, title: '문학 감상의 관점' }, { no: 2, title: '시적 화자와 정서' }]
-    expect(draftValueText(lectures)).toBe('1강 문학 감상의 관점\n2강 시적 화자와 정서')
-    expect(draftValueText([{ no: null, title: '오리엔테이션' }])).toBe('오리엔테이션')
-    expect(draftValueText(['a', 'b'])).toBe('a\nb')
-    expect(draftValueText(null)).toBe('')
-  })
 
   it('가장 최근 인계 요약을 돌려준다', () => {
     expect(handoverFromVault([])).toBeNull()
-    const a = item({ formId: 'handover_summary', savedAt: '2026-10-01T00:00:00.000Z', draft: { attitude: '옛것' } })
-    const b = item({ formId: 'handover_summary', savedAt: '2026-10-03T00:00:00.000Z', draft: { attitude: '성실함' } })
+    // 인계받은 글은 붙여 넣은 원문(text)과 함께 저장한다
+    const a = item({ formId: 'handover_summary', savedAt: '2026-10-01T00:00:00.000Z', draft: { attitude: '옛것', text: '[학습 태도] 옛것' } })
+    const b = item({ formId: 'handover_summary', savedAt: '2026-10-03T00:00:00.000Z', draft: { attitude: '성실함', text: '[학습 태도] 성실함' } })
     expect(handoverFromVault([a, b]).attitude).toBe('성실함')
+    // 내가 다음 멘토에게 넘기려고 만든 요약(원문이 없다)은 인계받은 내용이 아니다. 두 화면이 같은 기준으로 가른다
+    const mine = item({ formId: 'handover_summary', savedAt: '2026-10-05T00:00:00.000Z', draft: { attitude: '내가 쓴 요약' } })
+    expect(handoverFromVault([a, b, mine]).attitude).toBe('성실함')
+    expect(handoverFromVault([mine])).toBeNull()
+    expect(myHandover([a, b, mine])).toBe(mine)
+    // 인계받은 글을 지우고 저장한 것(빈 글)은 내 요약으로 읽히지 않는다
+    const cleared = item({ formId: 'handover_summary', savedAt: '2026-10-06T00:00:00.000Z', draft: { text: '' } })
+    expect(myHandover([cleared])).toBeUndefined()
+    expect(receivedHandover([cleared])).toBe(cleared)
+  })
+
+  it('회기 요약에는 이번 회기에 저장한 완료보고서만 쓴다', () => {
+    const old = item({ formId: 'completion_report', savedAt: '2026-06-01T00:00:00.000Z', draft: { content: '- 1회기 내용', achievement: '- 1회기 성취' } })
+    const summary = item({ formId: 'term_summary', savedAt: '2026-06-02T00:00:00.000Z', draft: { term: 1 } })
+    expect(currentCompletion([old, summary])).toBeUndefined()
+    expect(termSummary([old, summary], { term: 2 }).content).toEqual([])   // 2회기 완료보고서를 저장하지 않고 넘어가도 1회기 것을 2회기 요약에 넣지 않는다
+    const now = item({ formId: 'completion_report', savedAt: '2026-10-01T00:00:00.000Z', draft: { content: '- 2회기 내용', achievement: '' } })
+    expect(currentCompletion([old, summary, now])).toBe(now)
+    expect(termSummary([old, summary, now], { term: 2 }).content).toEqual(['2회기 내용'])
   })
 })

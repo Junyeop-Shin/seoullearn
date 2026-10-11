@@ -12,11 +12,7 @@ export function monthDay(date) {
   return m ? `${Number(m)}.${Number(d)}` : ''
 }
 
-/** 사진 이름: 첫 장은 묶음 이름 그대로, 다음부터 (1), (2)를 붙인다. 확장자는 원본 그대로 둔다. */
 const extOf = (f) => (/\.[A-Za-z0-9]+$/.exec(f.name || '') || ['.jpg'])[0].toLowerCase()
-export function photoNames(base, files) {
-  return files.map((f, i) => `${base}${i ? ` (${i})` : ''}${extOf(f)}`)
-}
 
 /** [[파일 이름(확장자 없이), File], …]을 그 이름으로 압축한 bytes. 확장자는 원본 그대로 둔다. 사진은 이미 압축된 형식이라 다시 줄이지 않는다. */
 export async function namedZip(pairs) {
@@ -25,7 +21,7 @@ export async function namedZip(pairs) {
   return zipSync(entries)
 }
 
-/** 사진들(File 목록, 시작 → 중간 → 종료 순)을 이름을 바꿔 압축한 bytes. */
+/** 사진들(File 목록, 시작 → 중간 → 종료 순)을 이름을 바꿔 압축한 bytes. 첫 장은 묶음 이름 그대로, 다음부터 (1), (2)를 붙인다. */
 export const photoZip = (base, files) => namedZip(files.map((f, i) => [`${base}${i ? ` (${i})` : ''}`, f]))
 
 /** 압축한 bytes를 파일로 내려받는다. */

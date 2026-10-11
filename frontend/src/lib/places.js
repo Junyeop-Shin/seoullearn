@@ -16,7 +16,7 @@ export function kakaoLink(place) {
 let sdk = null
 /** 카카오맵 SDK를 한 번만 불러온다. 키가 없거나 불러오지 못하면 거절한다. */
 export function loadKakao(key) {
-  if (!key) return Promise.reject(new Error('지도 키가 설정되지 않았습니다.'))
+  if (!key) return Promise.reject(new Error('지금은 지도를 보여 드릴 수 없습니다.'))
   if (window.kakao?.maps?.LatLng) return Promise.resolve(window.kakao)
   if (!sdk) {
     sdk = new Promise((resolve, reject) => {
@@ -28,7 +28,7 @@ export function loadKakao(key) {
       }
       s.onerror = () => {
         sdk = null
-        reject(new Error('지도를 불러오지 못했습니다. 카카오 개발자 사이트에 이 주소가 등록돼 있는지 확인해 주세요.'))
+        reject(new Error('지도를 불러오지 못했습니다.'))
       }
       document.head.appendChild(s)
     })

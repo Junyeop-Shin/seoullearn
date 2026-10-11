@@ -31,6 +31,7 @@ class Chunk:
     published: str = "unknown"
     supersedes: list[str] = field(default_factory=list)
     recurring: str = ""  # yearly = 매년 반복되는 공고
+    superseded_by: list[str] = field(default_factory=list)  # 이 문서의 내용을 바꾼 유효한 공지의 제목 (활동가이드 청크에만)
 
     @property
     def cite(self) -> str:
@@ -94,6 +95,15 @@ def load_markdown(corpus: str = "v1", include_expired: bool = False, data_dir: P
                     published=fm.get("published", "unknown"), supersedes=fm.get("supersedes") or [],
                     recurring=fm.get("recurring", ""),
                 ))
+    # 활동가이드 문서를 바꾼 유효한 공지를 그 문서의 청크에 적어 둔다: 답변이 그 청크를 근거로 삼으면 화면이 공지도 보라고 알린다
+    changed: dict[str, list[str]] = {}
+    for c in chunks:
+        if c.doc_type != "manual" and c.status == "active":
+            for doc_id in c.supersedes:
+                if c.title not in changed.setdefault(doc_id, []):
+                    changed[doc_id].append(c.title)
+    for c in chunks:
+        c.superseded_by = changed.get(c.doc_id, [])
     return chunks
 
 

@@ -3,6 +3,7 @@ import { auth, loadUser } from '../stores/auth'
 
 const routes = [
   { path: '/login', component: () => import('../views/LoginView.vue'), meta: { public: true } },
+  { path: '/privacy', component: () => import('../views/PrivacyView.vue'), meta: { public: true } },   // 개인정보 처리방침 (로그인 전에도 본다)
   { path: '/', component: () => import('../views/ChatView.vue') },
   // 멘티별 작업 공간: 문서는 모두 멘티 아래에서 쓴다
   { path: '/mentees', component: () => import('../views/MenteesView.vue') },
@@ -33,6 +34,11 @@ const routes = [
 ]
 
 export const router = createRouter({ history: createWebHistory(), routes })
+
+// 새 판을 배포한 뒤 열려 있던 탭은 옛 화면 조각을 찾다 실패한다: 그 주소를 통째로 다시 불러온다
+router.onError((e, to) => {
+  if (/dynamically imported module|module script failed|Importing a module script/i.test(e?.message || '')) window.location.assign(to.fullPath)
+})
 
 router.beforeEach(async (to) => {
   if (!auth.checked) await loadUser()

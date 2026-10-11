@@ -1,18 +1,15 @@
 # 양식 스키마
 
-보고서 초안 기능이 쓰는 양식 정의다. 양식 하나 = JSON 파일 하나이며, 새 서식(시간확대 신청서, 친화·성장활동 계획서 등)은 같은 형식의 파일을 추가하면 된다.
+보고서 초안 기능이 쓰는 양식 정의다. 양식 하나 = JSON 파일 하나이며, 새 서식은 같은 형식의 파일을 추가하면 된다. 친화·성장활동과 시간확대는 초안을 만들지 않고 화면에서만 다루므로 양식이 없다.
 
 | 파일 | 양식 | 단계 |
 | --- | --- | --- |
 | activity_report.json | 활동보고서 | MVP |
-| pre_contact.json | 사전 연락 질문지 | MVP |
+| pre_contact.json | 사전 연락 (활동가이드의 확인 사항과 연락이 안 될 때의 기준. 서버는 문자 문구만 만든다) | MVP |
 | plan_initial.json | 종합계획서① (사전 종합계획서) | MVP |
 | plan_file.json | 종합계획서② (종합계획서 파일) | MVP |
 | completion_report.json | 완료보고서 | 2차 |
 | handover_summary.json | 인계 요약 (허용 항목 목록) | 2차 |
-| time_extension_check.json | 시간확대 신청 전 확인 (멘티가 직접 신청하므로 멘토용 확인표) | 3단계 |
-| bonding_plan.json | 친화·성장활동 계획서 (신청서) | 3단계 |
-| bonding_report.json | 친화·성장활동 결과보고서 | 3단계 |
 
 ## 필드 속성
 

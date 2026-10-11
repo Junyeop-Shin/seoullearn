@@ -19,7 +19,7 @@ async function fromVault() {
   try {
     items = await listItems(props.alias.trim())
   } catch {
-    status.value = '이 브라우저의 보관함을 읽지 못했습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.'
+    status.value = '이 브라우저에 저장한 자료를 읽지 못했습니다. 화면을 새로 고친 뒤 다시 시도해 주세요.'
     return
   }
   reports.value = reportsFromVault(items)
@@ -46,7 +46,7 @@ async function fromPaste() {
 
 <template>
   <div class="card">
-    <p v-if="status" data-test="status">{{ status }}</p>
+    <p v-if="status" role="status" data-test="status">{{ status }}</p>
     <details>
       <summary>저장해 둔 것이 없거나 부족하면: 플랫폼의 활동보고서를 복사해 붙여 넣기</summary>
       <p class="muted">여러 회차를 한 번에 붙여 넣어도 됩니다. 항목 이름(멘토링 일자, 진행 회차 …)이 함께 복사돼야 회차별로 나눌 수 있습니다. 멘티·멘토 이름 칸은 읽지 않고 버립니다.</p>

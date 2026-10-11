@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { PROFILE_FIELDS, displayName, fillValues, getCurrentAlias, profileFromVault, setCurrentAlias, suggestDate } from '../src/lib/mentee'
+import { PROFILE_FIELDS, displayName, fillValues, profileFromVault, suggestDate } from '../src/lib/mentee'
 
 const item = (over) => ({ id: Math.random().toString(36), alias: '수학 고2 A', savedAt: '2026-10-01T00:00:00.000Z', inputs: {}, draft: {}, ...over })
 
@@ -34,12 +34,6 @@ describe('멘티 정보', () => {
     expect(suggestDate('2026-10-12T20:00', 4)).toBe('2026-11-02')
     expect(suggestDate('2026-12-28T20:00', 2)).toBe('2027-01-04') // 해가 넘어가도
     expect(suggestDate('', 3)).toBe('')
-  })
-
-  it('고른 멘티를 화면을 옮겨도 기억한다', () => {
-    expect(getCurrentAlias()).toBe('')
-    setCurrentAlias(' 수학 고2 A ')
-    expect(getCurrentAlias()).toBe('수학 고2 A')
   })
 })
 

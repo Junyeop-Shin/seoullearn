@@ -24,19 +24,25 @@ function parse(xml) {
 const serialize = (doc, xml) => (xml.match(/^<\?xml[^>]*\?>/)?.[0] || '') + new XMLSerializer().serializeToString(doc.documentElement)
 
 // ---- docx: w:tbl > w:tr > w:tc > w:p > w:r > w:t. 세로로 합친 칸(커리큘럼 이름)은 줄마다 빈 칸이 있다
-function setDocxCell(tc, lines) {
+/** small: 둘째 줄부터 글자를 2pt 줄인다 (커리큘럼 칸 이름 아래의 강좌 줄) */
+function setDocxCell(tc, lines, small = false) {
   const ps = kids(tc, 'w:p')
   const run = all(tc, 'w:r').find((r) => kids(r, 'w:t').length)
   if (!ps.length || !run) return
   const rPr = kids(run, 'w:rPr')[0]?.cloneNode(true)
   // 서식의 예시 글은 파란색이다: 채운 글은 검은색으로
   if (rPr) for (const c of kids(rPr, 'w:color')) c.setAttribute('w:val', '000000')
-  const made = (lines.length ? lines : ['']).map((line) => {
+  const made = (lines.length ? lines : ['']).map((line, i) => {
     const p = ps[0].cloneNode(false)
     const pPr = kids(ps[0], 'w:pPr')[0]
     if (pPr) p.appendChild(pPr.cloneNode(true))
     const r = run.cloneNode(false)
-    if (rPr) r.appendChild(rPr.cloneNode(true))
+    if (rPr) {
+      const own = rPr.cloneNode(true)
+      // 글자 크기는 반 포인트 단위다: 2pt = 4
+      if (small && i) for (const z of [...kids(own, 'w:sz'), ...kids(own, 'w:szCs')]) z.setAttribute('w:val', String(Math.max(2, Number(z.getAttribute('w:val')) - 4)))
+      r.appendChild(own)
+    }
     const t = kids(run, 'w:t')[0].cloneNode(false)
     t.setAttribute('xml:space', 'preserve')
     t.textContent = line
@@ -59,7 +65,7 @@ function fillDocx(xml, data) {
     if (label.startsWith('커리큘럼')) week = 0
     else if (week >= 0 && !(merged && !label)) week = -1   // 합친 칸이 끝나면 커리큘럼도 끝난다
     if (week >= 0) {
-      if (week === 0) { setDocxCell(tcs[0], ['커리큘럼', data.course].filter(Boolean)); found += 1 }
+      if (week === 0) { setDocxCell(tcs[0], ['커리큘럼', data.course].filter(Boolean), true); found += 1 }
       if (week >= data.weeks.length) tr.parentNode.removeChild(tr)   // 8회차 회기는 남는 줄을 지운다
       else setDocxCell(tcs.at(-1), data.weeks[week])
       week += 1
@@ -67,20 +73,21 @@ function fillDocx(xml, data) {
     else if (label === '멘티' && tcs.length >= 4) { setDocxCell(tcs[1], [data.mentee]); setDocxCell(tcs[3], [data.mentor]); found += 1 }
     else if (cells[label]) { setDocxCell(tcs.at(-1), cells[label]); found += 1 }
   }
-  if (found < 8) throw new Error('종합활동계획서 서식이 아닌 것 같습니다. 공지사항에서 받은 서식 파일을 골라 주세요.')
+  if (found < 8) throw new Error('종합계획서② 서식을 채우지 못했습니다. 이 도구의 관리자에게 알려 주세요.')
   return serialize(doc, xml)
 }
 
 // ---- hwpx: hp:tbl > hp:tr > hp:tc > hp:subList > hp:p > hp:run > hp:t. 세로로 합친 칸은 첫 줄에만 있고 rowSpan으로 높이를 잡는다
-function setHwpxCell(tc, lines, black) {
+function setHwpxCell(tc, lines, black, smaller) {
   const sub = kids(tc, 'hp:subList')[0]
   const ps = sub ? kids(sub, 'hp:p') : []
   const run = all(tc, 'hp:run').find((r) => kids(r, 'hp:t').length)
   if (!ps.length || !run) return
-  const made = (lines.length ? lines : ['']).map((line) => {
+  const made = (lines.length ? lines : ['']).map((line, i) => {
     const p = ps[0].cloneNode(false)   // 줄 배치 정보(linesegarray)는 넣지 않는다: 한글이 열 때 다시 계산한다
     const r = run.cloneNode(false)
-    r.setAttribute('charPrIDRef', black(run.getAttribute('charPrIDRef')))
+    const shape = black(run.getAttribute('charPrIDRef'))
+    r.setAttribute('charPrIDRef', smaller && i ? smaller(shape) : shape)
     const t = kids(run, 'hp:t')[0].cloneNode(false)
     t.textContent = line
     r.appendChild(t)
@@ -99,6 +106,8 @@ function fillHwpx(xml, header, data) {
   for (const m of header.matchAll(/<hh:charPr id="(\d+)" height="(\d+)" textColor="([^"]+)"/g)) shapes[m[1]] = { height: m[2], dark: m[3] === '#000000' }
   const used = [...new Set(all(all(doc, 'hp:tbl')[0] || doc, 'hp:run').map((r) => r.getAttribute('charPrIDRef')))]   // 표 안에서 쓰는 글자 모양 가운데 고른다
   const black = (id) => (!shapes[id] || shapes[id].dark ? id : used.find((x) => shapes[x]?.dark && shapes[x].height === shapes[id].height) ?? id)
+  // 같은 색에서 2pt(200) 작은 글자 모양. 없으면 그대로 둔다 (커리큘럼 칸 이름 아래의 강좌 줄)
+  const smaller = (id) => (shapes[id] ? Object.keys(shapes).find((x) => shapes[x].dark && Number(shapes[x].height) === Number(shapes[id].height) - 200) ?? id : id)
   const addr = (tc, key) => Number(kids(tc, 'hp:cellAddr')[0]?.getAttribute(key))
   const height = (tc) => Number(kids(tc, 'hp:cellSz')[0]?.getAttribute('height')) || 0
   let found = 0, head = null, first = -1, span = 0, cut = 0, removed = 0
@@ -109,7 +118,7 @@ function fillHwpx(xml, header, data) {
     if (label.startsWith('커리큘럼')) {
       head = tcs[0]; first = row
       span = Number(kids(head, 'hp:cellSpan')[0].getAttribute('rowSpan'))
-      setHwpxCell(head, ['커리큘럼', data.course].filter(Boolean), black)
+      setHwpxCell(head, ['커리큘럼', data.course].filter(Boolean), black, smaller)
       found += 1
     }
     if (head && row >= first && row < first + span) {
@@ -124,7 +133,7 @@ function fillHwpx(xml, header, data) {
     else if (label === '멘티' && tcs.length >= 4) { setHwpxCell(tcs[1], [data.mentee], black); setHwpxCell(tcs[3], [data.mentor], black); found += 1 }
     else if (cells[label]) { setHwpxCell(tcs.at(-1), cells[label], black); found += 1 }
   }
-  if (found < 8) throw new Error('종합활동계획서 서식이 아닌 것 같습니다. 공지사항에서 받은 서식 파일을 골라 주세요.')
+  if (found < 8) throw new Error('종합계획서② 서식을 채우지 못했습니다. 이 도구의 관리자에게 알려 주세요.')
   if (removed) {
     // 줄을 지웠으면 표의 줄 수와 합친 칸의 높이도 맞춘다
     const tbl = all(doc, 'hp:tbl')[0]
@@ -143,12 +152,16 @@ export function fillPlanFile(bytes, data) {
   try {
     files = unzipSync(bytes)
   } catch {
-    throw new Error('docx 또는 hwpx 서식 파일을 골라 주세요. hwp 파일은 채울 수 없습니다.')
+    throw new Error('서식 파일을 열지 못했습니다. 이 도구의 관리자에게 알려 주세요.')
   }
   const put = (path, text) => { files[path] = strToU8(text) }
-  if (files['word/document.xml']) put('word/document.xml', fillDocx(strFromU8(files['word/document.xml']), data))
+  if (files['word/document.xml']) {
+    put('word/document.xml', fillDocx(strFromU8(files['word/document.xml']), data))
+    // 서식의 글머리 기호는 '-'를 기호 글꼴(Wingdings)로 찍어 튀는 그림 문자가 된다: 글꼴을 바꿔 평범한 '-'로 보이게 한다
+    if (files['word/numbering.xml']) put('word/numbering.xml', strFromU8(files['word/numbering.xml']).replaceAll('w:ascii="Wingdings" w:hAnsi="Wingdings"', 'w:ascii="맑은 고딕" w:hAnsi="맑은 고딕"'))
+  }
   else if (files['Contents/section0.xml']) put('Contents/section0.xml', fillHwpx(strFromU8(files['Contents/section0.xml']), strFromU8(files['Contents/header.xml'] || new Uint8Array()), data))
-  else throw new Error('docx 또는 hwpx 서식 파일을 골라 주세요.')
+  else throw new Error('서식 파일을 열지 못했습니다. 이 도구의 관리자에게 알려 주세요.')
   if (files['Preview/PrvText.txt']) put('Preview/PrvText.txt', '')   // hwpx의 미리보기 글에는 서식의 예시가 들어 있다: 비운다
   // hwpx는 mimetype이 압축 없이 맨 앞에 있어야 한다
   const { mimetype, ...rest } = files

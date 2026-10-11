@@ -1,6 +1,14 @@
+# 컨테이너 로그는 크기를 묶어 둔다 (요청 시각·경로·상태 코드만 남긴다. 본문과 접속 주소는 남기지 않는다)
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   ai-server:
     build: ./ai-server
+    logging: *logging
     env_file: .env
     environment:
       # API 서버는 pgvector에서 검색한다. 평가(run_eval)는 이 값과 상관없이 file 방식이 기본이다.
@@ -34,6 +42,7 @@ services:
   # 업무 백엔드: 로그인·역할, 양식 스키마, AI 서버 중계. 화면은 이 서비스(/api)로만 요청한다.
   backend:
     build: ./backend
+    logging: *logging
     environment:
       DATABASE_URL: jdbc:postgresql://db:5432/seoullearn
       DATABASE_USERNAME: seoullearn
@@ -68,6 +77,7 @@ services:
   # 화면 (Vue). 정적 파일을 내주고 /api 요청을 backend로 넘긴다. http://localhost:3000
   frontend:
     build: ./frontend
+    logging: *logging
     ports:
       - "3000:80"
     depends_on:

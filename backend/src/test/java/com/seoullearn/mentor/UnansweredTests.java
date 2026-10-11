@@ -78,6 +78,8 @@ class UnansweredTests {
         mvc.perform(delete("/api/admin/unanswered/" + id).with(csrf()).with(user("mentor_a").roles("MENTOR"))).andExpect(status().isForbidden());
         mvc.perform(delete("/api/admin/unanswered/" + id).with(csrf()).with(user("admin_a").roles("ADMIN"))).andExpect(status().isNoContent());
         mvc.perform(delete("/api/admin/unanswered/" + id).with(csrf()).with(user("admin_a").roles("ADMIN"))).andExpect(status().isNotFound());
+        // 숫자가 아닌 번호는 서버 오류(500)가 아니라 요청 오류다
+        mvc.perform(delete("/api/admin/unanswered/abc").with(csrf()).with(user("admin_a").roles("ADMIN"))).andExpect(status().isBadRequest());
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM unanswered_question", Integer.class)).isEqualTo(1);
     }
 }

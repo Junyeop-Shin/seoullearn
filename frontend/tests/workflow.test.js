@@ -312,10 +312,10 @@ describe('종합계획서②를 서식 파일에 채운다 (브라우저 안에�
     expect(xml).toContain('<hp:sz width="10" height="1000"/>')   // 지운 줄의 높이만큼 줄인다
   })
 
-  it('다른 파일은 까닭을 알려 주고, 파일 이름은 서식 규칙을 따른다', () => {
-    expect(() => fillPlanFile(strToU8('hwp 같은 다른 형식'), data(1))).toThrow('hwp 파일은 채울 수 없습니다')
-    expect(() => fillPlanFile(zipSync({ 'a.txt': strToU8('x') }), data(1))).toThrow('docx 또는 hwpx')
-    expect(() => fillPlanFile(zipSync({ 'word/document.xml': strToU8('<w:document xmlns:w="w"><w:tbl><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl></w:document>') }), data(1))).toThrow('종합활동계획서 서식이 아닌')
+  it('서식이 아닌 파일은 채우지 않고 알리며, 파일 이름은 서식 규칙을 따른다', () => {
+    expect(() => fillPlanFile(strToU8('hwp 같은 다른 형식'), data(1))).toThrow('서식 파일을 열지 못했습니다')
+    expect(() => fillPlanFile(zipSync({ 'a.txt': strToU8('x') }), data(1))).toThrow('서식 파일을 열지 못했습니다')
+    expect(() => fillPlanFile(zipSync({ 'word/document.xml': strToU8('<w:document xmlns:w="w"><w:tbl><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl></w:document>') }), data(1))).toThrow('종합계획서② 서식을 채우지 못했습니다')
     expect(planFileName('hwpx', { code: 'M12', term: 2, mentee: '김가상' })).toBe('[M12]2회기_종합활동계획서_김가상.hwpx')
     expect(planFileName('docx', {})).toBe('[멘토코드]1회기_종합활동계획서_멘티이름.docx')
     // 멘토코드는 이름 + 전화번호 뒤 네 자리
@@ -544,7 +544,7 @@ describe('멘토 설정 (이 브라우저에만 저장)', () => {
 })
 
 import { unzipSync } from 'fflate'
-import { photoBase, photoNames, photoZip } from '../src/lib/photos'
+import { photoBase, photoZip } from '../src/lib/photos'
 
 describe('인증사진 이름 바꿔 압축하기', () => {
   it("이름은 '멘티이름 N회기 N회차 월.일', 둘째 장부터 (1)을 붙이고 확장자는 그대로 둔다", async () => {
@@ -552,9 +552,8 @@ describe('인증사진 이름 바꿔 압축하기', () => {
     expect(base).toBe('홍길동 1회기 1회차 10.11')
     expect(photoBase('홍길동', 2, 3, '2026-03-09')).toBe('홍길동 2회기 3회차 3.9')
     const files = [new File([new Uint8Array([1, 2])], 'IMG_0001.JPG'), new File([new Uint8Array([3])], 'photo.png'), new File([new Uint8Array([4])], '이름없음')]
-    expect(photoNames(base, files)).toEqual(['홍길동 1회기 1회차 10.11.jpg', '홍길동 1회기 1회차 10.11 (1).png', '홍길동 1회기 1회차 10.11 (2).jpg'])
-    const out = unzipSync(await photoZip(base, files.slice(0, 2)))
-    expect(Object.keys(out)).toEqual(['홍길동 1회기 1회차 10.11.jpg', '홍길동 1회기 1회차 10.11 (1).png'])
+    const out = unzipSync(await photoZip(base, files))   // 확장자가 없는 파일은 .jpg로 둔다
+    expect(Object.keys(out)).toEqual(['홍길동 1회기 1회차 10.11.jpg', '홍길동 1회기 1회차 10.11 (1).png', '홍길동 1회기 1회차 10.11 (2).jpg'])
     expect([...out['홍길동 1회기 1회차 10.11.jpg']]).toEqual([1, 2])   // 사진 내용은 그대로다
   })
 })
@@ -568,6 +567,8 @@ describe('친화·성장활동 기록', () => {
       { formId: 'bonding_activity', draft: { type: '친화활동', date: '', content: '', actual: '' } }]
     expect(activitiesFromVault(items)).toEqual([{ 유형: '성장활동', 일자: '2026-11-14', '활동 목표': '전공 탐색', '활동 내용': '캠퍼스와 학과 건물을 둘러봄', '멘티 소감': '학과가 궁금해짐' }])
     expect(activitiesFromVault([])).toEqual([])
+    // 신청만 하고 아직 하지 않은 활동(계획만 있고 실제 활동 내용이 비어 있음)은 한 일이 아니므로 넘기지 않는다
+    expect(activitiesFromVault([{ formId: 'bonding_activity', draft: { type: '친화활동', date: '2026-11-20', content: '영화 관람 예정', actual: '' } }])).toEqual([])
   })
   it('증빙사진은 정해 준 이름으로 압축한다', async () => {
     const file = (n) => new File([new Uint8Array([1])], n)

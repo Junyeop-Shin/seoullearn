@@ -1,14 +1,12 @@
 """매뉴얼 Q&A: 검색 → 답변 생성 → 근거·문의처 정리."""
 from __future__ import annotations
 
-import json
-import re
 import time
 from dataclasses import asdict, dataclass, field
 
 from . import guard
 from .corpus import Chunk
-from .llm import ChatLLM, LLMUnavailableError
+from .llm import ChatLLM, LLMUnavailableError, first_json
 
 ROUTES = ["운영사무국", "이음단", "학습지원센터", "운영사무국(즉시)"]
 DEFAULT_ROUTE = "운영사무국"  # 답을 다 못 했는데 모델이 문의처를 고르지 않았을 때
@@ -55,6 +53,8 @@ class QAResult:
     route: str | None
     citations: list[str] = field(default_factory=list)  # chunk id
     cite_labels: list[str] = field(default_factory=list)
+    sources: list[dict] = field(default_factory=list)  # 근거로 쓴 자료의 이름표와 본문 (화면에서 펼쳐 본다)
+    changed_notices: list[str] = field(default_factory=list)  # 근거로 쓴 활동가이드 내용을 바꾼 공지 (답변이 그 공지를 쓰지 않았을 때)
     retrieved: list[str] = field(default_factory=list)  # chunk id, 순위대로
     pii_masked: list[str] = field(default_factory=list)
     safety: bool = False
@@ -86,17 +86,14 @@ def build_context(chunks: list[Chunk]) -> str:
 
 def parse_output(raw: str) -> dict:
     """모델이 코드블록이나 앞뒤 설명을 붙여도 JSON만 뽑는다."""
-    m = re.search(r"\{.*\}", raw, re.S)
-    if not m:
-        raise ValueError("JSON 없음")
-    data = json.loads(m.group(0))
+    data = first_json(raw)
     if data.get("answerable") not in ("yes", "partial", "no"):
         raise ValueError(f"answerable 값 오류: {data.get('answerable')}")
     if not isinstance(data.get("answer"), str) or not data["answer"].strip():
         raise ValueError("answer 없음")
     if data.get("route") not in ROUTES:  # 키가 없거나 목록 밖의 값이면 문의처 없음으로 본다
         data["route"] = None
-    data["citations"] = [int(x) for x in data.get("citations", []) if str(x).isdigit()]
+    data["citations"] = [int(x) for x in (data.get("citations") or []) if str(x).isdecimal()]
     return data
 
 
@@ -119,10 +116,13 @@ def answer(question: str, retriever, llm: ChatLLM, k: int = 5) -> QAResult:
         used = [hits[i - 1] for i in data["citations"] if 1 <= i <= len(hits)]
         res.citations = [c.id for c in used]
         res.cite_labels = [c.cite for c in used]
+        res.sources = [{"cite": c.cite, "text": c.text} for c in used]
+        cited = {c.title for c in used}
+        res.changed_notices = list(dict.fromkeys(t for c in used for t in c.superseded_by if t not in cited))
     except LLMUnavailableError:  # 요청 한도·서버 과부하는 답변 실패가 아니다. 호출한 쪽에서 멈춘다
         raise
     except Exception as e:  # 형식 오류도 평가에 기록되도록 실패로 남긴다
         res.error = f"{type(e).__name__}: {e}"
-        res.answer = "답변을 만들지 못했습니다. 운영사무국에 문의해 주세요."
+        res.answer = "답변을 만들지 못했습니다. 잠시 후 다시 질문해 주세요. 급한 일이면 아래 문의처로 연락해 주세요."
     res.latency_ms = int((time.monotonic() - t0) * 1000)
     return res

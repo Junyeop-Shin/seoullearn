@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { api } from '../../api/client'
 import CopyBlock from '../../components/CopyBlock.vue'
-import { handoverNote, latestOf, parseHandoverText } from '../../lib/reports'
+import { handoverNote, parseHandoverText, receivedHandover } from '../../lib/reports'
 import { fillNames } from '../../lib/schedule'
 import { toast } from '../../lib/toast'
 import { loadSettings } from '../../stores/settings'
@@ -19,7 +19,7 @@ const text = ref('')
 const error = ref('')
 // 인계받은 글은 붙여 넣은 그대로 이 브라우저에 둔다. 종합계획서①을 쓸 때 옆에 띄워 참고한다.
 // AI에는 글 전체가 아니라 그 안의 허용된 네 항목('[출석 패턴] …')만 참고 자료로 넘긴다 (lib/reports.js의 handoverForDraft)
-const savedHandover = latestOf(props.items, 'handover_summary')
+const savedHandover = receivedHandover(props.items)
 const note = ref(handoverNote(savedHandover?.draft))
 
 async function saveHandover() {
@@ -36,7 +36,7 @@ async function saveHandover() {
 onMounted(async () => {
   try {
     const p = props.profile
-    res.value = await api.preContact(p.mode || '온라인', '', null, (p.subject === '기타' ? p.subjectEtc : p.subject) || '')
+    res.value = await api.preContact(p.mode || '온라인', (p.subject === '기타' ? p.subjectEtc : p.subject) || '')
     text.value = fillNames(res.value.sms.text, { mentee: p.name, mentor: mentor.name, phone: mentor.phone })
   } catch (e) {
     error.value = e.message
@@ -50,16 +50,17 @@ onMounted(async () => {
     <div v-if="!mentor.name || !mentor.phone" class="box warn" data-test="need-mentor">
       멘토 이름과 연락처가 없어 [멘토명], [멘토 연락처]가 그대로 남습니다. <router-link to="/settings">멘토 설정</router-link>에서 적어 두면 자동으로 채워집니다.
     </div>
-    <div v-if="error" class="box error">{{ error }}</div>
+    <div v-if="error" class="box error" role="alert">{{ error }}</div>
     <template v-if="res">
-      <CopyBlock v-model="text" label="사전 연락 문자" />
+      <!-- 문자 문구는 저장하지 않는 글이다: 고쳐도 '저장하지 않은 내용'으로 치지 않는다 -->
+      <CopyBlock v-model="text" label="사전 연락 문자" data-nodirty />
       <div class="box warn"><ul><li v-for="n in res.notes" :key="n">{{ n }}</li></ul></div>
     </template>
 
     <h3>이전 멘토에게 인계받은 내용</h3>
     <form class="card" data-test="handover-form" @submit.prevent="saveHandover">
       <textarea v-model="note" rows="5" placeholder="멘토 교체로 인계받은 멘티라면, 이전 멘토가 보낸 글을 그대로 붙여 넣어 주세요." aria-label="이전 멘토에게 인계받은 내용" data-test="handover-note"></textarea>
-      <p class="notice">종합계획서①을 쓸 때 옆에 띄워 드립니다. 인계받은 것이 없으면 비워 두세요.</p>
+      <p class="notice">인계받은 것이 없으면 비워 두어도 됩니다.</p>
       <button :disabled="!note.trim() && !savedHandover" data-test="save-handover">인계받은 내용 저장</button>
     </form>
   </div>

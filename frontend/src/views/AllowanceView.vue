@@ -72,7 +72,7 @@ async function calc() {
   <div class="shell">
     <h1>활동비 계산</h1>
     <p class="muted">활동가이드(p.41~47) 기준으로 계산한 추정 금액입니다. 실제 지급액은 활동보고서 승인 결과와 운영사무국 정산에 따릅니다.</p>
-    <div v-if="volunteer" class="box warn" data-test="volunteer">설정의 멘토링 유형이 봉사형입니다. 이 계산은 활동비를 받는 시급형 기준입니다. 봉사형의 인정 기준은 운영사무국에 확인해 주세요.</div>
+    <div v-if="volunteer" class="box warn" data-test="volunteer">멘토 설정의 멘토링 유형이 봉사형입니다. 이 계산은 활동비를 받는 시급형 기준입니다. 봉사형의 인정 기준은 운영사무국에 확인해 주세요.</div>
 
     <h2>저장한 활동보고서로 계산</h2>
     <p v-if="loaded && !months.length" class="card muted" data-test="no-reports">저장한 활동보고서가 없습니다. 활동보고서를 저장하면 그 달의 회차 수를 여기에 채워 드립니다. 아래 '직접 넣어 계산'은 지금도 쓸 수 있습니다.</p>
@@ -87,15 +87,15 @@ async function calc() {
         </label>
       </div>
       <table class="allowance" data-test="month-rows">
-        <thead><tr><th>멘티</th><th>정상 진행</th><th>무단결석</th><th>임박취소</th><th>인정결석</th><th>고학년지도</th></tr></thead>
+        <thead><tr><th>멘티</th><th>정상 진행</th><th>무단결석</th><th>임박취소</th></tr></thead>
         <tbody>
           <tr v-for="r in rows" :key="r.alias" :data-row="r.alias">
-            <td><strong>{{ r.name }}</strong><small>{{ r.mode }} · 회당 {{ r.hours }}시간</small></td>
+            <!-- 인정결석과 고학년지도는 멘티 칸에 둔다: 휴대폰 너비에서 금액을 바꾸는 확인란이 화면 밖으로 밀리지 않게 -->
+            <td><strong>{{ r.name }}</strong><small>{{ r.mode }} · 회당 {{ r.hours }}시간 · 인정결석 {{ r.excused }}회</small>
+              <label class="check flush"><input v-model="r.senior" type="checkbox" data-col="senior" />고학년지도 가산금 대상</label></td>
             <td><input v-model="r.normal" type="number" min="0" max="31" :aria-label="`${r.name} 정상 진행 회차 수`" data-col="normal" /></td>
             <td><input v-model="r.no_show" type="number" min="0" max="31" :aria-label="`${r.name} 무단결석 회차 수`" data-col="no_show" /></td>
             <td><input v-if="r.mode === '온라인'" v-model="r.late_cancel" type="number" min="0" max="31" :aria-label="`${r.name} 임박취소 회차 수`" data-col="late_cancel" /><span v-else class="muted">해당 없음</span></td>
-            <td>{{ r.excused }}회</td>
-            <td><label class="check"><input v-model="r.senior" type="checkbox" :aria-label="`${r.name} 고학년지도 가산금`" data-col="senior" />대상</label></td>
           </tr>
         </tbody>
       </table>
@@ -108,7 +108,7 @@ async function calc() {
       <span class="notice">학자금지원구간 2구간 이하인 서울 소재 대학(원) 재학 멘토가 대상입니다. 회기가 끝난 뒤 멘토링 수기를 내고 승인받으면 따로 정산되고, 고학년지도 가산금과 함께 받을 수 없습니다.</span>
       <div class="row gap-top"><button class="primary" data-test="calc-month">계산하기</button></div>
     </form>
-    <div v-if="error" class="box error">{{ error }}</div>
+    <div v-if="error" class="box error" role="alert">{{ error }}</div>
     <template v-if="res">
       <div class="card" data-test="month-result">
         <p class="total"><span>{{ pay.month }}월 활동비 추정 합계</span><strong data-test="month-total">{{ won(res.total) }}</strong></p>
@@ -148,7 +148,7 @@ async function calc() {
           <label class="field grow"><span class="name">무단결석 회차 수</span><input v-model="f.no_show" type="number" min="0" max="60" /></label>
           <label v-if="f.mode === '온라인'" class="field grow"><span class="name">임박취소 회차 수</span><input v-model="f.late_cancel" type="number" min="0" max="60" /></label>
         </div>
-        <label v-if="f.mode === '온라인'" class="field"><span class="name">달마다의 유효 진행 횟수 (선택)</span>
+        <label v-if="f.mode === '온라인'" class="field"><span class="name">달별 진행 횟수 <span class="tag">선택</span></span>
           <input v-model="f.monthly" placeholder="예: 5, 6, 6, 4, 7, 2" />
           <span class="notice">넣으면 달마다 가산금 구간이 어떻게 오르는지 보여 드립니다. 한 달에 4회 이상인 달이 2번 모이면 다음 달부터 1구간 오릅니다.</span>
         </label>

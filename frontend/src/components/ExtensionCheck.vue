@@ -9,7 +9,7 @@ const ITEMS = [
   ['course', '고등과정 학습사이트를 수강하고 있다', '이투스, 메가스터디, 밀크T 고등, 대성마이맥, 에듀윌(검정고시)'],
   ['term', '서울런 멘토링을 1회기 이상 마쳤다', ''],
   ['rules', '이번 회기에 무단결석, 잦은 지각, 임박취소 같은 규칙 미준수가 없었다', ''],
-  ['progress', '종합활동계획서에서 목표한 인강 수강(진도)률이 60% 이상이다', '멘티가 월 1회 이상 PC로 로그인해야 수강 기록이 반영됩니다.'],
+  ['progress', '종합계획서②에서 목표한 인강 수강(진도)률이 60% 이상이다', '멘티가 월 1회 이상 PC로 로그인해야 수강 기록이 반영됩니다.'],
 ]
 const checked = reactive({})
 const channel = ref('')
@@ -19,7 +19,7 @@ onMounted(async () => { channel.value = (await loadChannels())[props.district] |
 </script>
 
 <template>
-  <div class="card" data-test="extension-check">
+  <div class="card checks" data-test="extension-check">
     <p class="muted flush">시간확대는 멘티가 직접 신청합니다. 아래 네 가지가 모두 맞으면 신청할 수 있습니다.</p>
     <label v-for="[key, label, hint] in ITEMS" :key="key" class="check"><input v-model="checked[key]" type="checkbox" :data-ext="key" />
       <span>{{ label }}<small v-if="hint" class="notice">{{ hint }}</small></span></label>

@@ -10,6 +10,7 @@ import { DIAG_SLOTS, GOAL_SLOTS, changedLines, composeSlots, parseSlots, platfor
 import { curriculumLines, handoverForDraft, handoverFromVault, handoverNote, latestOf, termSummaryFromVault, termSummaryText } from '../../lib/reports'
 import { WEEKDAYS, weekdayOf } from '../../lib/schedule'
 import { totalRounds } from '../../lib/stage'
+import { revealError } from '../../lib/reveal'
 import { toast } from '../../lib/toast'
 import { loadSettings } from '../../stores/settings'
 import { saveItem } from '../../stores/vault'
@@ -95,8 +96,9 @@ onMounted(async () => {
     load(diag, DIAG_SLOTS, s.extra?.memo?.diagnosis)
     Object.assign(text, { structure: s.extra?.memo?.structure || '', rules: s.extra?.memo?.rules || '' })
     if (s.extra?.rows?.length) rows.value = s.extra.rows
-    start.value = (s.inputs?.start_datetime || start.value).replace(' ', 'T')
-    if (s.inputs?.weekday) weekday.value = s.inputs.weekday
+    // 1회차 일시는 멘티 정보가 기준이다 (멘티 설정에서 고친 값이 저장본의 옛 값으로 되돌아가지 않게). 학습요일은 일시가 저장본과 같을 때만 저장본을 쓴다
+    start.value = start.value || (s.inputs?.start_datetime || '').replace(' ', 'T')
+    if (s.inputs?.weekday && start.value.replace('T', ' ') === s.inputs.start_datetime) weekday.value = s.inputs.weekday
   } else {
     load(goal, GOAL_SLOTS, props.profile.goal, 1)
     load(diag, DIAG_SLOTS, props.profile.level, 3)
@@ -117,7 +119,7 @@ onMounted(async () => {
   } catch (e) {
     error.value = e.message
   }
-  if (done.length) filled.value = `처음부터 쓰지 않으셔도 되도록 ${done.join(', ')}에 예시를 넣어 두었어요. 멘티와 이야기한 내용에 맞게 편하게 고쳐 쓰세요.`
+  if (done.length) filled.value = `${done.join(', ')}에 예시를 넣어 두었습니다. 멘티와 이야기한 내용에 맞게 고쳐 주세요.`
 })
 
 // 1회차 시각을 바꾸면 기본안 그대로인 멘토링 구성의 시각도 따라간다
@@ -127,7 +129,8 @@ watch(start, async () => {
   const mine = (asked += 1)
   try {
     const res = await api.draft(FORM_ID, inputs(), { only: [], mode: props.profile.mode || '온라인' })
-    if (mine === asked) defaults.structure = text.structure = toText(res.draft.structure)   // 늦게 온 예전 응답은 버린다
+    // 늦게 온 예전 응답은 버린다. 기다리는 사이 멘토가 칸을 고쳤으면 그 글도 덮지 않는다
+    if (mine === asked && text.structure.trim() === (defaults.structure || '').trim()) defaults.structure = text.structure = toText(res.draft.structure)
   } catch { /* 기본안을 못 받아도 적어 둔 글은 그대로다 */ }
 })
 
@@ -177,7 +180,8 @@ async function draft(mode) {
   if (fill && !extra.only.length) return null
   const res = await api.draft(FORM_ID, inputs(), extra)
   // 아동 안전 신호가 있으면 서버가 초안을 만들지 않고 운영사무국 안내만 돌려준다: 그 안내를 보여 주고 저장하지 않는다
-  if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '초안을 만들지 못했습니다.')
+  if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '초안을 만들지 못했습니다. 잠시 후 다시 눌러 주세요.')
+  if (fill && res.error) throw new Error('AI의 답을 읽지 못했습니다. 잠시 후 다시 눌러 주세요.')
   const out = Object.fromEntries(Object.keys(before).map((k) => [k, toText(res.draft[k])]))
   // 서버가 정리한 글(특수문자 정리, 채운 초안)을 같은 칸에 다시 넣는다
   const lost = [...applyText(goal, GOAL_SLOTS, out.learning_goal, '학습목표', true), ...applyText(diag, DIAG_SLOTS, out.diagnosis, '학생진단', false)]
@@ -199,6 +203,7 @@ async function run(name, fn) {
     await fn()
   } catch (e) {
     error.value = e.message
+    revealError()
   } finally {
     busy.value = ''
   }
@@ -240,8 +245,8 @@ const copy = (label, value) => copyText(platformSafe(value), label)
 
 <template>
   <div>
-    <p class="muted">1회차 전에 서울런 플랫폼에 입력하는 계획입니다. 항목마다 [복사]해 플랫폼의 같은 칸에 붙여 넣어 주세요. 아직 정하지 못한 항목은 비워 두어도 됩니다. 매칭 후 7일 이내에 입력해 주세요.</p>
-    <div v-if="error" class="box error">{{ error }}</div>
+    <p class="muted">1회차 전에 서울런 플랫폼에 입력하는 계획입니다. 다 쓴 뒤 맨 아래 [저장]을 먼저 누르고, 항목마다 [복사]해 플랫폼의 같은 칸에 붙여 넣어 주세요. 멘토링 시작일만 정하면 저장할 수 있고, 아직 정하지 못한 항목은 비워 두어도 됩니다. 매칭 후 7일 이내에 입력해 주세요.</p>
+    <div v-if="error" class="box error" role="alert">{{ error }}</div>
     <div v-if="previous" class="mini pre" data-test="previous-term">
       <span class="t">지난 회기 요약 (참고)</span>{{ termSummaryText(previous) }}
     </div>
@@ -271,6 +276,7 @@ const copy = (label, value) => copyText(platformSafe(value), label)
         <strong>AI로 초안 채우기</strong>
         <p class="notice">{{ SOURCE[source].text }} 이미 적은 칸은 건드리지 않습니다. 채운 뒤 멘티와 이야기한 내용에 맞게 고쳐 주세요.</p>
         <button type="button" :disabled="!!busy || !start" data-test="fill" @click="fill">{{ busy === 'fill' ? '채우는 중…' : SOURCE[source].button }}</button>
+        <span v-if="!start" class="notice">멘토링 시작일과 시작시간을 정하면 채울 수 있습니다.</span>
       </div>
       <div v-if="changes" class="box ask changes" data-test="changes">
         <div class="row"><strong class="grow">AI가 새로 채운 내용 {{ changes.items.length }}곳</strong><button type="button" class="small" data-test="undo" @click="undoChanges">되돌리기</button></div>
@@ -281,15 +287,15 @@ const copy = (label, value) => copyText(platformSafe(value), label)
       <div class="item">
         <div class="head"><strong>학습목표</strong><button type="button" class="small" :disabled="!goalText" data-copy="learning_goal" @click="copy('학습목표', goalText)">복사</button></div>
         <label v-for="(s, i) in GOAL_SLOTS" :key="s.mark" class="slot"><span>{{ s.plain }} {{ s.label }}</span>
-          <input v-model="goal.parts[i]" :placeholder="`예: ${s.example}`" :data-goal="i" /></label>
+          <textarea v-model="goal.parts[i]" rows="1" :placeholder="`예: ${s.example}`" :data-goal="i" @keydown.enter.prevent></textarea></label>
         <label v-if="goal.rest" class="slot"><span>그 밖에</span><textarea v-model="goal.rest" rows="2"></textarea></label>
       </div>
 
       <div class="item">
         <div class="head"><strong>학생진단</strong><button type="button" class="small" :disabled="!diagText" data-copy="diagnosis" @click="copy('학생진단', diagText)">복사</button></div>
         <label v-for="(s, i) in DIAG_SLOTS" :key="s.mark" class="slot"><span>{{ s.mark }}</span>
-          <input v-model="diag.parts[i]" :placeholder="`예: ${s.example}`" :data-diag="i" /></label>
-        <span class="notice">사전 연락에서 확인한 항목만 적고, 확인하지 못한 항목은 비워 두세요.</span>
+          <textarea v-model="diag.parts[i]" rows="1" :placeholder="`예: ${s.example}`" :data-diag="i" @keydown.enter.prevent></textarea></label>
+        <span class="notice">사전 연락에서 확인한 항목만 적고, 확인하지 못한 항목은 비워 두어도 됩니다.</span>
       </div>
 
       <div class="item">
@@ -306,7 +312,7 @@ const copy = (label, value) => copyText(platformSafe(value), label)
         <div class="head"><strong>커리큘럼 ({{ rounds }}주)</strong><button type="button" class="small" :disabled="!curriculumLines(rows).length" data-test="copy-curriculum" @click="copy('커리큘럼', curriculumLines(rows).join('\n'))">복사</button></div>
         <p class="notice">1회차 전이라 임시 계획입니다. 주차마다 학습 내용만 대략 적어 주세요. 강좌 목차로 자세히 채우는 것은 종합계획서②에서 합니다.</p>
         <div class="course-card" data-test="general">
-          <strong>교과과정으로 채우기</strong>
+          <strong>교육과정 단원으로 채우기</strong>
           <p class="notice">고른 학년·학기의 교육과정 단원을 주차에 나눠 채워 드립니다. 첫 주는 진단, 가운데와 마지막 주는 복습으로 잡습니다. 기초부터 해야 하면 아래 학년이나 지난 학기를 골라 주세요.</p>
           <div class="row">
             <select v-model="general.grade" aria-label="학년" data-general="grade"><option value="">학년</option><option v-for="g in GRADES" :key="g">{{ g }}</option></select>
@@ -327,6 +333,7 @@ const copy = (label, value) => copyText(platformSafe(value), label)
       <div v-if="notes.length" class="box warn" data-test="notes"><ul><li v-for="n in notes" :key="n">{{ n }}</li></ul></div>
       <div class="row">
         <button type="button" class="primary" :disabled="!!busy || !start" data-test="save" @click="save">{{ busy === 'save' ? '저장하는 중…' : '저장' }}</button>
+        <span v-if="!start" class="notice">멘토링 시작일과 시작시간을 정하면 저장할 수 있습니다.</span>
       </div>
     </fieldset>
   </div>

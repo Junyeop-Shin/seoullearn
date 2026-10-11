@@ -22,11 +22,13 @@ async function submit() {
       alias = `멘티 ${n}`
     }
     if (alias === 'new') throw new Error('이 이름은 쓸 수 없습니다. 다른 이름을 적어 주세요.')
-    if (taken.includes(alias)) throw new Error('같은 이름의 멘티가 이미 있습니다. 이니셜 뒤에 숫자를 붙이는 식으로 구분해 주세요.')
+    if (taken.includes(alias)) throw new Error('같은 이름으로 등록한 멘티가 이미 있습니다(이름을 바꿨어도 처음 등록한 이름으로 구분합니다). 뒤에 숫자를 붙여 주세요.')
     const p = { ...emptyProfile(), name: alias, grade: f.grade.trim(), subject: f.subject, subjectEtc: f.subjectEtc.trim(), district: f.district, mode: f.mode,
       duration: f.duration, stage: 'PRE_CONTACT' }
     if (f.ongoing) {
-      Object.assign(p, { term: Number(f.term) || 1, currentRound: Number(f.currentRound) || 1, stage: f.stage, course: f.course.trim() })
+      // 회차는 활동보고서 단계에서만 받는다 (다른 단계로 바꾸면 칸이 사라지므로 적어 둔 값을 쓰지 않는다). 그 회기의 회차 수를 넘지 않게 한다
+      Object.assign(p, { term: Number(f.term) || 1, stage: f.stage, course: f.course.trim() })
+      p.currentRound = f.stage === 'ACTIVITY' ? Math.min(Number(f.currentRound) || 1, totalRounds(p)) : 1
       if (f.stage === 'COMPLETION') p.currentRound = totalRounds(p)   // 완료보고서 단계는 마지막 회차까지 마친 것이다
       if (f.lastLecture.trim() || f.lastTask.trim()) p.lastHomework = { lecture: f.lastLecture.trim(), task: f.lastTask.trim() }
     }
@@ -45,14 +47,14 @@ async function submit() {
     <form class="card" @submit.prevent="submit">
       <div class="form-grid">
         <label class="field"><span class="name">멘티 이름</span>
-          <input v-model="f.name" placeholder="예: 김OO" maxlength="30" data-reg="name" />
-          <span class="notice">실명 대신 별칭이나 이니셜을 권합니다. 이 브라우저에만 저장되고 서버와 AI로는 보내지 않습니다. 비워 두면 '멘티 1'처럼 붙습니다.</span>
+          <input v-model="f.name" placeholder="예: 김민수" maxlength="30" data-reg="name" />
+          <span class="notice">멘티의 이름을 적어 주세요. 이 브라우저에만 저장되고, 질문이나 보고서에 이 이름이 나오면 서버와 AI로 보내기 전에 가립니다. 비워 두면 '멘티 1' 같은 이름을 붙여 드립니다.</span>
         </label>
         <label class="field"><span class="name">학년</span><input v-model="f.grade" placeholder="예: 고1" maxlength="10" data-reg="grade" /></label>
         <label class="field"><span class="name">신청 과목<span class="req">*</span></span>
           <select v-model="f.subject" required data-reg="subject"><option value="">선택해 주세요</option><option v-for="s in SUBJECTS" :key="s">{{ s }}</option></select>
         </label>
-        <label class="field"><span class="name">신청 과목 기타</span><input v-model="f.subjectEtc" maxlength="30" :required="f.subject === '기타'" data-reg="subjectEtc" /></label>
+        <label v-if="f.subject === '기타'" class="field"><span class="name">기타 과목 이름<span class="req">*</span></span><input v-model="f.subjectEtc" maxlength="30" required placeholder="예: 검정고시 수학" data-reg="subjectEtc" /></label>
         <label class="field"><span class="name">자치구<span class="req">*</span></span>
           <select v-model="f.district" required data-reg="district"><option value="">선택해 주세요</option><option v-for="d in DISTRICTS" :key="d">{{ d }}</option></select>
           <span class="notice">협약 장소와 이음단 채널을 찾는 기준입니다.</span>
@@ -71,13 +73,13 @@ async function submit() {
         <label class="field"><span class="name">현재 단계</span>
           <select v-model="f.stage" data-reg="stage"><option v-for="s in flow({ term: f.term })" :key="s.id" :value="s.id">{{ s.label }}</option></select>
         </label>
-        <label v-if="f.stage === 'ACTIVITY'" class="field"><span class="name">이번에 쓸 회차</span><input v-model.number="f.currentRound" type="number" min="1" max="40" data-reg="currentRound" /></label>
-        <label class="field wide"><span class="name">수강 강좌 (선택)</span><input v-model="f.course" placeholder="예: 메가스터디 수학의 시작, 시발점 - 수1" data-reg="course" /></label>
-        <label class="field"><span class="name">직전 회차에 낸 인강 분량 (선택)</span><input v-model="f.lastLecture" placeholder="예: 5~6강" data-reg="lastLecture" /></label>
-        <label class="field"><span class="name">직전 회차에 낸 과제 (선택)</span><input v-model="f.lastTask" placeholder="예: 5강 예제 풀기" data-reg="lastTask" /></label>
+        <label v-if="f.stage === 'ACTIVITY'" class="field"><span class="name">이번에 쓸 회차</span><input v-model.number="f.currentRound" type="number" min="1" :max="totalRounds(f)" data-reg="currentRound" /></label>
+        <label class="field wide"><span class="name">수강 강좌 <span class="tag">선택</span></span><input v-model="f.course" placeholder="예: 메가스터디 수학의 시작, 시발점 - 수1" data-reg="course" /></label>
+        <label class="field"><span class="name">직전 회차에 낸 인강 분량 <span class="tag">선택</span></span><input v-model="f.lastLecture" placeholder="예: 5~6강" data-reg="lastLecture" /></label>
+        <label class="field"><span class="name">직전 회차에 낸 과제 <span class="tag">선택</span></span><input v-model="f.lastTask" placeholder="예: 5강 예제 풀기" data-reg="lastTask" /></label>
         <p class="notice wide">이전 활동보고서가 없으므로, 다음 보고서의 '지난 회차 과제 확인'에 쓸 내용을 여기서 받습니다.</p>
       </div>
-      <div v-if="error" class="box error">{{ error }}</div>
+      <div v-if="error" class="box error" role="alert">{{ error }}</div>
       <div class="row"><button class="primary" data-test="register">멘티 등록</button></div>
     </form>
   </div>

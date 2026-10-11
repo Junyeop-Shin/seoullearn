@@ -19,6 +19,7 @@ function draw() {
   if (!map) return
   markers.forEach((m) => m.setMap(null))
   markers = []
+  info?.close()   // 자치구를 바꾸면 열려 있던 말풍선을 닫는다
   if (!props.places.length) return
   const bounds = new kakao.maps.LatLngBounds()
   for (const p of props.places) {
@@ -73,7 +74,7 @@ watch(() => props.places, draw)
         <label v-if="pickable" class="check flush"><input type="radio" name="place" :checked="picked === p.name" :data-pick="p.id" @change="pick(p)" /><strong>{{ p.name }}</strong></label>
         <strong v-else>{{ p.name }}</strong>
         <span class="tag">{{ p.type }}</span><span class="grow"></span>
-        <button type="button" class="small" @click="focus(p)">지도에서 보기</button>
+        <button v-if="!mapNote" type="button" class="small" @click="focus(p); mapEl.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })">지도에서 보기</button>
         <a :href="kakaoLink(p)" target="_blank" rel="noopener noreferrer" class="linkbutton small">카카오맵에서 보기</a>
       </div>
       <div class="muted">{{ [p.address, p.hours].filter(Boolean).join(' · ') }}</div>

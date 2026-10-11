@@ -72,7 +72,7 @@ public class AiProxyController {
         } catch (HttpTimeoutException e) {
             return error(HttpStatus.GATEWAY_TIMEOUT, "답변을 만드는 데 시간이 너무 오래 걸렸습니다. 잠시 후 다시 시도해 주세요.");
         } catch (IOException e) {
-            return error(HttpStatus.BAD_GATEWAY, "AI 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+            return error(HttpStatus.BAD_GATEWAY, "지금은 AI 기능을 쓸 수 없습니다. 잠시 후 다시 시도해 주세요.");
         }
     }
 

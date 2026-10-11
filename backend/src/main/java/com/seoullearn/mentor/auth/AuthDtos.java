@@ -1,8 +1,10 @@
 package com.seoullearn.mentor.auth;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.util.Set;
 
 public final class AuthDtos {
 
@@ -15,12 +17,21 @@ public final class AuthDtos {
             String username,
             @NotBlank(message = "비밀번호를 입력해 주세요.")
             @Size(min = 8, max = 72, message = "비밀번호는 8~72자여야 합니다.")
-            String password) {
+            String password,
+            // 가입 전 동의: 화면이 보여 준 문서의 시행일과 동의한 항목 (frontend/src/lib/privacy.js)
+            @NotNull(message = "가입 전 동의가 필요합니다.")
+            @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "가입 전 동의가 필요합니다.")
+            String consentVersion,
+            @NotNull(message = "가입 전 동의가 필요합니다.")
+            Set<String> consents) {
     }
 
     public record LoginRequest(
-            @NotBlank(message = "아이디를 입력해 주세요.") String username,
-            @NotBlank(message = "비밀번호를 입력해 주세요.") String password) {
+            // 길이를 묶는다: 가입 규칙(아이디 20자, 비밀번호 72자)을 넘는 값은 어차피 맞을 수 없고, 로그인 실패 기록의 키가 길어지지 않게 한다
+            @NotBlank(message = "아이디를 입력해 주세요.")
+            @Size(max = 20, message = "아이디 또는 비밀번호가 올바르지 않습니다.") String username,
+            @NotBlank(message = "비밀번호를 입력해 주세요.")
+            @Size(max = 72, message = "아이디 또는 비밀번호가 올바르지 않습니다.") String password) {
     }
 
     public record UserResponse(String username, Role role) {

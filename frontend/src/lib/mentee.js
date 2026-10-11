@@ -6,16 +6,15 @@ import { totalRounds, withState } from './stage'
 import { listItems } from '../stores/vault'
 
 export const PROFILE_FORM = 'mentee_profile'
-const CURRENT_KEY = 'seoullearn.currentMentee.v1'
 export const DISTRICTS = ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구',
   '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구']
 export const SUBJECTS = ['국어', '영어', '수학', '사회', '과학', '기타']
 
 export const PROFILE_FIELDS = [
-  { key: 'name', label: '멘티 이름', control: 'text', example: '김OO', help: '메뉴와 보고서의 멘티 성명 칸에 씁니다. 실명 대신 별칭이나 이니셜을 권합니다. 이 브라우저에만 저장됩니다.' },
+  { key: 'name', label: '멘티 이름', control: 'text', example: '김민수', help: '메뉴와 보고서의 멘티 성명 칸에 씁니다. 이 브라우저에만 저장되고, 글에 이 이름이 나오면 AI로 보내기 전에 가립니다.' },
   { key: 'grade', label: '학년', control: 'text', example: '고1' },
   { key: 'subject', label: '신청 과목', control: 'select', options: SUBJECTS },
-  { key: 'subjectEtc', label: '신청 과목 기타', control: 'text', example: '검정고시 수학', help: "과목이 '기타'이거나 덧붙일 말이 있을 때만 적습니다." },
+  { key: 'subjectEtc', label: '기타 과목 이름', control: 'text', example: '검정고시 수학', help: "과목이 '기타'이거나 덧붙일 말이 있을 때만 적습니다." },
   { key: 'district', label: '자치구', control: 'select', options: DISTRICTS, help: '협약 장소와 이음단 채널을 찾는 기준입니다.' },
   { key: 'mode', label: '멘토링 방식', control: 'select', options: ['온라인', '오프라인'], help: "오프라인이면 메뉴의 '오프라인 일정·장소'에서 장소와 일정을 이음단에 요청합니다." },
   { key: 'duration', label: '회당 학습시간(분)', control: 'select', options: ['60', '120'], help: '기본은 60분입니다. 120분(시간확대)은 보통 고등 과정 멘티가 1회기를 마친 뒤 신청하고, 승인을 받아야 합니다.' },
@@ -91,23 +90,6 @@ export function suggestDate(startDatetime, sessionNo) {
   if (!m || !sessionNo) return ''
   const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 7 * (sessionNo - 1)))
   return d.toISOString().slice(0, 10)
-}
-
-// 지금 보고 있는 멘티의 별칭. 화면을 옮겨 다녀도 유지한다 (별칭은 실명이 아니다).
-export function getCurrentAlias() {
-  try {
-    return localStorage.getItem(CURRENT_KEY) || ''
-  } catch {
-    return ''
-  }
-}
-
-export function setCurrentAlias(alias) {
-  try {
-    localStorage.setItem(CURRENT_KEY, (alias || '').trim())
-  } catch {
-    /* 저장하지 못해도 동작에는 지장이 없다 */
-  }
 }
 
 // 회기를 정리할 때 남기는 자료: 멘티 정보, 완료보고서, 인계 요약

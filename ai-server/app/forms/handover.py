@@ -19,7 +19,12 @@ SYSTEM = prompts.load("handover_summary")
 
 # 2차 검사: 요약에 남아 있으면 안 되는 표현 (학업 수준, 정서·개인 사정)
 _ACADEMIC = re.compile(r"성적|등급|점수|\d+\s*점|중간고사|기말고사|모의고사|시험\s*(?:결과|점수|성적)|이해도|이해력|이해가\s*(?:빠|느|부족|낮|높)|"
-                       r"잘함|잘\s*하는\s*편|못\s*하는\s*편|어려워|어려움|(?<![가-힣])약(?:하|함)|취약|우수|뛰어나|상위권|하위권|중위권|학업\s*수준|학습\s*수준")
+                       r"잘함|잘\s*하는\s*편|못\s*하는\s*편|어려워|어려움|(?<![가-힣])약(?:하|함)|취약|우수|뛰어나|상위권|하위권|중위권|학업\s*수준|학습\s*수준|"
+                       # 석차, 기초·실력의 높낮이, 단원을 모른다·힘들어한다, 진도를 못 따라온다 ('과제가 부족함', '모르는 문제를 질문함'은 태도라 남긴다)
+                       r"석차|등수|(?:반|전교|학년|학급)\s*(?:에서\s*)?\d+\s*등(?![급분])|이해가\s*더[디딤뎌뎠]|"
+                       r"(?:기초|기본기|실력|개념|연산|계산|독해|어휘|문법)[이가은는도]?\s*(?:많이\s*|매우\s*|다소\s*)?(?:부족|약(?:하|함|한|해)|낮|떨어|탄탄|좋(?!아하|아함|아해)|높)|"
+                       r"(?:단원|파트|개념|유형|과목|수학|영어|국어|과학|사회)[을를은는이가]?\s*(?:잘\s*|많이\s*)?(?:모르|모름|못\s*풀|헷갈|힘들어)|"
+                       r"(?:학습|풀이)\s*속도가\s*(?:느|빠)|따라(?:오|가)지\s*못|수포자")
 _PERSONAL = re.compile(r"군입대|입대|유학|퇴사|개인\s*사정|서운|아쉬워")
 # '학습진도(성실성)' 척도의 값은 태도 항목에서 써도 된다 (학업 수준이 아니라 성실성 평가다)
 _SCALE_WORDS = ("매우 잘함", "잘함", "보통", "노력필요", "매우 노력필요")
@@ -39,6 +44,10 @@ def _allow_items() -> list[dict]:
 
 
 _NOT_WATCHED = re.compile(r"미수강|수강하지\s*않|안\s*들|못\s*들|듣지\s*(?:않|못)")
+# 들은 강이 아닌 숫자: 강좌의 전체 강 수, 목표나 예정으로 적은 강
+# '다음 주 6강'은 지우고 '다음 주 시험이라 5강만 수강'의 5강은 남긴다 (다음 주 바로 뒤에 강 번호가 올 때만 계획이다)
+_NOT_PROGRESS = re.compile(r"총\s*\d{1,3}\s*강|\([^)]*(?:목표|예정|계획)[^)]*\)|\d{1,3}(?:\s*[~,-]\s*\d{1,3})?\s*강\s*(?:예정|목표)|"
+                           r"다음\s*(?:주|회차|시간)(?:에는|에|부터|까지|은|는)?\s*\d{1,3}(?:\s*[~,-]\s*\d{1,3})?\s*강")
 
 
 def _session_no(r: dict) -> int:
@@ -55,6 +64,7 @@ def last_lecture(reports: list[dict]) -> dict:
         if course and str(r.get("course") or "").strip() not in ("", course):
             continue
         for part in re.split(r"/|그리고|(?<!\d),", str(r.get("lecture_progress") or "")):   # '4, 5강'은 한 조각으로 둔다
+            part = _NOT_PROGRESS.sub("", part)
             if not _NOT_WATCHED.search(part):
                 last = max([last] + [int(n) for n in re.findall(r"(\d{1,3})\s*(?:,\s*\d{1,3}\s*)*강", part)] +
                            [int(n) for n in re.findall(r"(\d{1,3})\s*강", part)])
@@ -101,17 +111,16 @@ def build(reports: list[dict], llm: ChatLLM) -> dict:
     pii: set[str] = set()
     safety = False
     for r in reports:
-        for v in r.values():
-            if isinstance(v, str):
-                g = guard.check(v)
-                pii.update(g.pii)
-                safety = safety or g.safety
+        for v in r.values():   # 글이 아닌 값(목록 등)도 글로 바꿔 본다: 안전 신호 검사가 값의 모양에 기대지 않게
+            g = guard.check(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False))
+            pii.update(g.pii)
+            safety = safety or g.safety
     if safety:  # 아동 안전 신호: LLM을 부르지 않고 운영사무국(즉시) 안내만 돌려준다
         items = _allow_items()
         return {"summary": {i["key"]: "" for i in items}, "labels": {i["key"]: i["label"] for i in items},
                 "warnings": [guard.SAFETY_DRAFT_NOTICE], "pii_masked": sorted(pii), "errors": []}
     if not reports:
-        warnings.append("활동보고서가 없습니다. 보관함에서 불러오거나 플랫폼의 보고서를 붙여 넣어 주세요.")
+        warnings.append("활동보고서가 없습니다. 회차별 활동보고서를 먼저 저장하거나 플랫폼의 보고서를 붙여 넣어 주세요.")
     for item in _allow_items():
         key = item["key"]
         labels[key] = item["label"]

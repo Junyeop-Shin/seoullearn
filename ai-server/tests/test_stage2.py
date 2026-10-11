@@ -56,6 +56,32 @@ class CompletionReportTest(unittest.TestCase):
         self.assertEqual(r.draft["mentee_phone"], "[멘티 연락처]")
         self.assertEqual(r.missing_questions, [])
 
+    def test_stats_and_facts_follow_what_was_written(self):
+        # 과제 통계: '미수행', '수행 못 함', '수행 안 함'은 하지 않은 것으로 센다
+        hw = lambda *xs: [{"session_no": i + 1, "homework": x} for i, x in enumerate(xs)]
+        got = hooks_completion.stats(hw("과제: RPM 10p - 수행함", "과제: 미수행", "과제: 수행 못 함", "과제: 수행하지 못함", "과제: 수행 안 함",
+                                        "과제: 수행평가 안내문 읽기 - 수행함"))["과제"]
+        self.assertEqual(got, {"수행함": 2, "수행하지 않음": 4})
+        # 출석한 회차의 건강 문장은 결석으로 바뀌지 않고 빠진다. 학습 진도 칸 전체가 있으면 거기서 뽑은 세 줄은 한 번만 넘긴다
+        llm = EchoLLM()
+        note = "출결: 정시 출석 (17:02~18:04)\n인강: 5~6강 수강함\n과제: RPM 10p - 수행함\n잘한 점: 필기를 꼼꼼히 함"
+        forms.draft("completion_report", {}, llm, {"reports": [{"session_no": 1, "session_date": "2026-10-06", "status": "출석", "attendance": "정시 출석 (17:02~18:04)",
+                    "lecture_progress": "인강: 5~6강 수강함", "homework": "과제: RPM 10p - 수행함", "progress_note": note,
+                    "etc": "감기 기운이 있었지만 끝까지 집중함"}]})
+        sent = llm.calls[0][1]
+        self.assertNotIn("질병으로 인한 결석", sent)
+        self.assertNotIn("감기", sent)
+        self.assertEqual(sent.count("5~6강 수강함"), 2)   # 회차별 기록에 한 번, 통계의 마지막 인강 기록에 한 번
+        self.assertEqual(sent.count("필기를 꼼꼼히 함"), 1)
+        # 통계의 '마지막 인강 기록'도 건강 문장을 뺀 글이다. 학습 진도 칸이 따로 있어 건너뛰는 칸에서 걸러진 것도 경고한다
+        sick = [{"session_no": 1, "session_date": "2026-10-06", "lecture_progress": "4강 수강함"},
+                {"session_no": 2, "session_date": "2026-10-13", "lecture_progress": "장염으로 입원해서 5강만 수강", "progress_note": "출결: 정시 출석\n인강: 5강 수강함"}]
+        self.assertEqual(hooks_completion.stats(sick)["마지막 인강 기록"], "4강 수강함")
+        llm = EchoLLM()
+        r = forms.draft("completion_report", {}, llm, {"reports": sick})
+        self.assertNotIn("장염", llm.calls[0][1])
+        self.assertTrue(any("정서·가정·건강" in w for w in r.warnings))
+
     def test_emotional_care_stays_empty_and_memo_does_not_reach_llm(self):
         llm = EchoLLM()
         r = self._draft(llm)
@@ -149,6 +175,9 @@ class HandoverTest(unittest.TestCase):
         self.assertEqual(handover.last_lecture(watched)["다음 시작"], "6강")
         self.assertEqual(handover.last_lecture([{"lecture_progress": "인강: 3~4강 수강하지 않음"}]), {})
         self.assertEqual(handover.last_lecture([{"lecture_progress": "5강 수강, 6, 7강 미수강"}])["다음 시작"], "6강")
+        # 전체 강 수, 목표나 예정으로 적은 강은 들은 강이 아니다. '다음 주' 뒤에 강 번호가 바로 올 때만 계획으로 본다
+        for text in ("인강: 총 30강 중 5강 수강함", "5강 수강함 (목표 5~8강)", "5강 수강함 다음 주 6~7강 예정", "5강 수강. 다음 주에는 6강", "다음 주 시험이라 5강만 수강"):
+            self.assertEqual(handover.last_lecture([{"lecture_progress": text}])["다음 시작"], "6강", text)
         # 회기 중에 강좌를 바꿨으면 지금 강좌의 번호를 쓴다
         changed = [{"session_no": 1, "course": "강좌 가", "lecture_progress": "인강: 12강 수강함"}, {"session_no": 2, "course": "강좌 나", "lecture_progress": "인강: 1강 수강함"}]
         self.assertEqual(handover.last_lecture(changed)["다음 시작"], "2강")
@@ -159,6 +188,12 @@ class HandoverTest(unittest.TestCase):
         r = handover.build(self.reports, EchoLLM(overrides={"summary": "8강까지 수강함. 다음 시작은 9강임."}))
         self.assertEqual(r["summary"]["course_progress"], "8강까지 수강함. 다음 시작은 9강임.")   # 규칙이 계산한 숫자는 통과
         self.assertEqual(handover.second_check("단어 과제를 다 외우지 못한 주가 있음.", "homework_pattern")[1], [])
+        # 석차, 기초·실력의 높낮이, 단원을 모른다·힘들어한다는 학업 수준이다. 과제와 태도 이야기는 남긴다
+        for bad in ("반에서 5등", "기초가 부족함", "개념 이해가 더딤", "함수 파트를 잘 모름", "학습 속도가 느림", "진도를 따라오지 못함", "로그 단원을 힘들어함"):
+            self.assertEqual(handover.second_check(bad, "course_progress")[0], "", bad)
+        for ok in ("과제 수행이 부족한 주가 있었음", "모르는 문제를 표시해 와서 질문함", "필기 속도가 느려 시간을 넉넉히 줌", "수학 개념 12강까지",
+                   "밀크T 중3 영어 문법 약 10강까지 수강함", "영어 독해 좋아함"):
+            self.assertEqual(handover.second_check(ok, "homework_pattern"), (ok, []), ok)
 
     def test_weak_units_flag_default_off(self):
         self.assertFalse(handover.include_weak_units())
@@ -207,11 +242,10 @@ class UnansweredTest(unittest.TestCase):
             name = "fake"
 
             def __init__(self, answerable):
-                self.answerable = answerable
+                self.answerable, self.calls = answerable, 0
 
             def complete(self, system, user):
-                if "문의 글의 초안" in system:
-                    return json.dumps({"draft": "문의드립니다."}, ensure_ascii=False)
+                self.calls += 1
                 return json.dumps({"answerable": self.answerable, "answer": "답", "citations": [1], "route": None}, ensure_ascii=False)
 
         retriever = BM25Retriever(load_markdown("v1"))
@@ -226,8 +260,24 @@ class UnansweredTest(unittest.TestCase):
                 self.assertEqual(c.post("/chat", json={"message": "멘티가 집에서 맞는다는데 어디에 물어봐요?"}).status_code, 200)
                 self.assertEqual(c.post("/chat", json={"message": "3회차 활동보고서 초안 써 줘"}).status_code, 200)
                 self.assertEqual(ins.call_count, expected)
+                self.assertEqual(llm.calls, 2)   # 질문 두 건의 답변뿐: 문의 초안은 정해진 틀이라 LLM을 부르지 않는다
                 if expected:
                     self.assertEqual(ins.call_args_list[0].args, ("[학교명] 멘티 영문 인증서 되나요?", "no", "운영사무국"))
+
+    def test_qa_safety_path_needs_no_retriever_or_llm(self):
+        # 아동 안전 신호가 있으면 검색기와 LLM을 만들지도 않는다: DB나 키에 문제가 있어도 즉시 보고 안내는 나간다
+        from fastapi.testclient import TestClient
+
+        from app import main
+
+        def broken():
+            raise RuntimeError("db down")
+
+        with unittest.mock.patch.object(main, "_llm", broken), unittest.mock.patch.object(main, "_retriever", broken):
+            r = TestClient(main.app).post("/qa", json={"question": "멘티가 아버지에게 맞았습니다"})
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json()["safety"])
+        self.assertIsNone(r.json()["inquiry_draft"])
 
     def test_stage2_endpoints(self):
         from fastapi.testclient import TestClient

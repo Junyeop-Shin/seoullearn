@@ -30,6 +30,10 @@ def unsupported_numbers(output: str, sources: str) -> list[str]:
         parts = [p.lstrip("0") or "0" for p in re.split(r"[.,:]", tok)]
         if tok not in allowed and not all(p in allowed for p in parts):
             bad.append(tok)
+    # 등급·점수·비율은 숫자가 입력 어딘가에 있어도(3회차의 3) 같은 단위로 적혀 있어야 근거로 본다: '3등급'을 지어내지 못하게
+    for m in re.finditer(r"(\d+(?:\.\d+)?)\s*(등급|점|%)", output or ""):
+        if m.group(1) not in bad and not re.search(rf"(?<![\d.]){re.escape(m.group(1))}\s*{m.group(2)}", sources or ""):
+            bad.append(m.group(1) + m.group(2))
     return sorted(set(bad))
 
 

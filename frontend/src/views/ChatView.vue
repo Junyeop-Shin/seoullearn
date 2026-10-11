@@ -2,11 +2,9 @@
 import { nextTick, ref } from 'vue'
 import { api } from '../api/client'
 import AnswerCard from '../components/AnswerCard.vue'
+import { busy, clearChat, error, messages } from '../stores/chat'
 
-const messages = ref([])
 const text = ref('')
-const busy = ref(false)
-const error = ref('')
 const bottom = ref(null)
 const EXAMPLES = ['멘티가 20분 늦게 왔는데 어떻게 처리하나요?', '활동보고서는 언제까지 내야 해요?', '오프라인 장소는 어떻게 잡아요?', '온라인 멘토링은 시간당 얼마 받아요?']
 
@@ -19,18 +17,21 @@ async function send() {
   const q = text.value.trim()
   if (q.length < 2 || busy.value) return
   error.value = ''
-  messages.value.push({ me: true, text: q })
+  const list = messages.value   // 로그아웃하거나 대화를 지우면 새 배열로 바뀐다: 그 뒤에 온 답은 버린다 (다음 사용자에게 보이지 않게)
+  const mine = { me: true, text: q }
+  list.push(mine)
   text.value = ''
   busy.value = true
   try {
     const res = await api.chat(q)
-    messages.value.push({ me: false, res })
+    if (messages.value === list) list.push({ me: false, res })
   } catch (e) {
+    if (messages.value !== list) return
     error.value = e.message
-    messages.value.pop()   // 보내지 못한 질문은 입력창으로 되돌린다
+    list.splice(list.indexOf(mine), 1)   // 보내지 못한 질문은 입력창으로 되돌린다
     text.value = q
   } finally {
-    busy.value = false
+    if (messages.value === list) busy.value = false
     await nextTick()
     bottom.value?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -46,17 +47,18 @@ async function send() {
       <div class="chips">
         <button v-for="q in EXAMPLES" :key="q" type="button" class="chip" @click="ask(q)">{{ q }}</button>
       </div>
-      <p class="notice">"활동보고서 쓰고 싶어"처럼 적으면 쓰는 화면으로 안내해 드립니다. Enter로 보내고, Shift+Enter로 줄을 바꿉니다.</p>
+      <p class="notice">앞의 질문은 기억하지 않으니, 질문 하나에 필요한 내용을 모두 적어 주세요. "활동보고서 쓰고 싶어"처럼 적으면 쓰는 화면으로 안내해 드립니다. Enter로 보내고, Shift+Enter로 줄을 바꿉니다.</p>
     </div>
-    <div class="chat">
+    <div v-else class="row"><span class="grow"></span><button type="button" class="small" data-test="clear-chat" @click="clearChat">대화 지우기</button></div>
+    <div class="chat" aria-live="polite">
       <template v-for="(m, i) in messages" :key="i">
         <div v-if="m.me" class="bubble me">{{ m.text }}</div>
         <AnswerCard v-else :res="m.res" />
       </template>
-      <div v-if="busy" class="bubble bot muted" aria-live="polite">답변을 찾는 중입니다… <span class="dots"><span></span><span></span><span></span></span></div>
+      <div v-if="busy" class="bubble bot muted">답변을 찾는 중입니다… <span class="dots"><span></span><span></span><span></span></span></div>
       <div ref="bottom"></div>
     </div>
-    <div v-if="error" class="box error">{{ error }}</div>
+    <div v-if="error" class="box error" role="alert">{{ error }}</div>
     <div class="composer">
       <form class="card" @submit.prevent="send">
         <textarea v-model="text" placeholder="예: 멘티가 20분 늦게 왔는데 어떻게 처리하나요?" maxlength="1000" aria-label="질문 입력"

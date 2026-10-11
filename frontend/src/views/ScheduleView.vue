@@ -103,26 +103,26 @@ async function build() {
     <template v-if="current">
       <div class="row" data-test="channel">
         <a v-if="channel" :href="channel" target="_blank" rel="noopener noreferrer" class="linkbutton small" data-test="channel-link">{{ current.profile.district }} 이음단 카카오톡 채널 열기</a>
-        <span v-else class="notice">{{ current.profile.district ? `${current.profile.district} 이음단의 채널 주소를 아직 받지 못했습니다.` : '멘티 설정에서 자치구를 적으면 이음단 채널 바로가기가 나옵니다.' }} <router-link to="/ieumdan">이음단 연락처</router-link></span>
+        <span v-else class="notice">{{ current.profile.district ? `${current.profile.district} 이음단의 채널 주소가 아직 등록되지 않았습니다.` : '멘티 설정에서 자치구를 적으면 이음단 채널 바로가기가 나옵니다.' }} <router-link to="/ieumdan">이음단 연락처</router-link></span>
       </div>
       <h2>일정</h2>
       <div class="card" data-test="schedule">
-        <div class="choices">
+        <div class="choices" role="radiogroup" aria-label="일정을 만들 달">
           <label><input v-model="which" type="radio" value="next" name="which" data-month="next" />다음 달 ({{ MONTHS.next.month }}월)</label>
           <label><input v-model="which" type="radio" value="this" name="which" data-month="this" />이번 달 ({{ MONTHS.this.month }}월)</label>
         </div>
-        <div class="field"><span class="name">정규 요일과 시작 시각</span>
+        <div class="field" role="group" aria-label="정규 요일과 시작 시각"><span class="name">정규 요일과 시작 시각</span>
           <div v-for="(r, i) in regular" :key="i" class="row schedule-row">
             <select v-model="r.weekday" class="narrow" aria-label="요일" :data-regular="`weekday-${i}`"><option value="">요일</option><option v-for="d in WEEKDAYS" :key="d">{{ d }}</option></select>
             <input v-model="r.startTime" type="time" class="narrow" aria-label="시작 시각" :data-regular="`time-${i}`" />
-            <button v-if="regular.length > 1" type="button" class="small" @click="regular.splice(i, 1)">삭제</button>
+            <button v-if="regular.length > 1" type="button" class="small" :aria-label="`${i + 1}번째 요일 삭제`" @click="regular.splice(i, 1)">삭제</button>
           </div>
           <div class="row">
             <button type="button" class="small" @click="regular.push({ weekday: '', startTime: '' })">요일 추가</button>
             <button type="button" class="small" data-test="fill-dates" @click="fillDates">이 요일로 {{ ym.month }}월 날짜 채우기</button>
           </div>
         </div>
-        <div class="field"><span class="name">{{ ym.month }}월 일정 <span class="tag">{{ rows.filter((r) => r.date).length }}회</span></span>
+        <div class="field" role="group" :aria-label="`${ym.month}월 일정`"><span class="name">{{ ym.month }}월 일정 <span class="tag">{{ rows.filter((r) => r.date).length }}회</span></span>
           <div v-for="(r, i) in rows" :key="i" class="row schedule-row" data-test="date-row">
             <input v-model="r.date" type="date" :min="bound(1)" :max="bound(lastDay)" :aria-label="`${i + 1}번째 날짜`" />
             <input v-model="r.start" type="time" class="narrow" :aria-label="`${i + 1}번째 시작 시각`" />
@@ -149,7 +149,7 @@ async function build() {
         <CopyBlock v-model="text" :label="`${current.profile.district || ''} 이음단에 보낼 문구`" />
         <div class="row">
           <a v-if="channel" :href="channel" target="_blank" rel="noopener noreferrer" class="linkbutton primary" data-test="channel-send">{{ current.profile.district }} 이음단 카카오톡 채널 열기</a>
-          <span v-else class="notice">이음단 채널 주소가 없습니다. <router-link to="/ieumdan">이음단 연락처</router-link>를 확인해 주세요.</span>
+          <span v-else class="notice">이음단 채널 주소가 아직 등록되지 않았습니다. <router-link to="/ieumdan">이음단 연락처</router-link>를 확인해 주세요.</span>
         </div>
         <p class="notice">문구를 복사해 채널에 직접 보내 주세요. 장소와 일정은 이음단의 승인이 있어야 확정됩니다.</p>
       </template>

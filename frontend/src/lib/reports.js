@@ -29,17 +29,18 @@ export function goalsFromVault(items) {
   return goal ? String(goal).split('\n').map((g) => g.trim()).filter(Boolean) : []
 }
 
-/** 가장 최근에 저장한 인계 요약 (없으면 null). */
-export function handoverFromVault(items) {
-  return latestOf(items, 'handover_summary')?.draft ?? null
-}
+// 같은 양식(handover_summary)에 두 가지를 저장한다. 붙여 넣은 원문(draft.text)이 있으면 이전 멘토에게 인계받은 글이고, 없으면 내가 다음 멘토에게 넘기려고 만든 요약이다.
+// 두 화면이 이 기준 하나로 가른다 (지운 글은 text가 빈 글로 남는다: 그래도 인계받은 쪽이다).
+const handovers = (items, received) => items.filter((x) => x.formId === 'handover_summary' && (x.draft?.text !== undefined) === received)
+  .sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))
+/** 이전 멘토에게 인계받아 붙여 넣은 글의 보관함 항목 (없으면 undefined). */
+export const receivedHandover = (items) => handovers(items, true)[0]
+/** 내가 만든 인계 요약의 보관함 항목 (없으면 undefined). */
+export const myHandover = (items) => handovers(items, false)[0]
 
-/** 보관함 화면에 보여 줄 초안 한 칸의 글. 강의 목록은 '1강 제목'으로 풀어 쓴다. */
-export function draftValueText(value) {
-  if (Array.isArray(value)) {
-    return value.map((v) => (v && typeof v === 'object' ? `${v.no != null ? `${v.no}강 ` : ''}${v.title ?? ''}`.trim() : String(v))).join('\n')
-  }
-  return value === null || value === undefined ? '' : String(value)
+/** 인계받은 내용 (없으면 null). */
+export function handoverFromVault(items) {
+  return receivedHandover(items)?.draft ?? null
 }
 
 /** 그 양식으로 가장 최근에 저장한 항목 (없으면 undefined). */
@@ -150,23 +151,30 @@ export function handoverForDraft(draft) {
 // ---- 친화·성장활동 기록: 신청과 결과보고서에 적은 내용을 적어 둔 것 (유형마다 회기에 한 번)
 export const BONDING_FORM = 'bonding_activity'
 export const BONDING_TYPES = ['친화활동', '성장활동']
-/** 완료보고서 초안의 참고 자료로 넘길 활동 기록. 실제로 한 활동(일자가 있고 내용을 적은 것)만. */
+/** 완료보고서 초안의 참고 자료로 넘길 활동 기록. 실제 활동 내용을 적은 것만 (신청만 하고 아직 하지 않은 활동은 한 일이 아니다). */
 export function activitiesFromVault(items) {
   return BONDING_TYPES.map((t) => items.find((x) => x.formId === BONDING_FORM && x.draft?.type === t)?.draft)
-    .filter((d) => d && (d.actual || d.content || '').trim())
-    .map((d) => Object.fromEntries([['유형', d.type], ['일자', d.date], ['활동 목표', d.goal], ['활동 내용', d.actual || d.content], ['멘토 소감', d.mentor_note], ['멘티 소감', d.mentee_note]].filter(([, v]) => (v || '').trim())))
+    .filter((d) => d && (d.actual || '').trim())
+    .map((d) => Object.fromEntries([['유형', d.type], ['일자', d.date], ['활동 목표', d.goal], ['활동 내용', d.actual], ['멘토 소감', d.mentor_note], ['멘티 소감', d.mentee_note]].filter(([, v]) => (v || '').trim())))
 }
 
 // ---- 지난 회기 요약: 다음 회기를 시작할 때 지난 회기의 계획서·활동보고서·완료보고서에서 추려 남긴다 (나머지는 지운다).
 // 새 회기의 종합계획서를 쓸 때 참고로 보여 주고, AI로 초안을 채울 때 이어지게 쓰는 재료로 넘긴다. 감성케어·정서 내용은 넣지 않는다.
 export const TERM_SUMMARY_FORM = 'term_summary'
 
+/** 이번 회기에 저장한 완료보고서 (없으면 undefined). 지난 회기 것도 보관함에 남아 있다: 회기 요약보다 먼저 저장된 것이 지난 회기 것이다. */
+export function currentCompletion(items) {
+  const since = latestOf(items, TERM_SUMMARY_FORM)?.savedAt || ''
+  return latestOf(items.filter((x) => x.savedAt > since), 'completion_report')
+}
+
 export function termSummary(items, profile, nextCourse = '') {
   const reports = reportsFromVault(items)
   const last = reports[reports.length - 1]
   const hw = previousHomework(items, (last?.session_no || 0) + 1, null)   // 마지막 회차에 낸 과제 (따로 적어 둔 것이나 학습 이해도의 과제 문장)
-  const completion = latestOf(items, 'completion_report')?.draft || {}
-  const list = (v) => (Array.isArray(v) ? v : v ? [v] : []).map((x) => String(x).trim()).filter(Boolean)
+  const completion = currentCompletion(items)?.draft || {}   // 이번 회기에 저장하지 않았으면 비운다 (지난 회기의 완료보고서를 이번 회기 요약에 넣지 않는다)
+  // 완료보고서의 칸은 '- 항목' 줄로 된 글이다 (예전 자료는 목록): 줄마다 한 항목으로 읽는다
+  const list = (v) => (Array.isArray(v) ? v : String(v || '').split('\n')).map((x) => String(x).replace(/^[-·•]\s*/, '').trim()).filter(Boolean)
   return { term: Number(profile?.term) || 1, rounds: reports.length, course: profile?.course || '', goal: goalsFromVault(items),
     last_scope: last?.scope || '', next_homework: hw,
     content: list(completion.content), achievement: list(completion.achievement), next_course: String(nextCourse || '').trim() }
@@ -182,5 +190,5 @@ export function termSummaryText(s) {
   const hw = s.next_homework && [s.next_homework.lecture, s.next_homework.task].filter(Boolean).join(', ')
   return [`${s.term}회기 (활동보고서 ${s.rounds}건)`, s.course && `수강 강좌: ${s.course}`, s.goal?.length && `학습 목표: ${s.goal.join(' / ')}`,
     s.last_scope && `마지막 회차 학습 범위: ${s.last_scope}`, hw && `마지막에 낸 과제: ${hw}`, s.next_course && `이번 회기에 들을 강좌: ${s.next_course}`,
-    s.content?.length && `멘토링 내용: ${s.content.join(' ')}`, s.achievement?.length && `성취도: ${s.achievement.join(' ')}`].filter(Boolean).join('\n')
+    s.content?.length && `멘토링 내용: ${s.content.join(' / ')}`, s.achievement?.length && `성취도: ${s.achievement.join(' / ')}`].filter(Boolean).join('\n')
 }

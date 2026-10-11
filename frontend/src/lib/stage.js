@@ -65,5 +65,5 @@ export function afterReport(profile, savedRound) {
  * 지난 회기의 목표·진단·1회차 일시는 넘기지 않는다: 남겨 두면 새 종합계획서①이 지난 글로 채워져 '지난 회기에 이어 초안 채우기'가 할 일이 없다 (지난 목표는 회기 요약에 남는다). */
 export function nextTerm(profile, duration) {
   return { ...profile, term: (Number(profile.term) || 1) + 1, currentRound: 1, stage: 'PLAN', duration: String(duration || profile.duration || '60'),
-    lastHomework: null, goal: '', level: '', start_datetime: '' }
+    lastHomework: null, goal: '', level: '', start_datetime: '', archived: false }   // 다음 회기를 시작한 멘티는 진행 중이다
 }

@@ -121,7 +121,7 @@ docker compose up -d frontend ai-server     # backend, db도 함께 뜬다
 # http://localhost:3000 에서 멘토 계정을 만들고 시작한다
 ```
 
-가입하면 멘토 설정이 먼저 열린다. 화면 구성과 단계는 `docs/workflow.md`, 화면 시연 순서는 `docs/demo_scenario.md`, 작성 시간 기록표는 `docs/time_measurement.md`, 포트폴리오용 RAG 결과는 `docs/rag_results.md`에 있다.
+가입은 가입 전 동의(개인정보 수집·이용, 국외 이전 등 네 항목) 다음에 아이디와 비밀번호를 적는다. 가입하면 멘토 설정이 먼저 열린다. 화면 구성과 단계는 `docs/workflow.md`, 화면 시연 순서는 `docs/demo_scenario.md`, 작성 시간 기록표는 `docs/time_measurement.md`, 포트폴리오용 RAG 결과는 `docs/rag_results.md`에 있다.
 
 ## API 실행
 
@@ -148,7 +148,9 @@ curl -X POST localhost:8000/qa -H "Content-Type: application/json" \
   -d '{"question": "보고서 승인이 안 나요"}'
 ```
 
-답을 다 못 했을 때(`answerable`이 `partial`·`no`)는 문의처에 보낼 글 초안 `inquiry_draft`와 연락 방법 `inquiry_contact`를 함께 돌려준다. 아동 안전 경로에서는 초안을 만들지 않는다.
+답을 다 못 했을 때(`answerable`이 `partial`·`no`)는 문의처에 보낼 글 초안 `inquiry_draft`와 연락 방법 `inquiry_contact`를 함께 돌려준다. 초안은 정해진 틀로 만들고 LLM을 부르지 않는다. 아동 안전 경로에서는 초안을 만들지 않는다.
+
+`sources`는 근거로 쓴 자료의 이름표와 본문(`[{cite, text}]`)이고, `changed_notices`는 근거로 쓴 활동가이드 내용을 바꾼 공지의 제목이다(답변이 그 공지를 근거로 쓰지 않았을 때만. 문서 머리말의 `supersedes`로 규칙이 찾는다).
 
 벡터 색인은 `db` 서비스(PostgreSQL + pgvector)의 `rag_chunks` 테이블에 둔다. 매뉴얼·공지 청크만 들어가고 멘티 관련 데이터는 저장하지 않는다. 평가와 테스트는 DB 없이 `.npy` 파일 방식으로 돈다(`VECTOR_BACKEND=file`). 두 방식의 결과가 같은지는 아래로 확인한다.
 
@@ -163,16 +165,16 @@ docker compose run --rm ai-server python /project/scripts/compare_vector_backend
 | 경로 | 내용 | LLM |
 | --- | --- | --- |
 | `POST /drafts/activity_report` | 활동보고서 정리. 진행하지 못한 회차(임박취소·무단결석·인정결석) 처리, 제출·증빙 안내. 화면은 칸의 글을 줄마다 이름표를 붙여 보내고 `extra.keep_lines`로 줄 구성을 지켜 달라고 한다. `extra.only`가 빈 목록이면 AI를 부르지 않는다(저장). `extra.duration`이 `120`이면 진행시간 검사와 연장 안내를 시간확대(120분·8회차) 기준으로 한다 | 멘토가 쓴 사실을 문장으로 다듬기만 |
-| `POST /drafts/pre_contact` | 사전 연락 질문지와 문자 문구. 문구는 `templates/pre_contact.md`, `subject`를 주면 과목이 들어간다 (`call_time`은 화면에서 쓰지 않는다) | 쓰지 않음 |
+| `POST /drafts/pre_contact` | 사전 연락 문자 문구. 문구는 `templates/pre_contact.md`, `subject`를 주면 과목이 들어간다 | 쓰지 않음 |
 | `POST /drafts/course_outline` | 붙여 넣은 강의 목차 → 강 목록. 재생 시간 줄이 되풀이되는 목차는 시간 줄로 강의를 가르고, 번호가 없으면 순서대로 붙인다(`auto_no`) | 규칙으로 못 읽은 줄만 |
 | `POST /drafts/weekly_plan` | 주차별 계획(`sessions`: 16 또는 8). 배분은 규칙 함수. `per_week`(일주일에 몇 강씩) 또는 `target`(이번 회기에 들을 강 수)을 줄 수 있다 | 회차별 멘토링 내용 문장만 (상담 문장은 만들지 않는다) |
 | `POST /drafts/plan_initial` | 종합계획서① 초안 (플랫폼 입력용 문자 정리, 수정 불가 경고) | 학습목표·학생진단만 |
-| `POST /drafts/plan_file` | 종합계획서② 초안 (서식 항목 순서 텍스트) | 학습목표, 멘토 입력 다듬기 |
+| `POST /drafts/plan_file` | 종합계획서② 정리 (서식 항목 순서). 화면의 저장은 `only: []`라 AI를 부르지 않는다 | 화면에서는 쓰지 않음 |
 | `POST /drafts/course_outline_image` | 강의 목록 이미지 한 장(`image`: data URL, 약 0.9MB 이하)에서 강의 줄을 옮겨 적는다. 돌려주는 값 `{text, lines, error}` | 이미지 읽기 |
 | `POST /drafts/completion_report` | 완료보고서 초안. 수행 리스트·통계는 규칙, 감성케어 칸은 멘토 입력만. `extra.duration`이 `120`이면 8회차를 한 회기로 본다 | 멘토링 내용·성취도 |
 | `POST /drafts/handover_summary` | 멘토 교체 인계 요약. 허용 항목 네 가지만, 항목마다 출처 칸만 모아 따로 질의 | 항목별 요약 |
 
-- 화면(활동보고서, 종합계획서①·②)은 멘토가 적은 글을 AI로 다듬지 않는다(2026-10-11에 없앰). 아래의 다듬기 동작은 서버 엔진에 남아 있고, 완료보고서의 멘토 입력 칸과 `only`를 직접 지정한 요청에만 쓰인다.
+- 화면(활동보고서, 종합계획서①·②)은 멘토가 적은 글을 AI로 다듬지 않는다(2026-10-11에 없앰). 아래의 다듬기 동작은 서버 엔진에 남아 있지만 화면은 쓰지 않는다. `only`를 직접 지정한 요청과 보고서 초안 평가(`evaluation.report_eval`)에서만 쓰인다.
 - 필드의 `source`에 따라 처리가 갈린다: `user`는 입력 그대로, `placeholder`는 `[멘티명]` 같은 자리표시, `derived`는 규칙 계산, `user_text`는 다듬기, `llm_draft`는 초안.
 - 개인정보 칸에 입력이 오면 버리고 경고한다. 5점 척도, 시간, 회차, 날짜 계산은 LLM에 맡기지 않는다.
 - LLM이 쓴 문장에 입력에 없는 숫자가 있으면 그 문장을 빼고 경고한다.
@@ -183,7 +185,7 @@ docker compose run --rm ai-server python /project/scripts/compare_vector_backend
 - 교과과정으로 채우기와 오프라인 일정·장소 문구는 서버를 쓰지 않는다 (`frontend/src/lib/curriculum.js`, `frontend/src/lib/schedule.js`). `extra.curriculum_lines`: 화면에서 만든 주차별 커리큘럼 줄. `extra.rounds`: 회기의 회차 수(종합계획서②의 기간 계산).
 - 프롬프트는 `prompts/`의 파일에서 읽는다. 입력에 아동 안전 신호가 있으면 LLM을 부르지 않고 운영사무국(즉시) 안내를 `warnings`로 돌려준다.
 - 응답: `draft`(필드별 값), `missing_questions`(되물을 항목), `warnings`, `reminders`(제출·증빙 안내), `pii_masked`.
-- 새 양식은 `forms/`에 JSON 파일을 추가하면 `/drafts/<form_id>`로 바로 쓸 수 있다(화면의 '기타 서식'은 2026-10-11에 없앴다). 양식별 특수 처리는 `hooks_*.py`의 훅으로 분리한다. 시간확대 신청 전 확인, 친화·성장활동 계획서·결과보고서는 JSON 파일만으로 추가했다.
+- 새 양식은 `forms/`에 JSON 파일을 추가하면 `/drafts/<form_id>`로 바로 쓸 수 있다(화면의 '기타 서식'은 2026-10-11에 없앴다). 양식별 특수 처리는 `hooks_*.py`의 훅으로 분리한다. 화면이 쓰지 않게 된 양식(시간확대 신청 전 확인, 친화·성장활동 계획서·결과보고서)은 2026-10-11에 지웠다.
 
 ```bash
 docker compose run --rm ai-server python -m evaluation.report_eval [--judge]   # 초안 평가 (eval/report_eval/cases.json)

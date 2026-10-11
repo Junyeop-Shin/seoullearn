@@ -2,7 +2,7 @@
 
 흐름: 가드 → (아동 안전이면 즉시 안내) → 의도 분류 → qa / report / plan
 - 분류는 먼저 규칙(키워드)으로 하고, 규칙으로 못 가를 때만 LLM을 부른다.
-- report·plan은 아직 초안 기능이 없어 화면 안내와 필요한 입력 목록만 돌려준다.
+- report·plan은 멘티 화면에서 쓰므로 화면 안내와 필요한 입력 목록만 돌려준다.
 - '시간당 얼마'처럼 금액을 묻는 질문은 활동비 계산기(규칙 함수)로 답한다. 검색도 LLM도 쓰지 않는다.
 - LLM에는 가드로 가린 문장만 보낸다.
 """
@@ -17,12 +17,13 @@ from langgraph.graph import END, START, StateGraph
 
 from . import allowance, guard, inquiry, qa
 from .config import settings
-from .llm import ChatLLM, LLMUnavailableError
+from .llm import ChatLLM, LLMUnavailableError, first_json
 
 INTENTS = ("qa", "report", "plan")
 
 # 무엇에 관한 말인가
-_REPORT = re.compile(r"활동\s*보고서|주간\s*보고서|회차\s*보고서|보고서")
+# 완료보고서와 친화·성장활동 결과보고서는 화면이 따로 있어 활동보고서 안내로 보내지 않는다 (매뉴얼 질문으로 답한다)
+_REPORT = re.compile(r"활동\s*보고서|주간\s*보고서|회차\s*보고서|(?<!완료)(?<!완료\s)(?<!결과)(?<!결과\s)보고서")
 _PLAN = re.compile(r"종합\s*계획서|계획서|주차별\s*계획|회차별\s*계획|커리큘럼|학습\s*계획")
 # 써 달라는 말인가 (작성 요청)
 _WRITE = re.compile(r"써\s*줘|써\s*주|작성해|작성\s*좀|작성을\s*도와|초안|만들어|짜\s*줘|짜\s*주|세워\s*줘|세워\s*주|추천해|정리해\s*줘|정리해\s*주|다듬어|채워\s*줘|채워\s*주")
@@ -57,9 +58,7 @@ def classify_by_rule(text: str) -> str | None:
 def classify_by_llm(text: str, llm: ChatLLM) -> tuple[str, str | None]:
     """(의도, 오류). 출력 형식이 틀리면 오류를 기록하고 qa로 보낸다."""
     try:
-        raw = llm.complete(ASK_SYSTEM, text)
-        m = re.search(r"\{.*\}", raw, re.S)
-        intent = json.loads(m.group(0))["intent"] if m else None
+        intent = first_json(llm.complete(ASK_SYSTEM, text)).get("intent")
         if intent not in INTENTS:
             raise ValueError(f"intent 값 오류: {intent}")
         return intent, None
@@ -72,9 +71,9 @@ def classify_by_llm(text: str, llm: ChatLLM) -> tuple[str, str | None]:
 # ------------------------------------------------------------- 화면 안내
 SCREENS = {
     "report": {"form_id": "activity_report", "screen": "활동보고서 작성",
-               "message": "활동보고서 초안은 '활동보고서 작성' 화면에서 만들 수 있습니다. 해당 화면으로 이동해 아래 항목을 입력해 주세요."},
+               "message": "활동보고서는 '내 멘티'에서 멘티를 고르면 쓸 수 있습니다. 아래 항목을 준비해 주세요."},
     "plan": {"form_id": "plan_initial", "screen": "종합계획서 작성",
-             "message": "종합계획서와 회차별 계획은 '종합계획서 작성' 화면에서 만들 수 있습니다. 해당 화면으로 이동해 아래 항목을 입력해 주세요."},
+             "message": "종합계획서는 '내 멘티'에서 멘티를 고르면 쓸 수 있습니다. 아래 항목을 준비해 주세요."},
 }
 
 
@@ -122,11 +121,11 @@ def build_graph(llm_factory: Callable[[], ChatLLM], retriever_factory: Callable[
                            "route_info": qa.route_contact("운영사무국(즉시)"), "citations": [], "safety": True}}
 
     def qa_node(state: ChatState) -> ChatState:
-        llm = llm_factory()
-        res = qa.answer(state["message"], retriever_factory(), llm, settings.top_k)
-        draft = inquiry.build(res, llm)
-        return {"result": {"answer": res.answer, "answerable": res.answerable, "route": res.route, "route_info": qa.route_contact(res.route),
-                           "citations": res.cite_labels, "safety": res.safety,
+        res = qa.answer(state["message"], retriever_factory(), llm_factory(), settings.top_k)
+        draft = inquiry.build(res)
+        # 형식 오류면 답변 상태를 비운다: 화면이 '자료에서 찾지 못했습니다'라고 하지 않고, 답 못 한 질문으로도 남기지 않는다
+        return {"result": {"answer": res.answer, "answerable": None if res.error else res.answerable, "route": res.route, "route_info": qa.route_contact(res.route),
+                           "citations": res.cite_labels, "sources": res.sources, "changed_notices": res.changed_notices, "safety": res.safety,
                            "inquiry_draft": draft.text if draft else None,
                            "inquiry_contact": draft.contact if draft else None, "error": bool(res.error)}}
 

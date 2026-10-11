@@ -50,4 +50,28 @@ describe('붙여 넣은 활동보고서 나누기', () => {
     expect(long.sessions).toHaveLength(1)
     expect(long.sessions[0]).toMatchObject({ progress_note: '출결: 정시 출석\n문제 풀이 10문항', session_content: '개념 설명\n오답 정리', attendance: '정시 출석' })
   })
+
+  it('이름 칸을 양식과 다르게 적은 글에서도 이름을 버리고, 회차가 일자보다 먼저 와도 밀리지 않는다', () => {
+    // 이름 칸이 회차 뒤에도, 글 칸 뒤에도 올 수 있다. 본문의 '멘토링 …', '멘티 이름을 …' 줄은 칸 이름이 아니다
+    const text = ['진행 회차: 1', '멘티명: 김민지', '멘토링 일자: 2026-10-05', '학습 진도', '출결: 정시 출석', '멘토링 과목 외 질문도 받음', '기타', '화면이 끊김', '멘토: 홍길동(가람대)',
+      '진행 회차: 2', '멘티 이름\n김민지', '멘토링 일자: 2026-10-12', '학습 진도', '출결: 지각', '멘티 이름을 부르면 대답을 잘함'].join('\n')
+    const r = splitReports(text, fields)
+    expect(r.warnings).toEqual([])
+    expect(r.sessions.map((x) => [x.session_no, x.session_date, x.attendance])).toEqual([[1, '2026-10-05', '정시 출석'], [2, '2026-10-12', '지각']])
+    expect(r.sessions[0]).toMatchObject({ progress_note: '출결: 정시 출석\n멘토링 과목 외 질문도 받음', etc: '화면이 끊김' })
+    expect(r.sessions[1].progress_note).toBe('출결: 지각\n멘티 이름을 부르면 대답을 잘함')
+    for (const name of ['김민지', '홍길동']) expect(JSON.stringify(r.sessions)).not.toContain(name)
+  })
+
+  it("본문에 '멘티:'·'멘토:'로 적은 줄은 이름 칸으로 보고 빼되, 뺐다고 알리고 뒤 칸은 그대로 읽는다", () => {
+    // 이름인지 본문인지는 규칙으로 가를 수 없어 이름이 서버로 가지 않는 쪽을 고른다. 말없이 버리지는 않는다
+    const text = ['멘티 성명: 김민지', '멘토링 일자: 2026-10-05', '진행 회차: 1', '학습 이해도:', '지수법칙 복습', '멘티: 밑이 음수일 때를 헷갈려 함', '멘토: 예제 3개로 다시 설명', '기타: 화면이 끊김',
+      '건의사항: 다음 주는 쉽니다'].join('\n')
+    const r = splitReports(text, fields)
+    expect(r.sessions).toHaveLength(1)
+    expect(r.sessions[0]).toMatchObject({ session_no: 1, session_content: '지수법칙 복습', etc: '화면이 끊김', requests: '다음 주는 쉽니다' })   // 보고서가 쪼개지지 않는다
+    expect(r.warnings).toEqual(["이름 칸('멘티') 뒤의 글은 읽지 않고 뺐습니다. 본문이었다면 줄 머리를 바꿔 다시 붙여 넣어 주세요.",
+      "이름 칸('멘토') 뒤의 글은 읽지 않고 뺐습니다. 본문이었다면 줄 머리를 바꿔 다시 붙여 넣어 주세요."])
+    expect(JSON.stringify(r.sessions)).not.toContain('헷갈려')
+  })
 })

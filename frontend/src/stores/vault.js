@@ -8,6 +8,9 @@ export const FORMAT = 'seoullearn-mentor-vault'
 export const VERSION = 1
 // 보관함 내용이 바뀔 때마다 1씩 오른다. 왼쪽 메뉴의 멘티 목록처럼 화면 밖에서 보관함을 따라가야 하는 곳에서 지켜본다.
 export const vaultChanges = ref(0)
+// 다른 탭에서 저장·삭제한 것도 알린다 (왼쪽 메뉴의 멘티 목록이 따라가게)
+const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(DB_NAME)
+if (channel) channel.onmessage = () => { vaultChanges.value += 1 }
 
 function open() {
   return new Promise((resolve, reject) => {
@@ -25,7 +28,10 @@ async function tx(mode, fn) {
   const db = await open()
   try {
     const out = await run(db, mode, fn)
-    if (mode === 'readwrite') vaultChanges.value += 1
+    if (mode === 'readwrite') {
+      vaultChanges.value += 1
+      channel?.postMessage(1)
+    }
     return out
   } finally {
     db.close()
@@ -46,10 +52,19 @@ function newId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 }
 
+// 브라우저가 오래 안 쓴 사이트의 자료를 지우지 않게 부탁한다 (보장은 아니다. 백업이 실제 대책이다).
+// 페이지를 연 동안 한 번만 청한다: 허용할지 묻는 브라우저(Firefox)에서 저장할 때마다 창이 뜨지 않게
+let asked = false
+function keepStorage() {
+  if (asked) return
+  asked = true
+  navigator.storage?.persist?.()?.catch?.(() => {})
+}
+
 /** 보관함 항목 하나를 저장한다. id가 있으면 덮어쓴다. */
 export async function saveItem({ id, alias, formId, title, sessionNo = null, inputs = {}, extra = {}, draft = {} }) {
   const cleanAlias = String(alias || '').trim()
-  if (!cleanAlias) throw new Error('멘티 별칭을 입력해 주세요.')
+  if (!cleanAlias) throw new Error('멘티 이름을 적어 주세요.')
   if (!formId) throw new Error('양식이 지정되지 않았습니다.')
   // 저장 전에 일반 객체로 복사한다 (Vue 반응형 객체는 IndexedDB에 넣을 수 없다)
   const item = JSON.parse(
@@ -59,6 +74,7 @@ export async function saveItem({ id, alias, formId, title, sessionNo = null, inp
     }),
   )
   await tx('readwrite', (s) => s.put(item))
+  keepStorage()
   return item
 }
 
@@ -88,9 +104,9 @@ export async function exportAll(alias) {
 /** 내보낸 파일 내용을 가져온다. 같은 id는 덮어쓴다. 가져온 개수를 돌려준다. */
 export async function importAll(data) {
   if (!data || data.format !== FORMAT || !Array.isArray(data.items)) {
-    throw new Error('보관함 파일이 아닙니다. 이 도구에서 내보낸 파일을 선택해 주세요.')
+    throw new Error('백업 파일이 아닙니다. 백업·복원에서 내려받은 파일을 골라 주세요.')
   }
-  if (data.version > VERSION) throw new Error('더 새로운 버전에서 내보낸 파일입니다.')
+  if (data.version > VERSION) throw new Error('더 새로운 버전에서 만든 백업 파일입니다. 화면을 새로 고친 뒤 다시 복원해 주세요.')
   const valid = data.items.filter((x) => x && [x.id, x.alias, x.formId, x.savedAt].every((v) => typeof v === 'string'))
   await tx('readwrite', (s) => valid.forEach((x) => s.put(JSON.parse(JSON.stringify(x)))))
   return valid.length

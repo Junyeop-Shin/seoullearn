@@ -20,7 +20,7 @@ describe('브라우저 보관함', () => {
   })
 
   it('별칭이나 양식이 없으면 저장하지 않는다', async () => {
-    await expect(saveItem({ alias: '  ', formId: 'activity_report' })).rejects.toThrow('멘티 별칭')
+    await expect(saveItem({ alias: '  ', formId: 'activity_report' })).rejects.toThrow('멘티 이름')
     await expect(saveItem({ alias: '수학 고2 A' })).rejects.toThrow('양식')
     expect(await listItems()).toHaveLength(0)
   })
@@ -40,7 +40,7 @@ describe('브라우저 보관함', () => {
   })
 
   it('다른 파일은 받지 않는다', async () => {
-    await expect(importAll({ items: [] })).rejects.toThrow('보관함 파일이 아닙니다')
+    await expect(importAll({ items: [] })).rejects.toThrow('백업 파일이 아닙니다')
     await expect(importAll({ format: FORMAT, version: 99, items: [] })).rejects.toThrow('더 새로운 버전')
     expect(await importAll({ format: FORMAT, version: 1, items: [{ id: 'x' }, null, { id: 'old', alias: 'A', formId: 'f' }, { id: 'ok', alias: 'A', formId: 'f', savedAt: '2026-10-01T00:00:00.000Z' }] })).toBe(1)
   })

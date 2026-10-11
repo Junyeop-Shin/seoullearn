@@ -48,6 +48,11 @@ class ChecksTest(unittest.TestCase):
         self.assertEqual(checks.unsupported_numbers("17:03에 시작해 10문제 중 6개를 맞힘", src), [])
         self.assertEqual(checks.unsupported_numbers("3월 9일 진행", "2026-03-09"), [])  # 날짜 표기만 바뀐 것은 허용
         self.assertEqual(checks.unsupported_numbers("중간고사 85점, 3등급", src), ["3", "85"])
+        # 숫자가 입력 어딘가에 있어도(3회차의 3) 같은 단위로 적혀 있지 않으면 등급·점수·비율은 지어낸 것으로 본다
+        logs = "3회차 출석. 16회차 가운데 15회 출석. 모의고사 4 등급"
+        self.assertEqual(checks.unsupported_numbers("3회차에 모의고사 3등급 달성", logs), ["3등급"])
+        self.assertEqual(checks.unsupported_numbers("16회차 가운데 15회 출석, 모의고사 4등급", logs), [])
+        self.assertEqual(checks.unsupported_numbers("출석률 15%", logs), ["15%"])
         kept, removed = checks.drop_unsupported("10문제 중 6개 맞음. 다음 시험은 5월 12일임.", src)
         self.assertEqual((kept, removed), ("10문제 중 6개 맞음.", ["12", "5"]))
 
@@ -74,6 +79,13 @@ class ChecksTest(unittest.TestCase):
         self.assertNotIn("장염", text)
         self.assertIn("질병으로 인한 결석", text)
         self.assertEqual(sensitive.filter_text("계산 실수가 많아 문제 풀이를 어려워함")[1], [])
+        # 결석을 말하지 않은 건강 문장은 결석으로 바꾸지 않고 뺀다 (없던 결석을 만들지 않는다)
+        self.assertEqual(sensitive.filter_text("감기 기운이 있었지만 끝까지 집중함. 예제는 혼자 품"), ("예제는 혼자 품", ["건강"]))
+        # 교과 용어는 정서·건강 내용이 아니다. 진짜 내용은 그대로 걸린다
+        for line in ["제안과 근거 찾기 연습", "교내과학탐구대회 준비", "화학 발열 반응 단원 5강까지 수강함", "소설 속 인물 간 갈등 구조 파악", "부모님과 상의해 문제집을 새로 사기로 함"]:
+            self.assertEqual(sensitive.drop_lines(line), (line, []), line)
+        for line in ["형과 갈등이 있음", "치과 진료로 결석", "부모님과 사이가 안 좋다고 함"]:
+            self.assertTrue(sensitive.drop_lines(line)[1], line)
 
 
 class EngineTest(unittest.TestCase):
@@ -160,6 +172,9 @@ class DraftSafetyTest(unittest.TestCase):
         h = handover.build([{"session_content": "형한테 맞았다고 함"}], llm)
         self.assertEqual((h["warnings"], llm.calls), ([guard.SAFETY_DRAFT_NOTICE], []))
         self.assertTrue(all(v == "" for v in h["summary"].values()))
+        # 값이 글이 아니라 목록이어도 신호를 본다
+        h = handover.build([{"session_no": 1, "attendance": ["정시 출석", "아버지에게 맞았다고 함"]}], llm)
+        self.assertEqual((h["warnings"], llm.calls), ([guard.SAFETY_DRAFT_NOTICE], []))
 
     def test_bad_input_is_not_a_server_error(self):
         from fastapi.testclient import TestClient
@@ -170,6 +185,10 @@ class DraftSafetyTest(unittest.TestCase):
             c = TestClient(main.app)
             self.assertEqual(c.post("/drafts/weekly_plan", json={"lectures": [{}]}).status_code, 422)
             self.assertEqual(c.post("/drafts/plan_file", json={"inputs": {}, "extra": {"duration": "abc"}}).status_code, 200)
+            # 양식과 모양이 다른 값은 서버 오류가 아니라 입력 오류다
+            r = c.post("/drafts/activity_report", json={"inputs": {"status": 3, "session_date": "2026-10-06"}, "extra": {}})
+            self.assertEqual((r.status_code, r.json()["detail"]), (422, "입력 형식을 확인해 주세요."))
+            self.assertEqual(c.post("/drafts/completion_report", json={"inputs": {}, "extra": {"reports": 5}}).status_code, 422)
 
 
 class WorkflowSpecTest(unittest.TestCase):
@@ -331,7 +350,7 @@ class WorkflowSpecTest(unittest.TestCase):
     def test_templates_fill_subject(self):
         from app.forms import precontact
 
-        sms = precontact.build("오프라인", "19시", subject="수학")["sms"]["text"]
+        sms = precontact.build("오프라인", subject="수학")["sms"]["text"]
         self.assertIn("서울런 수학 멘토", sms)
         self.assertIn("[멘토 연락처]", sms)
         self.assertNotIn("{", sms)
@@ -452,43 +471,26 @@ def course(cid: str) -> list[dict]:
 
 
 class PreContactTest(unittest.TestCase):
-    def test_online_questionnaire_and_sms(self):
+    def test_online_sms(self):
         from app.forms import precontact
 
-        r = precontact.build("온라인", "19시")
-        keys = [q["key"] for q in r["questions"]]
-        # 활동가이드 p.18의 확인 사항이 모두 있어야 한다
-        for must in ("subject_confirm", "availability", "level", "parent_attend", "contact", "site_course", "room_ready"):
-            self.assertIn(must, keys)
-        self.assertNotIn("region", keys)  # 오프라인 전용
+        r = precontact.build("온라인")
+        self.assertEqual(set(r), {"mode", "sms", "notes"})                 # 문자 문구와 안내만 만든다
         self.assertIn("[멘티명]", r["sms"]["text"])
         self.assertIn("서로온 앱", r["sms"]["text"])
-        self.assertTrue(all(len(p) <= 90 for p in r["sms"]["parts"]))
-        self.assertEqual("".join(r["sms"]["parts"]).replace(" ", ""), r["sms"]["text"].replace("\n", "").replace(" ", ""))
-        self.assertNotIn("\n", r["sms"]["text"])                      # 섹션 없이 줄글 한 덩어리
+        self.assertTrue(r["sms"]["text"].startswith("안녕하세요? 서울런 멘토로 활동하게 된 [멘토명]입니다.\n[멘티명] 학생의"))   # 과목이 없어도 인사 줄이 남는다
+        self.assertIn("\n\n앞으로 진행될 멘토링", r["sms"]["text"])    # 읽기 편하게 문단을 나눈다
+        self.assertNotIn("\n\n\n", r["sms"]["text"])
         self.assertNotIn("16회", r["sms"]["text"])                     # 회기 길이는 그룹마다 다를 수 있어 적지 않는다
         self.assertNotIn("4개월", r["sms"]["text"])
         self.assertTrue(r["sms"]["text"].endswith("전화가 어렵거나 연락 가능한 시간이 따로 있으시면 [멘토 연락처]로 문자 남겨 주세요."))
-        self.assertIn("오늘 19시 이후에", r["sms"]["text"])
-        self.assertTrue(next(q for q in r["questions"] if q["key"] == "contact")["pii"])
 
     def test_offline_adds_place_note(self):
         from app.forms import precontact
 
         r = precontact.build("오프라인")
-        self.assertIn("region", [q["key"] for q in r["questions"]])
         self.assertIn("이음단의 장소 예약", r["sms"]["text"])
         self.assertTrue(any("이음단 장소 예약 후" in n for n in r["notes"]))
-
-    def test_m3_unanswered(self):
-        from app.forms import precontact
-
-        m3 = json.loads((ROOT / "synthetic" / "pre_contact_M3.json").read_text(encoding="utf-8"))
-        r = precontact.build("온라인", answers=m3["answers"])
-        self.assertEqual(r["unanswered"], [])
-        r = precontact.build("온라인", answers={"level": "3등급"})
-        self.assertIn("availability", r["unanswered"])
-        self.assertNotIn("contact", r["unanswered"])  # 연락처는 입력받지 않는다
 
 
 class OutlineTest(unittest.TestCase):
@@ -718,7 +720,18 @@ class PlanDraftTest(unittest.TestCase):
         self.assertIn("8강까지 수강", sent)             # 허용 항목은 전달
         self.assertNotIn("to부정사 구분", sent)          # 학업 수준은 버린다
         self.assertNotIn("서운", sent)                   # 정서 내용은 버린다
-        self.assertTrue(any("허용되지 않은 항목" in w for w in r.warnings))
+        # 허용 항목 안에 섞인 학업 수준·정서 문장도 뺀다 (이전 멘토가 보낸 글을 그대로 붙여 넣는다). 지난 회기 요약의 정서 문장도 같다
+        llm2 = EchoLLM()
+        r2 = forms.draft("plan_initial", {"duration": "60", "weekday": "수", "start_datetime": "2026-10-14 19:00"}, llm2,
+                         {"handover": {"attitude": "질문을 자주 함. 모의고사 3등급으로 성적이 낮은 편임.\n부모님과 다퉈 속상해한 날이 있었음"},
+                          "previous_term": {"content": ["플래너 작성 습관 형성", "친구와 다퉈서 속상해함"]}, "only": ["diagnosis"]})
+        sent2 = llm2.calls[0]
+        self.assertIn("질문을 자주 함", sent2)
+        self.assertIn("플래너 작성 습관 형성", sent2)
+        for word in ("3등급", "성적", "속상", "다퉈"):
+            self.assertNotIn(word, sent2)
+        self.assertTrue(any("허용되지 않은 내용" in w for w in r2.warnings))
+        self.assertTrue(any("허용되지 않은 내용" in w for w in r.warnings))
         self.assertTrue(any("이음단의 장소 예약" in x for x in r.reminders))
 
     def test_plan_file_from_first_session(self):
@@ -799,46 +812,6 @@ class PlanDraftTest(unittest.TestCase):
             self.assertEqual(len(r.json()["sessions"]), 16)
             self.assertEqual(r.json()["sessions"][8]["kind"], "시험기간")
             self.assertEqual(c.post("/drafts/weekly_plan", json={"lectures": lectures, "done": 30}).status_code, 422)
-
-class Stage3FormsTest(unittest.TestCase):
-    """3-1: JSON 파일만 추가한 양식이 엔진 수정 없이 돈다."""
-
-    def test_no_hooks_registered_for_new_forms(self):
-        for fid in ("time_extension_check", "bonding_plan", "bonding_report"):
-            self.assertNotIn(fid, engine._HOOKS)
-
-    def test_time_extension_check_needs_no_llm(self):
-        llm = EchoLLM()
-        answers = {k: "예" for k in ("high_school_course", "one_term_done", "no_violation", "progress_60", "pc_login", "ieumdan_shared")}
-        r = forms.draft("time_extension_check", answers, llm)
-        self.assertEqual(llm.calls, [])                                     # 고른 값만 있으므로 LLM을 부르지 않는다
-        self.assertEqual([q["key"] for q in r.missing_questions], ["before_term"])
-        self.assertTrue(any("멘티가 공지의 구글폼으로 직접 신청" in x for x in r.reminders))
-        r = forms.draft("time_extension_check", {**answers, "before_term": "글쎄요"}, llm)
-        self.assertTrue(any("새 회기 시작 전에 신청함" in w for w in r.warnings))
-
-    def test_bonding_plan(self):
-        llm = EchoLLM()
-        r = forms.draft("bonding_plan", {"activity_type": "성장활동", "sessions_done": 3, "activity_date": "2026-11-14", "activity_time": "14:00~16:00",
-                                         "place": "가람대학교 캠퍼스", "purpose": "전공 탐색", "plan": ["14:00 학과 사무실 방문", "15:00 도서관 견학"],
-                                         "mentee_name": "김민지"}, llm)
-        self.assertEqual(r.draft["mentee_name"], "[멘티명]")
-        self.assertTrue(any("완료한 학습 멘토링 회차 수" in w for w in r.warnings))   # 4회차 미만
-        self.assertTrue(any("멘티 성명" in w for w in r.warnings))
-        self.assertEqual(r.draft["plan"], ["14:00 학과 사무실 방문", "15:00 도서관 견학"])
-        self.assertNotIn("김민지", llm.calls[0])
-        self.assertNotIn("가람대학교", llm.calls[0])
-        self.assertTrue(any("5일 전" in x for x in r.reminders))
-
-    def test_bonding_report(self):
-        llm = EchoLLM(overrides={"content": "캠퍼스를 둘러보고 학과 설명을 들음. 입학 경쟁률은 12.5대 1이라고 안내받음."})
-        r = forms.draft("bonding_report", {"activity_type": "성장활동", "activity_date": "2026-11-14", "activity_time": "14:00~16:05",
-                                           "place": "대학 캠퍼스", "content": "캠퍼스 둘러보고 학과 설명 들음"}, llm)
-        self.assertEqual(r.draft["content"], "캠퍼스를 둘러보고 학과 설명을 들음.")      # 입력에 없는 숫자 문장은 뺀다
-        self.assertEqual(r.draft["reflection"], "")
-        self.assertEqual(r.missing_questions, [])
-        self.assertTrue(any("사진 3종" in x for x in r.reminders))
-
 
 class ReportEvalTest(unittest.TestCase):
     def test_report_eval_runs_with_fake_llm(self):

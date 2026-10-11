@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
+from contextlib import asynccontextmanager
 from functools import lru_cache
 
 from fastapi import FastAPI, HTTPException
@@ -11,7 +13,7 @@ from pydantic import BaseModel, Field
 from datetime import date
 from typing import Annotated, Any
 
-from . import allowance, forms, inquiry, qa, router, unanswered
+from . import allowance, forms, guard, inquiry, qa, router, unanswered
 from .config import settings
 from .llm import LLMUnavailableError, get_chat_model
 from .pipelines import build_retriever
@@ -20,15 +22,39 @@ from .pipelines import build_retriever
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("ai-server")
 
-app = FastAPI(title="서울런 멘토 업무 지원 AI 서버", version="0.1.0")
+
+
+def _warm() -> None:
+    try:
+        _retriever()
+    except Exception as e:   # 실패해도 서버는 뜨고 첫 질문에서 다시 만든다
+        log.warning("warmup failed=%s", type(e).__name__)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # 검색기(임베딩 모델과 색인)를 뒤에서 미리 만들어 첫 질문이 느리지 않게 한다. 서버는 바로 요청을 받는다
+    threading.Thread(target=_warm, daemon=True).start()
+    yield
+
+
+app = FastAPI(title="서울런 멘토 업무 지원 AI 서버", version="0.1.0", lifespan=lifespan)
 PIPELINE = os.getenv("QA_PIPELINE", "md_hybrid_glossary")
 CORPUS = os.getenv("QA_CORPUS", "v2")
 
 
+_building = threading.Lock()
+
+
 @lru_cache(maxsize=1)
-def _retriever():
+def _build_retriever():
     r, _ = build_retriever(PIPELINE, CORPUS)
     return r
+
+
+def _retriever():
+    with _building:   # 첫 질문이 겹치거나 시작할 때의 미리 만들기와 겹쳐도 한 번만 만든다
+        return _build_retriever()
 
 
 @lru_cache(maxsize=1)
@@ -46,6 +72,8 @@ class QAResponse(BaseModel):
     route: str | None
     route_info: str | None
     citations: list[str]
+    sources: list[dict[str, str]] = []      # 근거로 쓴 자료의 이름표와 본문 (화면에서 펼쳐 본다)
+    changed_notices: list[str] = []         # 근거로 쓴 활동가이드 내용을 바꾼 공지의 제목
     pii_masked: list[str]
     safety: bool
     # 답을 다 못 했을 때(partial·no) 문의처에 보낼 글 초안과 연락 방법. 아동 안전 경로에서는 만들지 않는다.
@@ -67,6 +95,8 @@ class ChatResponse(BaseModel):
     route: str | None = None
     route_info: str | None = None
     citations: list[str] = []
+    sources: list[dict[str, str]] = []
+    changed_notices: list[str] = []
     safety: bool = False
     inquiry_draft: str | None = None
     inquiry_contact: str | None = None
@@ -106,17 +136,20 @@ def health():
 @app.post("/qa", response_model=QAResponse)
 def ask(req: QARequest):
     try:
-        res = qa.answer(req.question, _retriever(), _llm(), settings.top_k)
-        draft = inquiry.build(res, _llm())
+        # 아동 안전 신호가 있으면 검색기와 LLM을 만들지도 않는다 (DB나 키에 문제가 있어도 안내는 나가야 한다)
+        safe = guard.check(req.question).safety
+        res = qa.answer(req.question, None if safe else _retriever(), None if safe else _llm(), settings.top_k)
+        draft = inquiry.build(res)
     except LLMUnavailableError:
         log.warning("qa len=%d llm_unavailable", len(req.question))
         raise HTTPException(status_code=503, detail="지금은 답변을 만들 수 없습니다. 잠시 후 다시 시도해 주세요.")
-    log.info("qa len=%d answerable=%s route=%s pii=%s safety=%s error=%s draft=%s draft_error=%s",
-             len(req.question), res.answerable, res.route, res.pii_masked, res.safety, bool(res.error),
-             draft is not None, bool(draft and draft.error))
-    unanswered.record(req.question, res.answerable, res.route, res.safety)
+    log.info("qa len=%d answerable=%s route=%s pii=%s safety=%s error=%s draft=%s",
+             len(req.question), res.answerable, res.route, res.pii_masked, res.safety, bool(res.error), draft is not None)
+    if not res.error:   # 답변을 만들다 실패한 질문은 '자료에 없는 질문'이 아니다
+        unanswered.record(req.question, res.answerable, res.route, res.safety)
     return QAResponse(answer=res.answer, answerable=res.answerable, route=res.route, route_info=qa.route_contact(res.route),
-                      citations=res.cite_labels, pii_masked=res.pii_masked, safety=res.safety,
+                      citations=res.cite_labels, sources=res.sources, changed_notices=res.changed_notices,
+                      pii_masked=res.pii_masked, safety=res.safety,
                       inquiry_draft=draft.text if draft else None, inquiry_contact=draft.contact if draft else None)
 
 
@@ -138,8 +171,6 @@ def chat(req: ChatRequest):
 
 class PreContactRequest(BaseModel):
     mode: str = Field("온라인", pattern="^(온라인|오프라인)$")
-    call_time: str | None = Field(None, max_length=20)
-    answers: dict[str, Any] | None = None
     subject: str = Field("", max_length=30)   # 신청 과목 (문자에 '수학 멘토'처럼 넣는다)
 
 
@@ -167,8 +198,8 @@ class WeeklyPlanRequest(BaseModel):
 # 아래 세 경로는 양식 엔진을 거치지 않는 전용 기능이다. /drafts/{form_id}보다 먼저 등록해야 한다.
 @app.post("/drafts/pre_contact")
 def pre_contact(req: PreContactRequest):
-    res = forms.precontact.build(req.mode, req.call_time, req.answers, req.subject)
-    log.info("draft form=pre_contact mode=%s questions=%d sms_parts=%d", res["mode"], len(res["questions"]), len(res["sms"]["parts"]))
+    res = forms.precontact.build(req.mode, req.subject)
+    log.info("draft form=pre_contact mode=%s len=%d", res["mode"], len(res["sms"]["text"]))
     return res
 
 
@@ -178,7 +209,7 @@ def course_outline(req: OutlineRequest):
         res = forms.outline.parse(req.text, _draft_llm())
     except LLMUnavailableError:
         res = forms.outline.parse(req.text, None)  # 규칙으로 읽은 것만이라도 돌려준다
-        res["warnings"].append("지금은 AI를 쓸 수 없어 규칙으로 읽은 강의만 정리했습니다.")
+        res["warnings"].append("지금은 AI를 쓸 수 없어 자동으로 읽힌 강의만 정리했습니다. 빠진 강의가 없는지 확인해 주세요.")
     log.info("draft form=course_outline len=%d lectures=%d unparsed=%d error=%s", len(req.text), len(res["lectures"]),
              len(res["unparsed"]), bool(res["error"]))
     return res
@@ -296,5 +327,8 @@ def draft(form_id: str, req: DraftRequest):
     except LLMUnavailableError:
         log.warning("draft form=%s llm_unavailable", form_id)
         raise HTTPException(status_code=503, detail="지금은 초안을 만들 수 없습니다. 잠시 후 다시 시도해 주세요.")
+    except (TypeError, KeyError, AttributeError, ValueError) as e:   # 양식과 모양이 다른 입력: 종류만 남긴다
+        log.warning("draft form=%s bad_input=%s", form_id, type(e).__name__)
+        raise HTTPException(status_code=422, detail="입력 형식을 확인해 주세요.")
     _log_draft(form_id, res)
     return res.to_dict()

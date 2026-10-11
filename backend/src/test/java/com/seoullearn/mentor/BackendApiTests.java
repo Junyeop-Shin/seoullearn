@@ -3,12 +3,15 @@ package com.seoullearn.mentor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.seoullearn.mentor.auth.AccountSessionFilter;
 import com.seoullearn.mentor.auth.AppUser;
 import com.seoullearn.mentor.auth.AppUserRepository;
 import com.seoullearn.mentor.common.ApiAccessLogFilter;
@@ -56,6 +59,8 @@ class BackendApiTests {
     JdbcTemplate jdbc;
     @Autowired
     ApiAccessLogFilter accessLogFilter;
+    @Autowired
+    AccountSessionFilter accountSessionFilter;
 
     MockMvc mvc;
 
@@ -90,10 +95,13 @@ class BackendApiTests {
     @BeforeEach
     void setUp() {
         // 실제 서버에서는 서블릿 필터로 자동 등록된다. MockMvc에는 직접 넣는다
-        mvc = MockMvcBuilders.webAppContextSetup(context).addFilters(accessLogFilter).apply(springSecurity()).build();
+        mvc = MockMvcBuilders.webAppContextSetup(context).addFilters(accessLogFilter, accountSessionFilter).apply(springSecurity()).build();
         aiRequests.clear();
         aiCookies.clear();
     }
+
+    /** 가입 전 동의: 필수 항목 전부와 동의한 문서의 시행일 */
+    private static final String CONSENT = ", \"consentVersion\": \"2026-10-11\", \"consents\": [\"age14\", \"collect\", \"overseas\", \"mentee\"]";
 
     private MockHttpSession login(String username, String password) throws Exception {
         MockHttpSession session = new MockHttpSession();
@@ -106,7 +114,7 @@ class BackendApiTests {
     private MockHttpSession mentor(String username) throws Exception {
         if (!users.existsByUsername(username)) {
             mvc.perform(post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"username\": \"" + username + "\", \"password\": \"mentor-pass-1\"}"))
+                    .content("{\"username\": \"" + username + "\", \"password\": \"mentor-pass-1\"" + CONSENT + "}"))
                     .andExpect(status().isCreated());
         }
         return login(username, "mentor-pass-1");
@@ -114,9 +122,9 @@ class BackendApiTests {
 
     // ------------------------------------------------------------ 로그인과 역할
     @Test
-    void signupStoresOnlyUsernameHashAndRole() throws Exception {
+    void signupStoresOnlyUsernameHashRoleAndConsent() throws Exception {
         mvc.perform(post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"username\": \"mentor_a1\", \"password\": \"mentor-pass-1\"}"))
+                .content("{\"username\": \"mentor_a1\", \"password\": \"mentor-pass-1\"" + CONSENT + "}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.role").value("MENTOR"))
                 .andExpect(jsonPath("$.password").doesNotExist());
@@ -124,20 +132,67 @@ class BackendApiTests {
         assertThat(saved.getPasswordHash()).startsWith("{bcrypt}").doesNotContain("mentor-pass-1");
         List<String> columns = jdbc.queryForList(
                 "SELECT LOWER(column_name) FROM information_schema.columns WHERE LOWER(table_name) = 'app_user'", String.class);
-        assertThat(columns).containsExactlyInAnyOrder("id", "username", "password_hash", "role");
+        assertThat(columns).containsExactlyInAnyOrder("id", "username", "password_hash", "role", "consent_version", "consented_at");
+        assertThat(saved.getConsentVersion()).isEqualTo("2026-10-11");
+        assertThat(saved.getConsentedAt()).isNotNull();
+    }
+
+    @Test
+    void signupNeedsEveryRequiredConsent() throws Exception {
+        // 동의 없이, 일부만 동의하고는 가입할 수 없다
+        mvc.perform(post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"mentor_n1\", \"password\": \"mentor-pass-1\"}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.detail").value("가입 전 동의가 필요합니다."));
+        mvc.perform(post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"mentor_n1\", \"password\": \"mentor-pass-1\", \"consentVersion\": \"2026-10-11\", \"consents\": [\"age14\", \"collect\"]}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.detail").value("필수 동의 항목에 모두 동의해야 가입할 수 있습니다."));
+        assertThat(users.existsByUsername("mentor_n1")).isFalse();
+    }
+
+    @Test
+    void withdrawDeletesAccountAndEndsSession() throws Exception {
+        MockHttpSession session = mentor("mentor_w1");
+        mvc.perform(delete("/api/auth/me").session(session)).andExpect(status().isForbidden());   // CSRF 토큰 없이는 안 된다
+        mvc.perform(delete("/api/auth/me").with(csrf()).session(session)).andExpect(status().isNoContent());
+        assertThat(users.existsByUsername("mentor_w1")).isFalse();
+        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"mentor_w1\", \"password\": \"mentor-pass-1\"}"))
+                .andExpect(status().isUnauthorized());
+        // 다른 기기에 로그인해 둔 세션도 탈퇴 뒤의 첫 요청에서 끊긴다. 같은 아이디로 다시 가입한 계정을 옛 세션이 쓰지 못한다
+        MockHttpSession pc = mentor("mentor_w2");
+        MockHttpSession phone = login("mentor_w2", "mentor-pass-1");
+        mvc.perform(delete("/api/auth/me").with(csrf()).session(phone)).andExpect(status().isNoContent());
+        mentor("mentor_w2");
+        mvc.perform(get("/api/auth/me").session(pc)).andExpect(status().isUnauthorized());
+        assertThat(users.existsByUsername("mentor_w2")).isTrue();
+        // 관리자 계정은 환경 변수로 관리한다
+        MockHttpSession admin = login("admin_test", "admin-password-1");
+        mvc.perform(delete("/api/auth/me").with(csrf()).session(admin)).andExpect(status().isForbidden());
+        assertThat(users.existsByUsername("admin_test")).isTrue();
     }
 
     @Test
     void signupRejectsBadInputAndDuplicates() throws Exception {
         mvc.perform(post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"username\": \"홍길동\", \"password\": \"mentor-pass-1\"}"))
+                .content("{\"username\": \"홍길동\", \"password\": \"mentor-pass-1\"" + CONSENT + "}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.detail").exists());
         mvc.perform(post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"username\": \"mentor_b1\", \"password\": \"short\"}"))
+                .content("{\"username\": \"mentor_b1\", \"password\": \"short\"" + CONSENT + "}"))
+                .andExpect(status().isBadRequest());
+        // 한글 비밀번호는 글자 수가 72자 안쪽이어도 암호화 한도(72바이트)를 넘을 수 있다: 서버 오류가 아니라 입력 오류로 알린다
+        mvc.perform(post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"mentor_b2\", \"password\": \"" + "가".repeat(30) + "\"" + CONSENT + "}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.detail").value("비밀번호가 너무 깁니다. 한글은 24자, 영문·숫자는 72자까지 쓸 수 있습니다."));
+        // 처리되지 않은 요청 오류도 로그인·권한 오류로 바뀌지 않고 제 상태 코드와 {detail}로 나간다
+        mvc.perform(put("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isMethodNotAllowed()).andExpect(jsonPath("$.detail").exists());
+        mvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"" + "a".repeat(200) + "\", \"password\": \"x\"}"))
                 .andExpect(status().isBadRequest());
         mentor("mentor_dup");
         mvc.perform(post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"username\": \"mentor_dup\", \"password\": \"mentor-pass-1\"}"))
+                .content("{\"username\": \"mentor_dup\", \"password\": \"mentor-pass-1\"" + CONSENT + "}"))
                 .andExpect(status().isConflict());
     }
 
@@ -175,11 +230,10 @@ class BackendApiTests {
     @Test
     void adminEndpointsNeedAdminRole() throws Exception {
         MockHttpSession mentor = mentor("mentor_f1");
-        mvc.perform(get("/api/admin/users").session(mentor)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/unanswered").session(mentor)).andExpect(status().isForbidden());
         MockHttpSession admin = login("admin_test", "admin-password-1"); // 환경 설정으로 만든 관리자
         mvc.perform(get("/api/auth/me").session(admin)).andExpect(jsonPath("$.role").value("ADMIN"));
-        mvc.perform(get("/api/admin/users").session(admin)).andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.username == 'admin_test')].role").value("ADMIN"));
+        mvc.perform(get("/api/admin/unanswered").session(admin)).andExpect(status().isOk());
     }
 
     // ------------------------------------------------------------ 양식 스키마
@@ -188,7 +242,7 @@ class BackendApiTests {
         MockHttpSession session = mentor("mentor_g1");
         mvc.perform(get("/api/forms").session(session)).andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.form_id == 'activity_report')].title").value("활동보고서"))
-                .andExpect(jsonPath("$.length()").value(9));
+                .andExpect(jsonPath("$.length()").value(6));
         mvc.perform(get("/api/forms/activity_report").session(session)).andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.form_id").value("activity_report"))

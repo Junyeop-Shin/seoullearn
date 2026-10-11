@@ -1,13 +1,16 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, getCurrentInstance, reactive, ref } from 'vue'
 import { api } from '../../api/client'
 import CurriculumEditor from '../../components/CurriculumEditor.vue'
+import { planChecklist, showChecklist } from '../../lib/checklist'
+import { toText as text } from '../../lib/formFields'
 import { shrinkImage } from '../../lib/image'
 import { fillValues, scheduleText } from '../../lib/mentee'
 import { fillPlanFile, mentorCode, planFileName } from '../../lib/planFile'
 import { DIAG_SLOTS, GOAL_SLOTS, changedLines, composeSlots, onlineText, parseSlots, toCircled } from '../../lib/plan'
 import { courseName, curriculumCell, curriculumLines, handoverForDraft, handoverFromVault, handoverNote, latestOf,
   termSummaryFromVault, termSummaryText } from '../../lib/reports'
+import { revealError } from '../../lib/reveal'
 import { totalRounds } from '../../lib/stage'
 import { toast } from '../../lib/toast'
 import { loadSettings } from '../../stores/settings'
@@ -20,6 +23,7 @@ const FORM_ID = 'plan_file'
 defineOptions({ inheritAttrs: false })   // 멘티 화면이 모든 단계에 같은 값을 넘긴다: 안 쓰는 값이 화면 요소에 붙지 않게 한다
 const props = defineProps({ alias: { type: String, required: true }, profile: { type: Object, required: true }, items: { type: Array, required: true },
   update: { type: Function, required: true } })
+const me = getCurrentInstance()
 const pre = latestOf(props.items, 'plan_initial')
 const saved = latestOf(props.items, FORM_ID)
 let savedId = saved?.id   // 처음 저장한 뒤에도 같은 항목을 덮어쓴다 (이 화면은 저장해도 다시 그려지지 않는다)
@@ -31,12 +35,12 @@ const [site, ...lecture] = (props.profile.course || '').split(' ')
 const common = reactive({ subject: props.profile.subject === '기타' ? props.profile.subjectEtc : props.profile.subject || '', schedule: scheduleText(props.profile) })
 const courses = reactive([newCourse({ platform: site || '', lecture: lecture.join(' ') })])
 const alloc = reactive({ mode: 'weekly', perWeek: 2, target: '' })
-const text = (v) => (Array.isArray(v) ? v.join('\n') : v || '')
 const KEYS = ['learning_goal', 'diagnosis', 'structure', 'rules']
 // 종합계획서①의 글을 서식 형식으로 가져온다: 학습목표의 (1)~(4)는 ①~④로. 아무것도 적지 않아 들어간 문구는 가져오지 않는다
 const LATER = '1회차에 자세한 상담 예정'   // 종합계획서①이 덜 적힌 진단에 붙이는 문구. 1회차를 마친 종합계획서②에는 넣지 않는다
 const noLater = (t) => String(t || '').split('\n').filter((l) => l.trim() !== LATER).join('\n')
-const fromPre = (k) => (k === 'learning_goal' ? toCircled(text(pre?.draft?.[k])) : noLater(text(pre?.draft?.[k])))
+// 멘토링 구성은 서식 표기로: 종합계획서①은 플랫폼 오류를 피하려고 '&'를 '및'으로 적는다 (서버가 바꾸는 곳은 이 구절 하나다)
+const fromPre = (k) => (k === 'learning_goal' ? toCircled(text(pre?.draft?.[k])) : noLater(text(pre?.draft?.[k])).replace('확인 및 퀴즈', '확인 & 퀴즈'))
 const base = Object.fromEntries(KEYS.map((k) => [k, fromPre(k)]))
 const goal = reactive({ parts: ['', '', '', ''], rest: '' })
 const diag = reactive({ parts: ['', '', '', ''], rest: '' })
@@ -51,7 +55,6 @@ const busy = ref('')
 const error = ref('')
 const fillNote = ref('')
 const notes = ref([])
-const defaults = {}   // 서버가 규칙으로 만든 기본안 (멘토링 구성). 고치지 않았으면 서버가 다시 만든다
 const changes = ref(null)   // AI가 바꾼 내용 {mode, items: [{label, before, after}], undo}
 
 const goalText = computed(() => composeSlots(GOAL_SLOTS, goal.parts, goal.rest))
@@ -76,7 +79,6 @@ if (saved) {
   Object.assign(alloc, x.alloc || {})
   // 종합계획서①에서 가져온 뒤 고치지 않은 칸은 지금의 종합계획서① 글을 따른다 (①을 나중에 고쳐도 반영되게)
   apply(Object.fromEntries(KEYS.map((k) => [k, x.base && (x.value?.[k] ?? '') === (x.base[k] ?? '') ? base[k] : x.value?.[k] ?? base[k]])))
-  Object.assign(defaults, x.defaults || {})
   if (x.rows?.length) rows.value = x.rows
 }
 
@@ -100,6 +102,7 @@ async function run(name, fn) {
     await fn()
   } catch (e) {
     error.value = e.message
+    revealError()
   } finally {
     busy.value = ''
   }
@@ -166,7 +169,7 @@ const fillCurriculum = () => run('fill-curriculum', async () => {
   const left = wanted - res.covered
   // 진도 회차(첫 주와 마지막 정리 주 사이)에 빈 주가 있으면 강의가 회기 중간에 끝난 것이다
   const endsEarly = left <= 0 && res.sessions.slice(1, -1).some((x) => !x.lectures.length)
-  fillNote.value = `${res.covered}강을 ${rounds.value}주에 나눠 채웠습니다. 표에서 고쳐 쓰세요.`
+  fillNote.value = `${res.covered}강을 ${rounds.value}주에 나눠 채웠습니다. 표에서 고쳐 주세요.`
     + (left > 0 ? ` 이 속도로는 ${left}강이 남습니다.` : endsEarly ? ' 강의가 회기 중간에 끝납니다. 이어서 들을 강좌가 있으면 [강좌 추가]로 더한 뒤 다시 채워 주세요.' : '')
     + (res.warnings?.length ? ` ${res.warnings.join(' ')}` : '')   // AI를 쓰지 못해 기본 문장으로 채운 경우 등
 })
@@ -186,8 +189,8 @@ function undoChanges() {
 const timing = () => ({ start_datetime: (props.profile.start_datetime || '').replace('T', ' '), duration: Number(props.profile.duration) || 60, rounds: rounds.value })
 const safe = (res) => {
   // 아동 안전 신호가 있으면 서버가 초안을 만들지 않고 운영사무국 안내만 돌려준다: 그 안내를 보여 주고 저장하지 않는다
-  if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '초안을 만들지 못했습니다.')
-  if (res.error) throw new Error('AI의 답을 읽지 못했습니다. 잠시 뒤 다시 눌러 주세요.')
+  if (!Object.keys(res.draft).length) throw new Error(res.warnings[0] || '초안을 만들지 못했습니다. 잠시 후 다시 눌러 주세요.')
+  if (res.error) throw new Error('AI의 답을 읽지 못했습니다. 잠시 후 다시 눌러 주세요.')
   return res
 }
 
@@ -205,11 +208,12 @@ const fillDraft = () => run('fill', async () => {
   toast(changes.value ? '초안을 채웠습니다. 새로 들어간 내용을 확인하고 고쳐 주세요.' : '참고 자료에서 채울 내용을 찾지 못했습니다.')
 })
 
-// ---- 서식 파일로 내보내기: 서식 파일(docx, hwpx)에 이 화면의 글을 채워 내려받는다. 채우는 일은 이 브라우저 안에서만 하고 내용은 서버로 보내지 않는다
-// 빈 서식은 서버에 올려 둔 것을 받아 쓴다 (로그인한 멘토에게만 내준다)
+// ---- 서식 파일로 내려받기: 서식 파일(docx, hwpx)에 이 화면의 글을 채워 내려받는다. 채우는 일은 이 브라우저 안에서만 하고 내용은 서버로 보내지 않는다
+// 빈 서식은 서버에 올려 둔 것을 받아 쓴다 (로그인한 멘토에게만 내준다). 먼저 저장한다: 정리된 글(가린 정보, 기본안)이 파일에 들어가고 보관함에도 남게
 const exportAs = (format) => run('export', async () => {
+  await store()
   const bytes = await api.planTemplate(format)
-  if (!bytes) throw new Error('서버에 서식 파일이 없어 내보내지 못했습니다. 서버의 서식 폴더를 확인해 주세요.')
+  if (!bytes) throw new Error('서식 파일이 준비되지 않아 내려받지 못했습니다. 이 도구의 관리자에게 알려 주세요.')
   const v = memo()
   const out = fillPlanFile(bytes, { period: period.value, mentee: fill.mentee || '', mentor: fill.mentor || '', subject_time: subjectTime.value,
     course: courseList.value, goal: lines(v.learning_goal), diagnosis: lines(v.diagnosis), structure: lines(v.structure), rules: lines(v.rules),
@@ -223,29 +227,33 @@ const exportAs = (format) => run('export', async () => {
 })
 
 // 저장은 AI를 쓰지 않는다. 서버가 정리한 글(개인정보·민감 내용 제거, 비워 둔 멘토링 구성의 기본 배분)을 같은 칸에 다시 넣는다
-const save = () => run('save', async () => {
+async function store() {
   const v = memo()
   const m = { learning_goal: v.learning_goal }
-  // 멘토링 구성은 고쳤을 때만 적은 글을 쓴다. 종합계획서①에서 가져온 그대로면 서식 표기(& 등)의 시간 배분 기본안을 서버가 다시 만든다
-  if (v.structure.trim() && v.structure.trim() !== base.structure.trim()) m.structure = v.structure
+  // 멘토링 구성은 적힌 글을 그대로 쓴다 (종합계획서①에서 고쳐 쓴 글이 기본안으로 바뀌지 않게). 비웠을 때만 서버가 시간 배분 기본안을 만든다
+  if (v.structure.trim()) m.structure = v.structure
   const res = safe(await api.draft(FORM_ID, { subject_time: subjectTime.value, diagnosis: lines(v.diagnosis), rules: lines(v.rules) },
     { ...timing(), memo: m, curriculum_lines: curriculumLines(rows.value, true, courses), only: [] }))
-  if (!m.structure) defaults.structure = text(res.draft.structure)
   apply(Object.fromEntries(KEYS.map((k) => [k, text(res.draft[k])])))
-  notes.value = [...(res.pii_masked.length ? [`가린 정보: ${res.pii_masked.join(', ')}`] : []), ...res.missing_questions.map((q) => q.question), ...res.warnings, ...res.reminders]
+  notes.value = [...(res.pii_masked.length ? [`저장하면서 가린 정보: ${res.pii_masked.join(', ')}`] : []), ...res.missing_questions.map((q) => q.question), ...res.warnings, ...res.reminders]
   // 목차 원문(text)은 저장하지 않는다. 강 목록만 남긴다
   const keep = courses.map(({ text: _text, note: _note, images: _images, ...c }) => c)
   savedId = (await saveItem({ id: savedId, alias: props.alias, formId: FORM_ID, title: '종합계획서②', draft: res.draft, inputs: { subject_time: subjectTime.value },
-    extra: { courses: keep, common: { ...common }, alloc: { ...alloc }, value: memo(), base: { ...base }, defaults: { ...defaults }, rows: rows.value } })).id
+    extra: { courses: keep, common: { ...common }, alloc: { ...alloc }, value: memo(), base: { ...base }, rows: rows.value } })).id
   await props.update({ course: [courses[0].platform, courses[0].lecture].filter(Boolean).join(' ') || props.profile.course, goal: goalText.value },
     props.profile.stage === 'PLAN' ? '종합계획서②를 저장했습니다. 아래 [다음 단계]를 누르면 1회차 활동보고서로 넘어갑니다.' : '종합계획서②를 저장했습니다.')
+}
+const save = () => run('save', async () => {
+  await store()
+  showChecklist('종합계획서②', planChecklist({ mentee: fill.mentee, subject: common.subject, course: courseList.value, schedule: common.schedule,
+    goals: goal.parts, diag: diag.parts, rows: rows.value, structure: plain.structure, rules: plain.rules }), me)
 })
 </script>
 
 <template>
   <div>
     <p class="muted">1회차를 마친 뒤, 협의한 내용으로 종합계획서②를 씁니다. 다 쓰면 맨 아래에서 서식 파일로 내려받아 1회차 활동보고서에 첨부해 주세요.</p>
-    <div v-if="error" class="box error">{{ error }}</div>
+    <div v-if="error" class="box error" role="alert">{{ error }}</div>
     <div v-if="previous" class="mini pre" data-test="previous-term"><span class="t">지난 회기 요약 (참고)</span>{{ termSummaryText(previous) }}</div>
     <div v-else-if="handover" class="mini pre" data-test="handover-ref"><span class="t">이전 멘토에게 인계받은 내용 (참고)</span>{{ handover }}</div>
 
@@ -253,7 +261,7 @@ const save = () => run('save', async () => {
       <!-- 서버 응답을 기다리는 동안에는 입력을 잠근다: 그 사이에 적은 글이 응답으로 덮이지 않게 -->
       <fieldset :disabled="!!busy">
       <h3 class="sheet-title">「서울런 멘토단」 멘토링 종합 계획서</h3>
-      <table class="sheet" data-test="sheet">
+      <table class="sheet" data-test="sheet"><tbody>
         <tr>
           <th>멘토링기간</th>
           <td colspan="3"><span data-sheet="period">{{ period || '커리큘럼 표의 날짜가 정해지면 채워집니다' }}</span></td>
@@ -300,7 +308,7 @@ const save = () => run('save', async () => {
             </div>
             <span class="notice">{{ pre ? '종합계획서①에서 가져왔습니다. 1회차에 협의한 내용으로 고쳐 주세요.' : '1회차에 협의한 목표를 항목별로 적어 주세요.' }}</span>
             <label v-for="(s, i) in GOAL_SLOTS" :key="s.mark" class="slot"><span>{{ s.mark }} {{ s.label }}</span>
-              <input v-model="goal.parts[i]" :placeholder="`예: ${s.example}`" :data-goal="i" /></label>
+              <textarea v-model="goal.parts[i]" rows="1" :placeholder="`예: ${s.example}`" :data-goal="i" @keydown.enter.prevent></textarea></label>
             <label v-if="goal.rest" class="slot"><span>그 밖에</span><textarea v-model="goal.rest" rows="2"></textarea></label>
           </td>
         </tr>
@@ -309,7 +317,7 @@ const save = () => run('save', async () => {
           <td colspan="3">
             <span class="notice">1회차에 확인한 내용을 항목별로 적어 주세요. 확인하지 못한 항목은 비워 둡니다.</span>
             <label v-for="(s, i) in DIAG_SLOTS" :key="s.mark" class="slot"><span>{{ s.mark }}</span>
-              <input v-model="diag.parts[i]" :placeholder="`예: ${s.example}`" :data-diag="i" /></label>
+              <textarea v-model="diag.parts[i]" rows="1" :placeholder="`예: ${s.example}`" :data-diag="i" @keydown.enter.prevent></textarea></label>
             <label v-if="diag.rest" class="slot"><span>그 밖에</span><textarea v-model="diag.rest" rows="2"></textarea></label>
           </td>
         </tr>
@@ -320,11 +328,11 @@ const save = () => run('save', async () => {
               <details :open="!c.lectures.length" :data-test="`outline-${ci}`" @paste="pasteImages(c, $event)">
                 <summary>{{ courseName(c) || `강좌 ${ci + 1}` }}의 목차 불러와서 커리큘럼 채우기{{ c.lectures.length ? ` · ${c.lectures.length}강 불러옴` : '' }}</summary>
                 <p class="notice">학습사이트 강좌 페이지의 강의 목록을 통째로 복사해 붙여 넣으면 강의를 가려 읽습니다. 강의 제목이 제각각이어도 순서대로 몇 강인지 붙여 드립니다. 이 도구가 학습사이트에 접속하지는 않습니다.</p>
-                <textarea v-model="c.text" rows="4" placeholder="강의 목록을 여기에 붙여 넣어 주세요" :data-outline="ci"></textarea>
+                <textarea v-model="c.text" rows="4" placeholder="강의 목록을 여기에 붙여 넣어 주세요" :aria-label="`${courseName(c) || `강좌 ${ci + 1}`}의 강의 목록`" :data-outline="ci"></textarea>
                 <button type="button" class="gap-top" :disabled="!c.text.trim() || !!busy" :data-parse="ci" @click="parseOutline(c)">{{ busy === 'outline' ? '읽는 중…' : '목차 불러오기' }}</button>
                 <div class="image-read" :data-test="`image-${ci}`">
-                  <strong>복사가 안 되는 사이트라면: 이미지에서 읽기</strong>
-                  <p class="notice">강의 목록 화면을 캡처해 아래 자리에 붙여 넣으면 AI가 글자를 읽어 목차로 불러옵니다. 목록이 길면 여러 장을 순서대로 넣어 주세요. 이미지는 AI로 보내므로 이름이나 아이디가 보이지 않게 강의 목록만 찍어 주세요. 이미지는 저장하지 않습니다.</p>
+                  <strong>복사가 안 되는 사이트라면: 이미지로 읽기</strong>
+                  <p class="notice">강의 목록 화면을 캡처해 붙여 넣으면 AI가 읽어 목차로 불러옵니다. 길면 여러 장을 순서대로 넣어 주세요. 이미지는 AI로 보내므로 이름이나 아이디가 보이지 않게 강의 목록만 찍어 주세요. 이미지는 저장하지 않습니다.</p>
                   <div class="paste-zone" tabindex="0" aria-label="여기를 누르고 이미지를 붙여 넣기" :data-paste="ci">여기를 누르고 붙여 넣기 (Ctrl+V, ⌘V)</div>
                   <div v-if="c.images.length" class="thumbs">
                     <figure v-for="(img, k) in c.images" :key="k"><img :src="img.url" :alt="`올린 이미지 ${k + 1}`" /><button type="button" class="small" @click="c.images.splice(k, 1)">빼기</button></figure>
@@ -338,10 +346,10 @@ const save = () => run('save', async () => {
             <div v-if="ready" class="course-card" data-test="alloc">
               <strong>불러온 강의를 주차에 나누기</strong> <span class="muted">아직 안 들은 강의 {{ ready }}강</span>
               <div class="choices gap-top">
-                <label><input v-model="alloc.mode" type="radio" value="weekly" name="alloc" />일주일에 <input v-model="alloc.perWeek" type="number" min="1" max="10" class="num" data-alloc="perWeek" /> 강씩</label>
-                <label><input v-model="alloc.mode" type="radio" value="target" name="alloc" data-alloc="mode-target" />이번 회기에 <input v-model="alloc.target" type="number" min="1" :max="ready" class="num" placeholder="필수" data-alloc="target" /> 강 듣기 (회차에 고르게 나눔)</label>
+                <label><input v-model="alloc.mode" type="radio" value="weekly" name="alloc" />일주일에 <input v-model="alloc.perWeek" type="number" min="1" max="10" class="num" aria-label="일주일에 들을 강의 수" data-alloc="perWeek" @focus="alloc.mode = 'weekly'" /> 강씩</label>
+                <label><input v-model="alloc.mode" type="radio" value="target" name="alloc" data-alloc="mode-target" />이번 회기에 <input v-model="alloc.target" type="number" min="1" :max="ready" class="num" placeholder="필수" aria-label="이번 회기에 들을 강의 수" data-alloc="target" @focus="alloc.mode = 'target'" /> 강 듣기 (회차에 고르게 나눔)</label>
               </div>
-              <p class="notice">강의는 규칙으로 나누고, 멘토링 내용 문장은 AI가 씁니다. 채운 뒤 표에서 고쳐 주세요.</p>
+              <p class="notice">강의는 위에서 고른 방식대로 나누고, 멘토링 내용 문장은 AI가 씁니다. 채운 뒤 표에서 고쳐 주세요.</p>
               <button type="button" class="primary" :disabled="!!busy || (alloc.mode === 'target' && !Number(alloc.target))" data-test="fill-curriculum" @click="fillCurriculum">{{ busy === 'fill-curriculum' ? '채우는 중…' : '커리큘럼 채우기' }}</button>
               <p v-if="fillNote" class="notice" data-test="fill-note">{{ fillNote }}</p>
             </div>
@@ -361,17 +369,17 @@ const save = () => run('save', async () => {
             <textarea v-model="plain.rules" :rows="Math.max(5, plain.rules.split('\n').length)" placeholder="한 줄에 규칙 하나씩&#10;멘토링 시간 준수하기&#10;일정 변경은 최소 3일 전에 논의하기" aria-label="활동규칙" data-field="rules"></textarea>
           </td>
         </tr>
-      </table>
+      </tbody></table>
 
       <div v-if="notes.length" class="box warn" data-test="notes"><ul><li v-for="n in notes" :key="n">{{ n }}</li></ul></div>
       <div class="row">
         <button class="primary" :disabled="!!busy" data-test="save">{{ busy === 'save' ? '저장하는 중…' : '저장' }}</button>
       </div>
       <div class="course-card" data-test="export">
-        <strong>서식 파일로 내보내기</strong>
-        <p class="notice">이 화면의 내용을 종합활동계획서 서식에 채운 파일을 내려받습니다. 내용은 이 브라우저 안에서 채우고 서버로 보내지 않습니다. 파일 이름의 멘토코드는 멘토 설정의 이름과 연락처 뒤 네 자리로 만듭니다.</p>
+        <strong>서식 파일로 내려받기</strong>
+        <p class="notice">먼저 저장한 뒤, 이 화면의 내용을 종합계획서② 서식에 채운 파일을 내려받습니다. 내용은 이 브라우저 안에서 채웁니다. 파일 이름의 멘토코드는 멘토 설정의 이름과 연락처 뒤 네 자리로 만듭니다.</p>
         <div class="row">
-          <button type="button" class="primary" :disabled="!!busy" data-export="hwpx" @click="exportAs('hwpx')">한글(hwpx)로 내려받기</button>
+          <button type="button" :disabled="!!busy" data-export="hwpx" @click="exportAs('hwpx')">한글(hwpx)로 내려받기</button>
           <button type="button" :disabled="!!busy" data-export="docx" @click="exportAs('docx')">워드(docx)로 내려받기</button>
         </div>
       </div>
