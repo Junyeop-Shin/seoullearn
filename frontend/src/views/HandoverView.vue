@@ -61,7 +61,7 @@ async function save() {
   <div class="shell">
     <MenteeHeader :alias="alias" title="인계 요약" />
     <h1>인계 요약</h1>
-    <p class="muted">멘토가 바뀔 때 다음 멘토에게 넘길 내용입니다. 아래 네 가지만 만들고, 성적·이해도 같은 학업 수준과 정서·상담 내용은 넣지 않습니다.</p>
+    <p class="muted">멘토가 바뀔 때 자치구 이음단을 통해 다음 멘토에게 넘길 내용입니다. 아래 네 가지만 만들고, 성적·이해도 같은 학업 수준과 정서·상담 내용은 넣지 않습니다.</p>
     <div v-if="error" class="box error" role="alert">{{ error }}</div>
     <ReportSource :alias="alias" @loaded="loaded" />
     <button type="button" :class="{ primary: !ready }" :disabled="busy || !reports.length" data-test="build-handover" @click="build">{{ busy ? '요약을 만드는 중…' : ready ? '인계 요약 다시 만들기' : '인계 요약 만들기' }}</button>
@@ -75,10 +75,10 @@ async function save() {
         <textarea v-model="summary[k]" :data-summary="k"></textarea>
       </label>
       <div class="row">
-        <button type="button" class="primary" data-test="copy-handover" @click="copyAll">다음 멘토에게 보낼 글 복사</button>
+        <button type="button" class="primary" data-test="copy-handover" @click="copyAll">이음단에 보낼 글 복사</button>
         <button type="button" data-test="save-handover" @click="save">저장</button>
       </div>
-      <p class="notice">복사한 글을 이음단이나 운영사무국을 통해 다음 멘토에게 전달해 주세요. 다음 멘토가 사전 연락 화면에 붙여 넣어 두고 종합계획서를 쓸 때 참고합니다.</p>
+      <p class="notice">복사한 글은 다음 멘토에게 직접 보내지 말고 자치구 이음단에 보내 주세요. 이음단이 확인한 뒤 다음 멘토에게 전달합니다. 다음 멘토가 사전 연락 화면에 붙여 넣어 두고 종합계획서를 쓸 때 참고합니다.</p>
       <div v-if="res?.reminders?.length" class="card"><ul><li v-for="r in res.reminders" :key="r">{{ r }}</li></ul></div>
     </template>
   </div>

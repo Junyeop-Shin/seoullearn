@@ -19,6 +19,7 @@ app:
   places-file: ../synthetic/places.json
   templates-dir: src/test/resources/templates
   kakao-map-js-key: test-js-key
+  base-url: http://localhost:3000
   ai-server:
     url: http://localhost:1
     connect-timeout: 2s

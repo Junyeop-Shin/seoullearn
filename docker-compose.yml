@@ -53,6 +53,14 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      # 비밀번호 재설정 메일 (.env에 넣는다). MAIL_HOST가 없으면 보내지 않는다. RESET_LOG_LINK=true는 개발용: 재설정 주소를 로그에 찍는다
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+      RESET_LOG_LINK: ${RESET_LOG_LINK:-false}
       # 협약 장소 지도. 장소 목록 파일과 카카오맵 JavaScript 키 (브라우저에 노출되는 공개 키)
       PLACES_FILE: /data/places.json
       TEMPLATES_DIR: /templates

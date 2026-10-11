@@ -6,30 +6,30 @@ import ConsentStep from '../src/components/ConsentStep.vue'
 import { COLLECTED, CONSENTS, OVERSEAS, VERSION } from '../src/lib/privacy'
 
 describe('가입 전 동의', () => {
-  it('필수 항목을 하나씩 따로 받고, 모두 동의해야 넘어간다. 미리 체크해 두지 않는다', async () => {
+  it('국외 이전 동의와 두 가지 확인을 하나씩 따로 받고, 모두 해야 넘어간다. 미리 체크해 두지 않는다', async () => {
     const w = mount(ConsentStep)
     const boxes = CONSENTS.map((c) => w.find(`[data-consent=${c.id}]`))
     expect(boxes.every((b) => b.element.checked === false)).toBe(true)
     expect(w.find('[data-test=consent-ok]').element.disabled).toBe(true)
-    for (const b of boxes.slice(0, 3)) await b.setValue(true)
+    for (const b of boxes.slice(0, 2)) await b.setValue(true)
     expect(w.find('[data-test=consent-ok]').element.disabled).toBe(true)
-    expect(w.find('[data-consent=all]').element.checked).toBe(false)
-    await boxes[3].setValue(true)
-    expect(w.find('[data-consent=all]').element.checked).toBe(true)
+    await boxes[2].setValue(true)
+    expect(w.find('[data-test=consent-ok]').element.disabled).toBe(false)
     await w.find('form').trigger('submit')
-    expect(w.emitted('agreed')[0][0]).toEqual({ version: VERSION, items: ['age14', 'collect', 'overseas', 'mentee'] })
-    // 전체 동의를 끄면 모두 꺼진다
-    await w.find('[data-consent=all]').setValue(false)
-    expect(boxes.every((b) => b.element.checked === false)).toBe(true)
+    expect(w.emitted('agreed')[0][0]).toEqual({ version: VERSION, items: ['age14', 'overseas', 'mentee'] })
+    // 계정 정보는 동의를 받지 않고 알리기만 한다: 체크박스가 없고, 한꺼번에 동의하는 칸도 없다
+    expect(w.find('[data-consent=collect]').exists()).toBe(false)
+    expect(w.find('[data-consent=all]').exists()).toBe(false)
   })
 
   it('알려야 하는 사항이 화면에 있다: 항목·목적·보유 기간, 거부할 권리, 국외 이전의 여섯 가지', () => {
     const text = mount(ConsentStep).text()
-    for (const r of COLLECTED) for (const v of [r.items, r.purpose, r.period]) expect(text).toContain(v)
+    for (const r of COLLECTED) for (const v of [r.items, r.purpose, r.basis, r.period]) expect(text).toContain(v)
     for (const [k, v] of OVERSEAS) { expect(text).toContain(k); expect(text).toContain(v) }
     expect(OVERSEAS.map(([k]) => k)).toEqual(['이전받는 자', '이전되는 국가', '이전 일시와 방법', '이전하는 항목', '이용 목적', '보유·이용 기간'])
     expect(text).toContain('동의를 거부할 권리가 있습니다')
     expect(text).toContain('동의하지 않으면 가입할 수 없습니다')
+    expect(mount(ConsentStep).findAll('dd strong').length).toBe(3)   // 이전받는 자, 국가, 보유 기간은 굵게
   })
 
   it('동의 항목과 문서의 시행일 형식이 서버가 받는 것과 같다', () => {

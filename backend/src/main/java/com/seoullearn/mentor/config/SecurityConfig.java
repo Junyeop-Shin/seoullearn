@@ -30,7 +30,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.spa())
                 .securityContext(c -> c.securityContextRepository(contextRepository))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/csrf", "/api/auth/signup", "/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/csrf", "/api/auth/signup", "/api/auth/login", "/api/auth/reset-request", "/api/auth/reset").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().denyAll())

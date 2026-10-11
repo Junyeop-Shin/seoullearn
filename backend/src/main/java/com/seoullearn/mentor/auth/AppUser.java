@@ -11,8 +11,8 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 /**
- * 회원. 아이디, 비밀번호 해시, 역할, 가입 전 동의 기록(동의한 문서의 시행일과 동의한 일시)만 저장한다.
- * 실명, 학교, 연락처 같은 다른 정보는 저장하지 않는다.
+ * 회원. 아이디, 비밀번호 해시, 역할, 전자우편(비밀번호 재설정용), 가입 전 동의 기록(동의한 문서의 시행일과 동의한 일시)만 저장한다.
+ * 실명, 학교, 전화번호 같은 다른 정보는 저장하지 않는다.
  */
 @Entity
 @Table(name = "app_user")
@@ -39,7 +39,24 @@ public class AppUser {
     @Column(name = "consented_at")
     private Instant consentedAt;
 
+    // 비밀번호 재설정 메일을 받을 주소. 이 칸이 생기기 전의 계정과 관리자 계정에는 없다
+    @Column(length = 100)
+    private String email;
+
     protected AppUser() {
+    }
+
+    public AppUser email(String email) {
+        this.email = email;
+        return this;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void changePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 
     public AppUser(String username, String passwordHash, Role role) {

@@ -1,5 +1,6 @@
 package com.seoullearn.mentor.auth;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -18,6 +19,10 @@ public final class AuthDtos {
             @NotBlank(message = "비밀번호를 입력해 주세요.")
             @Size(min = 8, max = 72, message = "비밀번호는 8~72자여야 합니다.")
             String password,
+            @NotBlank(message = "전자우편 주소를 입력해 주세요.")
+            @Email(message = "전자우편 주소를 확인해 주세요.")
+            @Size(max = 100, message = "전자우편 주소를 확인해 주세요.")
+            String email,
             // 가입 전 동의: 화면이 보여 준 문서의 시행일과 동의한 항목 (frontend/src/lib/privacy.js)
             @NotNull(message = "가입 전 동의가 필요합니다.")
             @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "가입 전 동의가 필요합니다.")
@@ -32,6 +37,16 @@ public final class AuthDtos {
             @Size(max = 20, message = "아이디 또는 비밀번호가 올바르지 않습니다.") String username,
             @NotBlank(message = "비밀번호를 입력해 주세요.")
             @Size(max = 72, message = "아이디 또는 비밀번호가 올바르지 않습니다.") String password) {
+    }
+
+    public record ResetRequest(@NotBlank @Size(max = 20) String username, @NotBlank @Size(max = 100) String email) {
+    }
+
+    public record NewPassword(
+            @NotBlank @Size(max = 100) String token,
+            @NotBlank(message = "비밀번호를 입력해 주세요.")
+            @Size(min = 8, max = 72, message = "비밀번호는 8~72자여야 합니다.")
+            String password) {
     }
 
     public record UserResponse(String username, Role role) {

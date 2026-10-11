@@ -69,7 +69,9 @@ export const api = {
   me: () => request('GET', '/api/auth/me'),
   login: (username, password) => request('POST', '/api/auth/login', { username, password }),
   /** consent: 가입 전 동의 {version: 동의한 문서의 시행일, items: 동의한 항목} */
-  signup: (username, password, consent) => request('POST', '/api/auth/signup', { username, password, consentVersion: consent?.version, consents: consent?.items }),
+  signup: (username, password, email, consent) => request('POST', '/api/auth/signup', { username, password, email, consentVersion: consent?.version, consents: consent?.items }),
+  resetRequest: (username, email) => request('POST', '/api/auth/reset-request', { username, email }),
+  resetPassword: (token, password) => request('POST', '/api/auth/reset', { token, password }),
   withdraw: () => request('DELETE', '/api/auth/me'),
   logout: () => request('POST', '/api/auth/logout'),
   places: () => request('GET', '/api/places'),

@@ -32,6 +32,7 @@ Spring Boot 업무 백엔드. 화면(Vue)은 이 서비스의 `/api`로만 요�
 | 경로 | 설명 |
 | --- | --- |
 | `POST /api/auth/signup` | 멘토 가입. `{"username", "password", "consentVersion", "consents"}`. 아이디는 영문 소문자·숫자·밑줄 4~20자, 비밀번호는 8~72자. 가입 전 동의(필수 항목 `age14, collect, overseas, mentee` 전부)가 없으면 400 |
+| `POST /api/auth/reset-request`, `POST /api/auth/reset` | 비밀번호 찾기. 아이디와 가입할 때 적은 전자우편이 맞으면 30분 동안 한 번 쓸 수 있는 재설정 주소를 메일로 보낸다(맞는지는 알려 주지 않는다). SMTP는 `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`, 주소의 앞부분은 `APP_BASE_URL`. 메일 서버 없이 확인하려면 `RESET_LOG_LINK=true`로 띄워 로그의 `password_reset_link`를 연다(개발용) |
 | `DELETE /api/auth/me` | 회원 탈퇴(동의 철회). 계정을 바로 지우고 로그아웃한다. 다른 기기에 남은 세션은 그 기기의 다음 요청에서 끊긴다(`AccountSessionFilter`: 로그인할 때 세션에 적어 둔 계정 번호가 DB에 없으면 세션을 끝낸다). 관리자 계정은 안 된다 |
 | `POST /api/auth/login` | 로그인 |
 | `GET /api/auth/me` | 로그인한 사용자와 역할 |

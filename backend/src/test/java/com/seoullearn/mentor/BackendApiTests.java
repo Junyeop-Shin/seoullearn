@@ -84,6 +84,7 @@ class BackendApiTests {
             exchange.close();
         });
         fakeAi.start();
+        registry.add("app.reset-log-link", () -> "true");   // 메일 서버 없이 재설정 주소를 로그에서 읽는다
         registry.add("app.ai-server.url", () -> "http://127.0.0.1:" + fakeAi.getAddress().getPort());
     }
 
@@ -101,7 +102,7 @@ class BackendApiTests {
     }
 
     /** 가입 전 동의: 필수 항목 전부와 동의한 문서의 시행일 */
-    private static final String CONSENT = ", \"consentVersion\": \"2026-10-11\", \"consents\": [\"age14\", \"collect\", \"overseas\", \"mentee\"]";
+    private static final String CONSENT = ", \"email\": \"mentor@example.com\", \"consentVersion\": \"2026-10-11\", \"consents\": [\"age14\", \"overseas\", \"mentee\"]";
 
     private MockHttpSession login(String username, String password) throws Exception {
         MockHttpSession session = new MockHttpSession();
@@ -132,7 +133,7 @@ class BackendApiTests {
         assertThat(saved.getPasswordHash()).startsWith("{bcrypt}").doesNotContain("mentor-pass-1");
         List<String> columns = jdbc.queryForList(
                 "SELECT LOWER(column_name) FROM information_schema.columns WHERE LOWER(table_name) = 'app_user'", String.class);
-        assertThat(columns).containsExactlyInAnyOrder("id", "username", "password_hash", "role", "consent_version", "consented_at");
+        assertThat(columns).containsExactlyInAnyOrder("id", "username", "password_hash", "role", "consent_version", "consented_at", "email");
         assertThat(saved.getConsentVersion()).isEqualTo("2026-10-11");
         assertThat(saved.getConsentedAt()).isNotNull();
     }
@@ -141,12 +142,32 @@ class BackendApiTests {
     void signupNeedsEveryRequiredConsent() throws Exception {
         // 동의 없이, 일부만 동의하고는 가입할 수 없다
         mvc.perform(post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"username\": \"mentor_n1\", \"password\": \"mentor-pass-1\"}"))
+                .content("{\"username\": \"mentor_n1\", \"password\": \"mentor-pass-1\", \"email\": \"a@example.com\"}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.detail").value("가입 전 동의가 필요합니다."));
         mvc.perform(post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"username\": \"mentor_n1\", \"password\": \"mentor-pass-1\", \"consentVersion\": \"2026-10-11\", \"consents\": [\"age14\", \"collect\"]}"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.detail").value("필수 동의 항목에 모두 동의해야 가입할 수 있습니다."));
+                .content("{\"username\": \"mentor_n1\", \"password\": \"mentor-pass-1\", \"email\": \"a@example.com\", \"consentVersion\": \"2026-10-11\", \"consents\": [\"age14\", \"mentee\"]}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.detail").value("국외 이전 동의와 확인 항목을 모두 체크해야 가입할 수 있습니다."));
         assertThat(users.existsByUsername("mentor_n1")).isFalse();
+    }
+
+    @Test
+    void passwordResetByMailedLink(CapturedOutput output) throws Exception {
+        mentor("mentor_r1");
+        // 전자우편이 다르면 주소를 만들지 않고, 응답은 같다 (맞는지 알려 주지 않는다)
+        mvc.perform(post("/api/auth/reset-request").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"mentor_r1\", \"email\": \"other@example.com\"}")).andExpect(status().isNoContent());
+        assertThat(output.getOut()).doesNotContain("password_reset_link");
+        mvc.perform(post("/api/auth/reset-request").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"mentor_r1\", \"email\": \"Mentor@Example.com\"}")).andExpect(status().isNoContent());
+        String out = output.getOut();
+        String token = out.substring(out.lastIndexOf("/login?reset=") + 13).split("\\s")[0];
+        mvc.perform(post("/api/auth/reset").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"token\": \"" + token + "\", \"password\": \"new-pass-9999\"}")).andExpect(status().isNoContent());
+        login("mentor_r1", "new-pass-9999");
+        // 한 번 쓴 주소는 다시 못 쓴다
+        mvc.perform(post("/api/auth/reset").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"token\": \"" + token + "\", \"password\": \"again-pass-1\"}")).andExpect(status().isBadRequest());
+        assertThat(out).doesNotContain("mentor_r1 ").doesNotContain("mentor@example.com");
     }
 
     @Test

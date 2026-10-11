@@ -81,8 +81,8 @@ class LoginAttemptLimitTests {
 
     private void signup(String username) throws Exception {
         mvc.perform(post("/api/auth/signup").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"username\": \"" + username + "\", \"password\": \"mentor-pass-1\", \"consentVersion\": \"2026-10-11\","
-                        + " \"consents\": [\"age14\", \"collect\", \"overseas\", \"mentee\"]}"))
+                .content("{\"username\": \"" + username + "\", \"password\": \"mentor-pass-1\", \"email\": \"m@example.com\", \"consentVersion\": \"2026-10-11\","
+                        + " \"consents\": [\"age14\", \"overseas\", \"mentee\"]}"))
                 .andExpect(status().isCreated());
     }
 
